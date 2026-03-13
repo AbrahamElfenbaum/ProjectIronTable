@@ -41,9 +41,9 @@ Content/
 ├── Levels/
 │   └── Dev/                    — Development/test levels
 ├── Meshes/
-│   └── Dice/                   — Dice static meshes
+│   └── Dice/                   — Dice static meshes (Dungeons of Dice by NNJohn)
 ├── Materials/
-│   └── Dice/
+│   └── Dice/                   — Dice materials (Dungeons of Dice by NNJohn)
 ├── Textures/
 ├── UI/
 │   └── Dice/                   — Dice UI widgets
@@ -124,13 +124,14 @@ The foundation of the project. All dice logic, data, and UI.
 - [x] Dice selector widget (`UDiceSelector`)
 - [x] Dice selector manager (`UDiceSelectorManager`)
 - [x] Individual die blueprints (D4, D6, D8, D10, D12, D20)
-- [x] Dice meshes and materials (asset pack)
+- [x] Dice meshes and materials (asset pack: *Dungeons of Dice* by NNJohn on Epic Fab)
 - [x] Physics-based roll simulation
 - [x] Roll result reading (face detection via normal dot product, verified working)
 - [ ] Roll result display in UI
 - [ ] Sound effects for dice rolls
 - [ ] Visual effects for dice rolls
 - [ ] Custom dice support (user-importable meshes and face values)
+- [ ] Replace asset pack with original dice models (custom Blender meshes)
 
 ---
 
