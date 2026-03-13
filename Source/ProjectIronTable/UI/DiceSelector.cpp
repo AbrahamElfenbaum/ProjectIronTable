@@ -1,15 +1,27 @@
 #include "DiceSelector.h"
 
-void UDiceSelector::IncreaseNumberOfDice()
+void UDiceSelector::NativeConstruct()
 {
-	NumberOfDice++;
+	Super::NativeConstruct();
+
+	TypeText->SetText(UEnum::GetDisplayValueAsText(DiceType));
+	CountText->SetText(FText::AsNumber(DiceCount));
+
+	IncreaseButton->OnClicked.AddDynamic(this, &UDiceSelector::IncreaseDiceCount);
+	DecreaseButton->OnClicked.AddDynamic(this, &UDiceSelector::DecreaseDiceCount);
 }
 
-void UDiceSelector::DecreaseNumberOfDice()
+void UDiceSelector::IncreaseDiceCount()
 {
-	NumberOfDice--;
-	if (NumberOfDice < 0)
+	DiceCount++;
+	CountText->SetText(FText::AsNumber(DiceCount));
+}
+
+void UDiceSelector::DecreaseDiceCount()
+{
+	if (DiceCount > 0)
 	{
-		NumberOfDice = 0;
+		DiceCount--;
+		CountText->SetText(FText::AsNumber(DiceCount));
 	}
 }

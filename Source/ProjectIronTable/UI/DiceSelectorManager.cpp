@@ -1,7 +1,16 @@
 #include "DiceSelectorManager.h"
 #include "DiceSelector.h"
+#include "Kismet/KismetMathLibrary.h"
 
-void UDiceSelectorManager::RollDice(const TArray<UDiceSelector*>& Selectors, FTransform Transform, FVector Impulse)
+void UDiceSelectorManager::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	Selectors = { D4, D6, D8, D10, D12, D20, D100 };
+	RollButton->OnClicked.AddDynamic(this, &UDiceSelectorManager::RollDice);
+}
+
+void UDiceSelectorManager::RollDice()
 {
 	//Clear array of any data from a previous roll
 	SpawnedDice.Empty();
@@ -10,12 +19,19 @@ void UDiceSelectorManager::RollDice(const TArray<UDiceSelector*>& Selectors, FTr
 
 	for (auto Selector : Selectors)
 	{
-		if (Selector->NumberOfDice > 0)
+		if (Selector->DiceCount > 0)
 		{
-			for (int i = 0; i < Selector->NumberOfDice; i++)
+			for (int i = 0; i < Selector->DiceCount; i++)
 			{
+				FRotator RandomRot = UKismetMathLibrary::RandomRotator(true);
+				FTransform T(
+					FQuat(RandomRot),
+					StartingLocation,
+					FVector::OneVector
+				);
+
 				//Spawn the die
-				ABaseDiceActor* SpawnedDie = GetWorld()->SpawnActor<ABaseDiceActor>(Selector->DiceClass, Transform);
+				ABaseDiceActor* SpawnedDie = GetWorld()->SpawnActor<ABaseDiceActor>(Selector->DiceClass, T);
 
 				if (SpawnedDie)
 				{
@@ -30,7 +46,7 @@ void UDiceSelectorManager::RollDice(const TArray<UDiceSelector*>& Selectors, FTr
 				}
 			}
 
-			Selector->NumberOfDice = 0;
+			Selector->DiceCount = 0;
 		}
 	}
 

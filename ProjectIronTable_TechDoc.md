@@ -76,11 +76,28 @@ Content/
 - **`UDiceData`** — `UPrimaryDataAsset` subclass. Stores per-die configuration data (mesh, faces, type, etc.).
 
 ### UI/
-- **`UDiceSelector`** — `UUserWidget` subclass. Exposes `TSubclassOf<ABaseDiceActor>`, `EDiceType`, and `int32 NumberOfDice` for selecting and rolling dice from the UI.
-- **`UDiceSelectorManager`** — `UUserWidget` subclass. Manages spawning, rolling, and destroying dice. Collects results from all dice via delegate, broadcasts `OnAllDiceRolled` when all are settled, then destroys actors after a configurable delay (`TimeBeforeDestroyingDice`, default 5s).
+- **`UDiceSelector`** — `UUserWidget` subclass. Requires bound widgets: `TypeText`, `CountText` (`UTextBlock`), `IncreaseButton`, `DecreaseButton` (`UButton`). Exposes `DiceClass` (`TSubclassOf<ABaseDiceActor>`), `DiceType` (`EDiceType`), and `DiceCount` (`int32`, visible/read-only). Button clicks bound in `NativeConstruct`. All logic is in C++ — the Blueprint exists only for layout and styling.
+- **`UDiceSelectorManager`** — `UUserWidget` subclass. Requires bound widgets: `D4`, `D6`, `D8`, `D10`, `D12`, `D20`, `D100` (`UDiceSelector`), `RollButton` (`UButton`). Exposes `StartingLocation` and `Impulse` (`FVector`) and `TimeBeforeDestroyingDice` (`float`, default 5s) in the inspector. Selectors array is built in `NativeConstruct`. Each die spawns at `StartingLocation` with a random rotation and unit scale, then has `Impulse` applied. Collects results via delegate, broadcasts `OnAllDiceRolled` when all dice settle, then destroys actors after the configured delay.
 
 ### Utility/
 - **`UFunctionLibrary`** — `UBlueprintFunctionLibrary`. General-purpose helper functions accessible from both C++ and Blueprint.
+
+---
+
+## Build Workflow
+
+**Every session:**
+1. Build in Visual Studio (Ctrl+Shift+B) — do this before opening the `.uproject`
+2. Open the editor after the build succeeds
+
+**When things get weird** (warnings persist, crashes, odd behavior):
+1. Close the editor
+2. Delete `Intermediate/` and `Binaries/` from the project root
+3. Right-click `.uproject` → Generate Visual Studio project files
+4. Build in Visual Studio
+5. Open the editor
+
+> Never let Unreal compile C++ on its own. Blueprint widgets that inherit from C++ classes will show "invalid parent class" warnings if the editor loads before C++ classes are fully registered.
 
 ---
 
@@ -107,6 +124,9 @@ Content/
 - `bMesh1Asleep` / `bMesh2Asleep` are runtime state — use `VisibleInstanceOnly` not `EditAnywhere`
 - `IsMeshValid` and `GetFaceValue` are `const` methods — keep them that way
 - `UFunctionLibrary::GetDiceName` is kept for reference from TTRPG_Sim — evaluate whether to replace with `UEnum::GetValueAsString()` later
+- `BindWidget` pointers are null at member declaration time — never initialize arrays or do work with them in the header. Always do so in `NativeConstruct`, after binding has occurred
+- `FVector3f` is float precision (GPU/rendering use). World positions must use `FVector` (`TVector<double>`) — `FTransform` and `SpawnActor` will not accept `FVector3f`
+- Includes that are only used in the `.cpp` belong in the `.cpp`, not the `.h` (e.g. `Kismet/KismetMathLibrary.h`)
 
 ---
 
