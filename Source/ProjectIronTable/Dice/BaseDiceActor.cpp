@@ -103,6 +103,7 @@ void ABaseDiceActor::Roll(FVector Impulse)
 
 void ABaseDiceActor::OnMeshSleep(UPrimitiveComponent* SleepingComponent, FName BoneName)
 {
+	//UE_LOG(LogTemp, Warning, TEXT("OnMeshSleep fired: %s"), *SleepingComponent->GetName());
 	if (SleepingComponent == Mesh1)
 	{
 		bMesh1Asleep = true;

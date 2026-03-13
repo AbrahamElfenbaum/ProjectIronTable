@@ -51,6 +51,13 @@ void UDiceSelectorManager::OnDiceRolledHandler(FRollResult Result)
 	// Check if all dice have finished rolling
 	if (PendingResults.Num() == ExpectedDiceCount)
 	{
+		// Debug: log each result to the output log
+		for (const FRollResult& RollResult : PendingResults)
+		{
+			FString DiceTypeName = UEnum::GetValueAsString(RollResult.DiceType);
+			UE_LOG(LogTemp, Display, TEXT("Type: %s | Value: %d"), *DiceTypeName, RollResult.Value);
+		}
+
 		// Broadcast all results at once
 		OnAllDiceRolled(PendingResults);
 

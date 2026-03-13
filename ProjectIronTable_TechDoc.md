@@ -27,21 +27,26 @@ Source/ProjectIronTable/
 ```
 Content/
 ├── Blueprints/
-│   ├── Core/               — Game Mode, Player Controller
+│   ├── Core/
+│   │   ├── GameModes/          — GM_Testing
+│   │   ├── PlayerControllers/  — PLC_Testing
+│   │   └── Components/         — BP_HUDComponent (in progress)
 │   ├── Dice/
-│   │   ├── A_BaseDiceActor
-│   │   └── DiceActors/     — Individual die Blueprints (A_D4, A_D6, etc.)
-│   └── (more to come)
+│   │   └── DiceActors/         — Individual die Blueprints (A_D4, A_D6, etc.)
+│   └── Utility/
 ├── Data/
-│   ├── DataAssets/         — DA_ prefixed assets
-│   └── DataTables/         — DT_ prefixed assets
-├── Maps/
+│   ├── DataAssets/
+│   │   └── Dice/               — DA_ prefixed dice data assets
+│   └── DataTables/
+├── Levels/
+│   └── Dev/                    — Development/test levels
 ├── Meshes/
+│   └── Dice/                   — Dice static meshes
 ├── Materials/
+│   └── Dice/
 ├── Textures/
-├── VFX/
-├── Audio/
-└── UI/
+├── UI/
+│   └── Dice/                   — Dice UI widgets
 ```
 
 ---
@@ -94,6 +99,7 @@ Content/
 - After adding new files or folders, regenerate VS project files (right-click `.uproject` → Generate Visual Studio project files) or new folders won't appear in the Content Browser
 - `E1696` in Visual Studio is an IntelliSense error, not a real compiler error — build the project anyway to confirm
 - `DiceData.h` is included in `BaseDiceActor.h` as `"DiceData.h"` with no path prefix, because both files are in `Dice/` and that folder is in `PublicIncludePaths`
+- `OnComponentSleep` will not fire unless **Generate Wake Events** is checked on the Static Mesh component (Blueprint Details panel → Physics)
 - `ExpectedDiceCount` and `PendingResults` must be reset at the start of `RollDice`
 - `SpawnedDice` is cleared inside `DestroyDice()` after the timer fires — do not clear it earlier or dice won't be destroyed
 - Use `int32` instead of `int` consistently throughout the project
@@ -117,9 +123,10 @@ The foundation of the project. All dice logic, data, and UI.
 - [x] Dice data asset (`UDiceData`)
 - [x] Dice selector widget (`UDiceSelector`)
 - [x] Dice selector manager (`UDiceSelectorManager`)
-- [ ] Individual die blueprints (D4, D6, D8, D10, D12, D20)
-- [ ] Dice meshes and materials
-- [ ] Physics-based roll simulation
+- [x] Individual die blueprints (D4, D6, D8, D10, D12, D20)
+- [x] Dice meshes and materials (asset pack)
+- [x] Physics-based roll simulation
+- [x] Roll result reading (face detection via normal dot product, verified working)
 - [ ] Roll result display in UI
 - [ ] Sound effects for dice rolls
 - [ ] Visual effects for dice rolls
@@ -130,8 +137,11 @@ The foundation of the project. All dice logic, data, and UI.
 ### Phase 2 — Core Game Setup
 Establish the game framework and player interaction foundation.
 
-- [ ] Game Mode (`GM_`)
-- [ ] Player Controller (`PLC_`)
+- [x] Test Game Mode (`GM_Testing`)
+- [x] Test Player Controller (`PLC_Testing`)
+- [ ] HUD component (`BP_HUDComponent`) — in progress
+- [ ] Production Game Mode (`GM_`)
+- [ ] Production Player Controller (`PLC_`)
 - [ ] Basic camera system (top-down / isometric view)
 - [ ] Scene/session management (start, load, save)
 
@@ -204,5 +214,5 @@ Ideas to revisit later.
 
 ---
 
-*Last updated: 2026-03-12*
+*Last updated: 2026-03-13*
 
