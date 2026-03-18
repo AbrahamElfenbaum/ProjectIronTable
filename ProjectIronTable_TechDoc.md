@@ -29,7 +29,7 @@ Content/
 ├── Blueprints/
 │   ├── Core/
 │   │   ├── GameModes/          — GM_Testing
-│   │   ├── PlayerControllers/  — PLC_Testing
+│   │   ├── PlayerControllers/  — PC_Testing
 │   │   └── Components/         — BP_HUDComponent (in progress)
 │   ├── Dice/
 │   │   └── DiceActors/         — Individual die Blueprints (A_D4, A_D6, etc.)
@@ -58,7 +58,7 @@ Content/
 | Actor (Blueprint)   | A_     |
 | Pawn (Blueprint)    | P_     |
 | Game Mode           | GM_    |
-| Player Controller   | PLC_   |
+| Player Controller   | PC_    |
 | Data Asset          | DA_    |
 | Data Table          | DT_    |
 | Widget              | W_     |
@@ -159,10 +159,10 @@ The foundation of the project. All dice logic, data, and UI.
 Establish the game framework and player interaction foundation.
 
 - [x] Test Game Mode (`GM_Testing`)
-- [x] Test Player Controller (`PLC_Testing`)
+- [x] Test Player Controller (`PC_Testing`)
 - [ ] HUD component (`BP_HUDComponent`) — in progress
 - [ ] Production Game Mode (`GM_`)
-- [ ] Production Player Controller (`PLC_`)
+- [ ] Production Player Controller (`PC_`)
 - [ ] Basic camera system (top-down / isometric view)
 - [ ] Scene/session management (start, load, save)
 
