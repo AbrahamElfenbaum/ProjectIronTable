@@ -211,6 +211,7 @@ Immersive presentation layer.
 - [ ] Visual effects system (spells, hits, status effects)
 - [ ] User-importable sounds and VFX
 - [ ] Music / ambience support
+- [ ] User-uploadable music (players can load and play their own audio tracks during a session)
 
 ---
 
@@ -221,6 +222,7 @@ Allow users to bring their own assets and game rules.
 - [ ] Custom dice import
 - [ ] Plugin/mod support (TBD)
 - [ ] Support for additional TTRPG systems beyond D&D 5e
+- [ ] Player-to-player asset sharing (asset owners can optionally share custom files — minis, maps, sounds — with other players in a session)
 
 ---
 
@@ -235,5 +237,5 @@ Ideas to revisit later.
 
 ---
 
-*Last updated: 2026-03-13*
+*Last updated: 2026-03-18*
 
