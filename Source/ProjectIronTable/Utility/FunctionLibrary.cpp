@@ -1,3 +1,5 @@
+// Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
+
 #include "FunctionLibrary.h"
 
 FString UFunctionLibrary::GetDiceName(EDiceType Type)

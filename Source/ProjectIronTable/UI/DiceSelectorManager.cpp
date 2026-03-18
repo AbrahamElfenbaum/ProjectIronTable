@@ -75,7 +75,7 @@ void UDiceSelectorManager::OnDiceRolledHandler(FRollResult Result)
 		}
 
 		// Broadcast all results at once
-		OnAllDiceRolled(PendingResults);
+		OnAllDiceRolled.Broadcast(PendingResults);
 
 		//Destroy all spawned dice after a delay of TimeBeforeDestroyingDice seconds
 		GetWorld()->GetTimerManager().SetTimer(

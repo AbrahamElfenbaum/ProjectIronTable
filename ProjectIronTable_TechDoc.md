@@ -239,3 +239,7 @@ Ideas to revisit later.
 
 *Last updated: 2026-03-18*
 
+---
+
+Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
+

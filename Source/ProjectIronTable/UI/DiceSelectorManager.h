@@ -1,3 +1,5 @@
+// Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
+
 #pragma once
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
@@ -6,6 +8,8 @@
 #include "DiceSelectorManager.generated.h"
 
 class UDiceSelector;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAllDiceRolled, TArray<FRollResult>, Results);
 
 UCLASS()
 class PROJECTIRONTABLE_API UDiceSelectorManager : public UUserWidget
@@ -62,8 +66,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void RollDice();
 
-	UFUNCTION(BlueprintImplementableEvent, Category = "Dice")
-	void OnAllDiceRolled(const TArray<FRollResult>& Results);
+	UPROPERTY(BlueprintAssignable, Category = "Dice")
+	FOnAllDiceRolled OnAllDiceRolled;
 
 private:
 	UFUNCTION()
