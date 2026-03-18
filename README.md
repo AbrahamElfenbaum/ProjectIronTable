@@ -25,18 +25,22 @@ Unreal Engine 5.7 — TTRPG simulator (maps, minis, dice rolling).
 
 ### Source (`Source/ProjectIronTable/`)
 - `Dice/` — Dice actors (`ABaseDiceActor`) and data assets (`UDiceData`)
-- `UI/` — Widget classes (`UDiceSelector`, `UDiceSelectorManager`)
+- `UI/` — Widget classes (`UDiceSelector`, `UDiceSelectorManager`, `UChatBox`)
 - `Utility/` — Blueprint function libraries (`UFunctionLibrary`)
 
 ### Content (`Content/`)
-- `Blueprints/Core/GameModes/` — Game mode blueprints (`GM_Testing`)
-- `Blueprints/Core/PlayerControllers/` — Player controller blueprints (`PLC_Testing`)
+- `Blueprints/Core/GameModes/` — Game mode blueprints (`GM_Testing`, `GM_Gameplay`)
+- `Blueprints/Core/PlayerControllers/` — Player controller blueprints (`PC_Testing`, `PC_Gameplay`)
 - `Blueprints/Core/Components/` — Actor components (`BP_HUDComponent`)
-- `Blueprints/Dice/DiceActors/` — Dice actor blueprints
+- `Blueprints/Dice/` — Base dice actor Blueprint (`A_BaseDiceActor`)
+- `Blueprints/Dice/DiceActors/` — Individual die blueprints
 - `Blueprints/Utility/` — Utility blueprints
 - `Data/DataAssets/Dice/` — Dice data assets
 - `Levels/Dev/` — Development/test levels
 - `Materials/Dice/` — Dice materials
 - `Meshes/Dice/` — Dice meshes (*Dungeons of Dice* by NNJohn)
 - `Textures/` — Texture assets
-- `UI/Dice/` — Dice UI widgets
+- `UI/Dice/` — Dice widget elements (`WE_DiceSelector`, `WE_DiceSelectorManager`)
+- `UI/HUD/` — HUD widget elements (`WE_ChatBox`, `WE_ChatEntry`)
+- `UI/Screens/` — Full screen widgets (`W_GameplayScreen`)
+- `UI/Testing/` — Debug/test widgets (`WE_DebugDisplay`)

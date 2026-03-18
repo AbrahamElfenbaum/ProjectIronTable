@@ -28,10 +28,11 @@ Source/ProjectIronTable/
 Content/
 ├── Blueprints/
 │   ├── Core/
-│   │   ├── GameModes/          — GM_Testing
-│   │   ├── PlayerControllers/  — PC_Testing
+│   │   ├── GameModes/          — GM_Testing, GM_Gameplay
+│   │   ├── PlayerControllers/  — PC_Testing, PC_Gameplay
 │   │   └── Components/         — BP_HUDComponent (in progress)
 │   ├── Dice/
+│   │   ├── A_BaseDiceActor     — Base dice actor Blueprint
 │   │   └── DiceActors/         — Individual die Blueprints (A_D4, A_D6, etc.)
 │   └── Utility/
 ├── Data/
@@ -46,7 +47,10 @@ Content/
 │   └── Dice/                   — Dice materials (Dungeons of Dice by NNJohn)
 ├── Textures/
 ├── UI/
-│   └── Dice/                   — Dice UI widgets
+│   ├── Dice/                   — Dice widget elements (WE_DiceSelector, WE_DiceSelectorManager)
+│   ├── HUD/                    — HUD widget elements (WE_ChatBox, WE_ChatEntry)
+│   ├── Screens/                — Full screen widgets (W_GameplayScreen)
+│   └── Testing/                — Debug/test widgets (WE_DebugDisplay)
 ```
 
 ---
@@ -78,6 +82,7 @@ Content/
 ### UI/
 - **`UDiceSelector`** — `UUserWidget` subclass. Requires bound widgets: `TypeText`, `CountText` (`UTextBlock`), `IncreaseButton`, `DecreaseButton` (`UButton`). Exposes `DiceClass` (`TSubclassOf<ABaseDiceActor>`), `DiceType` (`EDiceType`), and `DiceCount` (`int32`, visible/read-only). Button clicks bound in `NativeConstruct`. All logic is in C++ — the Blueprint exists only for layout and styling.
 - **`UDiceSelectorManager`** — `UUserWidget` subclass. Requires bound widgets: `D4`, `D6`, `D8`, `D10`, `D12`, `D20`, `D100` (`UDiceSelector`), `RollButton` (`UButton`). Exposes `StartingLocation` and `Impulse` (`FVector`) and `TimeBeforeDestroyingDice` (`float`, default 5s) in the inspector. Selectors array is built in `NativeConstruct`. Each die spawns at `StartingLocation` with a random rotation and unit scale, then has `Impulse` applied. Collects results via delegate, broadcasts `OnAllDiceRolled` when all dice settle, then destroys actors after the configured delay.
+- **`UChatBox`** — `UUserWidget` subclass. Chat log display. Currently implemented in Blueprint (WE_ChatBox); C++ class is a stub pending translation.
 
 ### Utility/
 - **`UFunctionLibrary`** — `UBlueprintFunctionLibrary`. General-purpose helper functions accessible from both C++ and Blueprint.
@@ -147,7 +152,7 @@ The foundation of the project. All dice logic, data, and UI.
 - [x] Dice meshes and materials (asset pack: *Dungeons of Dice* by NNJohn on Epic Fab)
 - [x] Physics-based roll simulation
 - [x] Roll result reading (face detection via normal dot product, verified working)
-- [ ] Roll result display in UI
+- [ ] Roll result display in UI — in progress (chat box built, roll integration pending)
 - [ ] Sound effects for dice rolls
 - [ ] Visual effects for dice rolls
 - [ ] Custom dice support (user-importable meshes and face values)
@@ -160,9 +165,9 @@ Establish the game framework and player interaction foundation.
 
 - [x] Test Game Mode (`GM_Testing`)
 - [x] Test Player Controller (`PC_Testing`)
+- [x] Production Game Mode (`GM_Gameplay`)
+- [x] Production Player Controller (`PC_Gameplay`)
 - [ ] HUD component (`BP_HUDComponent`) — in progress
-- [ ] Production Game Mode (`GM_`)
-- [ ] Production Player Controller (`PC_`)
 - [ ] Basic camera system (top-down / isometric view)
 - [ ] Scene/session management (start, load, save)
 
