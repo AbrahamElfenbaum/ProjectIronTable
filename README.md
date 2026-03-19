@@ -25,7 +25,7 @@ Unreal Engine 5.7 — TTRPG simulator (maps, minis, dice rolling).
 
 ### Source (`Source/ProjectIronTable/`)
 - `Dice/` — Dice actors (`ABaseDiceActor`) and data assets (`UDiceData`)
-- `UI/` — Widget classes (`UDiceSelector`, `UDiceSelectorManager`, `UChatBox`)
+- `UI/` — Widget classes (`UDiceSelector`, `UDiceSelectorManager`, `UChatBox`, `UChatEntry`, `UGameplayHUDComponent`)
 - `Utility/` — Blueprint function libraries (`UFunctionLibrary`)
 
 ### Content (`Content/`)

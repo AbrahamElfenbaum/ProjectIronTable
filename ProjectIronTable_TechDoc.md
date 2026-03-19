@@ -82,7 +82,9 @@ Content/
 ### UI/
 - **`UDiceSelector`** — `UUserWidget` subclass. Requires bound widgets: `TypeText`, `CountText` (`UTextBlock`), `IncreaseButton`, `DecreaseButton` (`UButton`). Exposes `DiceClass` (`TSubclassOf<ABaseDiceActor>`), `DiceType` (`EDiceType`), and `DiceCount` (`int32`, visible/read-only). Button clicks bound in `NativeConstruct`. All logic is in C++ — the Blueprint exists only for layout and styling.
 - **`UDiceSelectorManager`** — `UUserWidget` subclass. Requires bound widgets: `D4`, `D6`, `D8`, `D10`, `D12`, `D20`, `D100` (`UDiceSelector`), `RollButton` (`UButton`). Exposes `StartingLocation` and `Impulse` (`FVector`) and `TimeBeforeDestroyingDice` (`float`, default 5s) in the inspector. Selectors array is built in `NativeConstruct`. Each die spawns at `StartingLocation` with a random rotation and unit scale, then has `Impulse` applied. Collects results via delegate, broadcasts `OnAllDiceRolled` when all dice settle, then destroys actors after the configured delay.
-- **`UChatBox`** — `UUserWidget` subclass. Chat log display. Currently implemented in Blueprint (WE_ChatBox); C++ class is a stub pending translation.
+- **`UChatBox`** — `UUserWidget` subclass. Chat log display. Requires bound widgets: `ScrollBox` (`UScrollBox`), `EditableText` (`UEditableText`). Holds a `ChatEntryClass` (`TSubclassOf<UChatEntry>`) set in the editor. Handles focus, scroll, message display, and text commit input. Gets `UGameplayHUDComponent` reference via owning player controller in `NativeConstruct`.
+- **`UChatEntry`** — `UUserWidget` subclass. Single chat message row. Requires bound widget: `TextBlock` (`UTextBlock`). Exposes `Message` (`FString`, expose on spawn). Sets text in `NativeConstruct`.
+- **`UGameplayHUDComponent`** — `UActorComponent` subclass. Manages HUD widget lifecycle and chat networking. Creates `GameplayScreenClass` widget on `BeginPlay` (local clients only), grabs `DiceSelectorManagerRef` and `ChatBoxRef` via `GetWidgetFromName`. Has Server RPC `SendChatMessageOnServer` (broadcasts to all clients) and Client RPC `AddChatMessageOnOwningClient`.
 
 ### Utility/
 - **`UFunctionLibrary`** — `UBlueprintFunctionLibrary`. General-purpose helper functions accessible from both C++ and Blueprint.
@@ -130,6 +132,7 @@ Content/
 - `IsMeshValid` and `GetFaceValue` are `const` methods — keep them that way
 - `UFunctionLibrary::GetDiceName` is kept for reference from TTRPG_Sim — evaluate whether to replace with `UEnum::GetValueAsString()` later
 - `BindWidget` pointers are null at member declaration time — never initialize arrays or do work with them in the header. Always do so in `NativeConstruct`, after binding has occurred
+- Actor Component C++ classes must have `Blueprintable` in their `UCLASS` specifier to appear as a reparent option in Blueprint. Without it the class will not show up in the picker even after a clean build and editor restart
 - `FVector3f` is float precision (GPU/rendering use). World positions must use `FVector` (`TVector<double>`) — `FTransform` and `SpawnActor` will not accept `FVector3f`
 - Includes that are only used in the `.cpp` belong in the `.cpp`, not the `.h` (e.g. `Kismet/KismetMathLibrary.h`)
 
@@ -152,7 +155,7 @@ The foundation of the project. All dice logic, data, and UI.
 - [x] Dice meshes and materials (asset pack: *Dungeons of Dice* by NNJohn on Epic Fab)
 - [x] Physics-based roll simulation
 - [x] Roll result reading (face detection via normal dot product, verified working)
-- [ ] Roll result display in UI — in progress (chat box built, roll integration pending)
+- [ ] Roll result display in UI — in progress (chat system fully working, roll integration pending)
 - [ ] Sound effects for dice rolls
 - [ ] Visual effects for dice rolls
 - [ ] Custom dice support (user-importable meshes and face values)
@@ -167,7 +170,7 @@ Establish the game framework and player interaction foundation.
 - [x] Test Player Controller (`PC_Testing`)
 - [x] Production Game Mode (`GM_Gameplay`)
 - [x] Production Player Controller (`PC_Gameplay`)
-- [ ] HUD component (`BP_HUDComponent`) — in progress
+- [x] HUD component (`BP_HUDComponent`) — complete, reparented to `UGameplayHUDComponent`
 - [ ] Basic camera system (top-down / isometric view)
 - [ ] Scene/session management (start, load, save)
 
@@ -242,7 +245,7 @@ Ideas to revisit later.
 
 ---
 
-*Last updated: 2026-03-18*
+*Last updated: 2026-03-18* — Chat system complete (UChatBox, UChatEntry, UGameplayHUDComponent fully converted from Blueprint to C++, networking RPCs working)
 
 ---
 

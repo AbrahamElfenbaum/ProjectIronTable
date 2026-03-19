@@ -73,7 +73,7 @@ void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod
 			if (PC && PC->PlayerState)
 			{
 				FString PlayerName = PC->PlayerState->GetPlayerName();
-				FString FullMessage = FString::Printf(TEXT("[%s]: [%s]"), *PlayerName, *Message);
+				FString FullMessage = FString::Printf(TEXT("%s: %s"), *PlayerName, *Message);
 				HUDComponentRef->SendChatMessageOnServer(FullMessage);
 			}
 		}
