@@ -7,12 +7,12 @@
 class UDiceSelectorManager;
 class UChatBox;
 
-UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
+UCLASS(Blueprintable, ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class PROJECTIRONTABLE_API UGameplayHUDComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-public:	
+public:
 	UGameplayHUDComponent();
 
 protected:
