@@ -13,7 +13,8 @@ ABaseDiceActor::ABaseDiceActor()
 	Mesh1->SetupAttachment(Root);
 
 	Mesh1->SetSimulatePhysics(true);
-	Mesh1->SetMassOverrideInKg(NAME_None, 1.0f, true);
+	Mesh1->SetMassOverrideInKg(NAME_None, Mass, true);
+	Mesh1->SetPhysMaterialOverride(PhysicalMaterial);
 	Mesh1->SetLinearDamping(LinearDamping);
 	Mesh1->SetAngularDamping(AngularDamping);
 
@@ -21,7 +22,8 @@ ABaseDiceActor::ABaseDiceActor()
 	Mesh2->SetupAttachment(Root);
 
 	Mesh2->SetSimulatePhysics(true);
-	Mesh2->SetMassOverrideInKg(NAME_None, 1.0f, true);
+	Mesh2->SetMassOverrideInKg(NAME_None, Mass, true);
+	Mesh2->SetPhysMaterialOverride(PhysicalMaterial);
 	Mesh2->SetLinearDamping(LinearDamping);
 	Mesh2->SetAngularDamping(AngularDamping);
 }
@@ -87,7 +89,7 @@ FRollResult ABaseDiceActor::GetRolledValue()
 	return RollResult;
 }
 
-void ABaseDiceActor::Roll(FVector Impulse)
+void ABaseDiceActor::Roll(FVector Impulse, FVector AngularImpulse)
 {
 	bMesh1Asleep = false;
 	bMesh2Asleep = !IsMeshValid(Mesh2);
@@ -95,16 +97,33 @@ void ABaseDiceActor::Roll(FVector Impulse)
 	if (IsMeshValid(Mesh1) && Mesh1->IsSimulatingPhysics())
 	{
 		Mesh1->AddImpulse(Impulse);
+		Mesh1->AddAngularImpulseInRadians(AngularImpulse);
 	}
 
 	if (IsMeshValid(Mesh2) && Mesh2->IsSimulatingPhysics())
 	{
-		Mesh2->AddImpulse(Impulse + FVector(FMath::FRandRange(-50.f, 50.f), FMath::FRandRange(-50.f, 50.f), 0));
+		Mesh2->AddImpulse(Impulse + 
+						  FVector(FMath::FRandRange(-ImpulseRange, ImpulseRange), 
+								  FMath::FRandRange(-ImpulseRange, ImpulseRange), 
+								  0));
+
+		Mesh2->AddAngularImpulseInRadians(AngularImpulse + 
+										  FVector(FMath::FRandRange(-AngularImpulseRange, AngularImpulseRange), 
+												  FMath::FRandRange(-AngularImpulseRange, AngularImpulseRange), 
+												  FMath::FRandRange(-AngularImpulseRange, AngularImpulseRange)));
 	}
+
+	GetWorld()->GetTimerManager().SetTimer(FailsafeTimerHandle, 
+										   this, 
+										   &ABaseDiceActor::FailsafeDestroy, 
+										   FailSafeTime, 
+										   false);
 }
 
 void ABaseDiceActor::OnMeshSleep(UPrimitiveComponent* SleepingComponent, FName BoneName)
 {
+	SleepingComponent->SetSimulatePhysics(false);
+
 	//UE_LOG(LogTemp, Warning, TEXT("OnMeshSleep fired: %s"), *SleepingComponent->GetName());
 	if (SleepingComponent == Mesh1)
 	{
@@ -154,3 +173,12 @@ int32 ABaseDiceActor::GetFaceValue(UStaticMeshComponent* Mesh, UDiceData* DiceFa
 	return Result;
 }
 
+void ABaseDiceActor::FailsafeDestroy()
+{
+	if (!bMesh1Asleep || !bMesh2Asleep)
+	{
+		EDiceType LostType = (IsMeshValid(Mesh2) && DiceFaces2) ? DiceFaces2->DiceType : DiceFaces1->DiceType;
+		OnFailsafeDestroy.Broadcast(LostType);
+		Destroy();
+	}
+}

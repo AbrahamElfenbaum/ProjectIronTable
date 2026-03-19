@@ -2,6 +2,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "BaseDiceActor.h"
 #include "GameplayHUDComponent.generated.h"
 
 class UDiceSelectorManager;
@@ -38,6 +39,12 @@ public:
 
 	UFUNCTION(Reliable, Client)
 	void AddChatMessageOnOwningClient(const FString& Message);
+
+	UFUNCTION()
+	void AddRollResultToChat(TArray<FRollResult> Results);
+
+	UFUNCTION()
+	void OnDiceFailsafeHandler(EDiceType DiceType);
 
 #pragma region Testing
 private:

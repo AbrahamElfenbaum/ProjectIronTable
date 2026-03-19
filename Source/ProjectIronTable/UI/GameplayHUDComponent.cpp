@@ -29,6 +29,17 @@ void UGameplayHUDComponent::BeginPlay()
 		DiceSelectorManagerRef = Cast<UDiceSelectorManager>(GameplayScreenRef->GetWidgetFromName(TEXT("DiceSelectorManager")));
 		ChatBoxRef = Cast<UChatBox>(GameplayScreenRef->GetWidgetFromName(TEXT("ChatBox")));
 
+		if (DiceSelectorManagerRef)
+		{
+			UE_LOG(LogTemp, Display, TEXT("Dice Selector Found"));
+			DiceSelectorManagerRef->OnAllDiceRolled.AddDynamic(this, &UGameplayHUDComponent::AddRollResultToChat);
+			DiceSelectorManagerRef->OnDiceFailsafeDestroyed.AddDynamic(this, &UGameplayHUDComponent::OnDiceFailsafeHandler);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Dice Selector Not Found"));
+		}
+
 		#pragma region Testing
 		if (PC->InputComponent)
 		{
@@ -77,4 +88,36 @@ void UGameplayHUDComponent::SendChatMessageOnServer_Implementation(const FString
 			}
 		}
 	}
+}
+
+void UGameplayHUDComponent::AddRollResultToChat(TArray<FRollResult> Results)
+{
+	//Message starts with the player name
+	APlayerController* PC = Cast<APlayerController>(GetOwner());
+	FString Message = PC && PC->PlayerState ? PC->PlayerState->GetPlayerName() : TEXT("Unknown");
+
+	Message += TEXT(" Rolled:\n");
+
+	//Add in each rolled result on a new line
+	for (const FRollResult& Result : Results)
+	{
+		FString DiceTypeName = UEnum::GetValueAsString(Result.DiceType);
+		DiceTypeName = DiceTypeName.RightChop(DiceTypeName.Find(TEXT("::")) + 2);
+		Message += FString::Printf(TEXT("%d on a %s\n"), Result.Value, *DiceTypeName);
+	}
+
+	//Trim the last newline off the end of the message and send it to the server to be broadcast to all clients
+	Message.TrimEndInline();
+	SendChatMessageOnServer(Message);
+}
+
+void UGameplayHUDComponent::OnDiceFailsafeHandler(EDiceType DiceType)
+{
+	APlayerController* PC = Cast<APlayerController>(GetOwner());
+	FString PlayerName = PC && PC->PlayerState ? PC->PlayerState->GetPlayerName() : TEXT("Unknown");
+
+	FString DiceTypeName = UEnum::GetValueAsString(DiceType);
+	DiceTypeName = DiceTypeName.RightChop(DiceTypeName.Find(TEXT("::")) + 2);
+
+	SendChatMessageOnServer(FString::Printf(TEXT("%s lost a %s to the void"), *PlayerName, *DiceTypeName));
 }

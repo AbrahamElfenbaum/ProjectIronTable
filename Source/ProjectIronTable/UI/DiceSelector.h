@@ -43,4 +43,6 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dice")
 	int32 DiceCount = 0;
+
+	void ResetCount();
 };

@@ -1,5 +1,4 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
-
 #pragma once
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
@@ -10,6 +9,7 @@
 class UDiceSelector;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAllDiceRolled, TArray<FRollResult>, Results);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDiceFailsafeDestroyed, EDiceType, DiceType);
 
 UCLASS()
 class PROJECTIRONTABLE_API UDiceSelectorManager : public UUserWidget
@@ -52,6 +52,15 @@ public:
 	FVector Impulse;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
+	float ImpulseRange = 50.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
+	FVector AngularImpulse;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
+	float AngularImpulseRange = 500.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
 	float TimeBeforeDestroyingDice = 5.0f;
 
 private:
@@ -69,10 +78,18 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Dice")
 	FOnAllDiceRolled OnAllDiceRolled;
 
+	UPROPERTY(BlueprintAssignable, Category = "Dice")
+	FOnDiceFailsafeDestroyed OnDiceFailsafeDestroyed;
+
 private:
 	UFUNCTION()
 	void OnDiceRolledHandler(FRollResult Result);
 
 	UFUNCTION()
 	void DestroyDice();
+
+	UFUNCTION()
+	void OnDiceFailsafeHandler(EDiceType DiceType);
+
+	FVector GetRandomizedVector(const FVector& BaseVector, const float&, bool bUseZAxis);
 };

@@ -27,3 +27,9 @@ void UDiceSelector::DecreaseDiceCount()
 		CountText->SetText(FText::AsNumber(DiceCount));
 	}
 }
+
+void UDiceSelector::ResetCount()
+{
+	DiceCount = 0;
+	CountText->SetText(FText::AsNumber(DiceCount));
+}

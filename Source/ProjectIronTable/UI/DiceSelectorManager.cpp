@@ -43,10 +43,13 @@ void UDiceSelectorManager::RollDice()
 
 					//Add delegate to wait until all dice have stopped moving before broadcasting the result
 					SpawnedDie->OnDiceRolled.AddDynamic(this, &UDiceSelectorManager::OnDiceRolledHandler);
+
+					//Failsafe delegate in case something goes wrong and the dice don't stop moving within a reasonable time frame
+					SpawnedDie->OnFailsafeDestroy.AddDynamic(this, &UDiceSelectorManager::OnDiceFailsafeHandler);
 				}
 			}
 
-			Selector->DiceCount = 0;
+			Selector->ResetCount();
 		}
 	}
 
@@ -55,7 +58,8 @@ void UDiceSelectorManager::RollDice()
 		for (auto Dice : SpawnedDice)
 		{
 			//Roll the dice
-			Dice->Roll(Impulse);
+			Dice->Roll(GetRandomizedVector(Impulse, ImpulseRange, false),
+					   GetRandomizedVector(AngularImpulse, AngularImpulseRange, true));
 		}
 	}
 }
@@ -101,4 +105,33 @@ void UDiceSelectorManager::DestroyDice()
 		}
 	}
 	SpawnedDice.Empty();
+}
+
+void UDiceSelectorManager::OnDiceFailsafeHandler(EDiceType DiceType)
+{
+	ExpectedDiceCount--;
+	OnDiceFailsafeDestroyed.Broadcast(DiceType);
+
+	if (ExpectedDiceCount > 0 && PendingResults.Num() == ExpectedDiceCount)
+	{
+		OnAllDiceRolled.Broadcast(PendingResults);
+
+		GetWorld()->GetTimerManager().SetTimer(
+			DestroyDiceTimerHandle,
+			this,
+			&UDiceSelectorManager::DestroyDice,
+			TimeBeforeDestroyingDice,
+			false);
+
+		PendingResults.Empty();
+		ExpectedDiceCount = 0;
+	}
+}
+
+FVector UDiceSelectorManager::GetRandomizedVector(const FVector& BaseVector, const float& Range, bool bUseZAxis)
+{
+	float Z = bUseZAxis ? FMath::FRandRange(-Range, Range) : 0.f;
+	return BaseVector + FVector(FMath::FRandRange(-Range, Range), 
+								FMath::FRandRange(-Range, Range), 
+								Z);
 }
