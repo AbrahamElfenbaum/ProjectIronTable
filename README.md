@@ -25,6 +25,8 @@ Unreal Engine 5.7 — TTRPG simulator (maps, minis, dice rolling).
 
 ### Source (`Source/ProjectIronTable/`)
 - `Dice/` — Dice actors (`ABaseDiceActor`) and data assets (`UDiceData`)
+- `Pawns/` — Camera pawn (`AGameplayPawn`)
+- `PlayerControllers/` — Player controller (`AGameplayController`)
 - `UI/` — Widget classes (`UDiceSelector`, `UDiceSelectorManager`, `UChatBox`, `UChatEntry`, `UGameplayHUDComponent`)
 - `Physics/Materials/` — Physical material assets (friction, restitution for dice)
 - `Utility/` — Blueprint function libraries (`UFunctionLibrary`)
@@ -33,6 +35,7 @@ Unreal Engine 5.7 — TTRPG simulator (maps, minis, dice rolling).
 - `Blueprints/Core/GameModes/` — Game mode blueprints (`GM_Testing`, `GM_Gameplay`)
 - `Blueprints/Core/PlayerControllers/` — Player controller blueprints (`PC_Testing`, `PC_Gameplay`)
 - `Blueprints/Core/Components/` — Actor components (`BP_HUDComponent`)
+- `Blueprints/Pawns/` — Camera pawn Blueprint (`P_GameplayPawn`)
 - `Blueprints/Dice/` — Base dice actor Blueprint (`A_BaseDiceActor`)
 - `Blueprints/Dice/DiceActors/` — Individual die blueprints
 - `Blueprints/Utility/` — Utility blueprints
@@ -41,8 +44,8 @@ Unreal Engine 5.7 — TTRPG simulator (maps, minis, dice rolling).
 - `Materials/Dice/` — Dice materials
 - `Meshes/Dice/` — Dice meshes (*Dungeons of Dice* by NNJohn)
 - `Textures/` — Texture assets
-- `Input/Gameplay/` — `IMC_Gameplay`, `IA_FocusChat`
-- `Input/Chat/` — `IMC_Chat`, `IA_ExitChat`, `IA_ScrollChatUp`, `IA_ScrollChatDown`
+- `Input/Gameplay/` — `IMC_Gameplay`, `IA_CameraMove`, `IA_CameraPan`, `IA_CameraPanReset`, `IA_CameraSprint`, `IA_CameraZoom`, `IA_FocusChat`
+- `Input/Chat/` — `IMC_Chat`, `IA_ExitChat`, `IA_ScrollChat`
 - `UI/Dice/` — Dice widget elements (`WE_DiceSelector`, `WE_DiceSelectorManager`)
 - `UI/HUD/` — HUD widget elements (`WE_ChatBox`, `WE_ChatEntry`)
 - `UI/Screens/` — Full screen widgets (`W_GameplayScreen`)

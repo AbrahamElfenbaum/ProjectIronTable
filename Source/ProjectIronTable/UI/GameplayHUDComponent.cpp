@@ -5,8 +5,6 @@
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
 #include "DiceSelectorManager.h"
-#include "EnhancedInputComponent.h"
-#include "EnhancedInputSubsystems.h"
 
 UGameplayHUDComponent::UGameplayHUDComponent()
 {
@@ -20,7 +18,7 @@ void UGameplayHUDComponent::BeginPlay()
 
 	PlayerControllerRef = Cast<APlayerController>(GetOwner());
 
-	if (PlayerControllerRef && 
+	if (PlayerControllerRef &&
 		PlayerControllerRef->IsLocalPlayerController() &&
 		GameplayScreenClass)
 	{
@@ -40,67 +38,23 @@ void UGameplayHUDComponent::BeginPlay()
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Dice Selector Not Found"));
 		}
-
-		ULocalPlayer* LP = PlayerControllerRef->GetLocalPlayer();
-		if (LP)
-		{
-			InputSubsystemRef = LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
-			if (InputSubsystemRef)
-			{
-				InputSubsystemRef->AddMappingContext(IMC_Gameplay, 0);
-			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Enhanced Input Subsystem not found on Local Player"));
-			}
-		}
-
-		if (UEnhancedInputComponent* EIC = Cast<UEnhancedInputComponent>(PlayerControllerRef->InputComponent))
-		{
-			EIC->BindAction(IA_FocusChat, ETriggerEvent::Triggered, this, &UGameplayHUDComponent::Input_FocusChat);
-
-			EIC->BindAction(IA_ExitChat, ETriggerEvent::Triggered, this, &UGameplayHUDComponent::Input_ExitChat);
-
-			EIC->BindAction(IA_ScrollChatUp, ETriggerEvent::Triggered, this, &UGameplayHUDComponent::Input_ScrollUp);
-
-			EIC->BindAction(IA_ScrollChatDown, ETriggerEvent::Triggered, this, &UGameplayHUDComponent::Input_ScrollDown);
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Enhanced Input Component not found on Player Controller"));
-		}
 	}
 }
 
-#pragma region Testing
-void UGameplayHUDComponent::Input_FocusChat()
+void UGameplayHUDComponent::FocusChat()
 {
-	if (InputSubsystemRef)
-	{
-		InputSubsystemRef->AddMappingContext(IMC_Chat, 1);
-	}
 	if (ChatBoxRef) ChatBoxRef->FocusChat();
 }
 
-void UGameplayHUDComponent::Input_ExitChat()
+void UGameplayHUDComponent::ExitChat()
 {
-	if (InputSubsystemRef)
-	{
-		InputSubsystemRef->RemoveMappingContext(IMC_Chat);
-	}
 	if (ChatBoxRef) ChatBoxRef->ExitChat();
 }
 
-void UGameplayHUDComponent::Input_ScrollUp()
+void UGameplayHUDComponent::ScrollChat(bool bUp)
 {
-	if (ChatBoxRef) ChatBoxRef->Scroll(true);
+	if (ChatBoxRef) ChatBoxRef->Scroll(bUp);
 }
-
-void UGameplayHUDComponent::Input_ScrollDown()
-{
-	if (ChatBoxRef) ChatBoxRef->Scroll(false);
-}
-#pragma endregion
 
 void UGameplayHUDComponent::AddChatMessageOnOwningClient_Implementation(const FString& Message)
 {

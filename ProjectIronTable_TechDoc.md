@@ -18,9 +18,11 @@ ProjectIronTable is a TTRPG (Tabletop Role-Playing Game) simulator built in Unre
 ### C++ Source (`Source/ProjectIronTable/`)
 ```
 Source/ProjectIronTable/
-├── Dice/        — Dice actors and data assets
-├── UI/          — Widget classes
-└── Utility/     — Function libraries and general-purpose helpers
+├── Dice/              — Dice actors and data assets
+├── Pawns/             — Pawn classes
+├── PlayerControllers/ — Player controller classes
+├── UI/                — Widget classes and HUD component
+└── Utility/           — Function libraries and general-purpose helpers
 ```
 
 ### Content Browser (`Content/`)
@@ -34,6 +36,8 @@ Content/
 │   ├── Dice/
 │   │   ├── A_BaseDiceActor     — Base dice actor Blueprint
 │   │   └── DiceActors/         — Individual die Blueprints (A_D4, A_D6, etc.)
+│   ├── Pawns/
+│   │   └── GameplayPawn    — Camera pawn Blueprint (P_GameplayPawn)
 │   └── Utility/
 ├── Data/
 │   ├── DataAssets/
@@ -47,8 +51,8 @@ Content/
 │   └── Dice/                   — Dice materials (Dungeons of Dice by NNJohn)
 ├── Textures/
 ├── Input/
-│   ├── Gameplay/               — IMC_Gameplay, IA_FocusChat
-│   └── Chat/                   — IMC_Chat, IA_ExitChat, IA_ScrollChatUp, IA_ScrollChatDown
+│   ├── Gameplay/               — IMC_Gameplay, IA_CameraMove, IA_CameraPan, IA_CameraPanReset, IA_CameraSprint, IA_CameraZoom, IA_FocusChat
+│   └── Chat/                   — IMC_Chat, IA_ExitChat, IA_ScrollChat
 ├── UI/
 │   ├── Dice/                   — Dice widget elements (WE_DiceSelector, WE_DiceSelectorManager)
 │   ├── HUD/                    — HUD widget elements (WE_ChatBox, WE_ChatEntry)
@@ -87,7 +91,13 @@ Content/
 - **`UDiceSelectorManager`** — `UUserWidget` subclass. Requires bound widgets: `D4`, `D6`, `D8`, `D10`, `D12`, `D20`, `D100` (`UDiceSelector`), `RollButton` (`UButton`). Exposes `StartingLocation`, `Impulse`, `AngularImpulse` (`FVector`), `ImpulseRange`, `AngularImpulseRange` (`float`), and `TimeBeforeDestroyingDice` (`float`, default 5s) in the inspector. Selectors array is built in `NativeConstruct`. Each die spawns at `StartingLocation` with a random rotation and unit scale, then has a randomized impulse applied via `GetRandomizedVector`. Collects results via delegate, broadcasts `OnAllDiceRolled` when all dice settle, then destroys actors after the configured delay. Broadcasts `OnDiceFailsafeDestroyed` (with `EDiceType`) when a die is lost to the failsafe.
 - **`UChatBox`** — `UUserWidget` subclass. Chat log display. Requires bound widgets: `ScrollBox` (`UScrollBox`), `EditableText` (`UEditableText`). Holds a `ChatEntryClass` (`TSubclassOf<UChatEntry>`) set in the editor. `FocusChat()` enables the `EditableText`, sets user focus, and sets input mode to `FInputModeUIOnly`. `ExitChat()` disables it, clears the text, and restores `FInputModeGameAndUI`. `NativeOnMouseButtonDown` calls `FocusChat()` on click when not already focused. `OnTextCommitted` handles `OnEnter` (send message, clear field, re-focus to stay in chat), `OnUserMovedFocus` (click outside → `ExitChat`), and `OnCleared` (Escape → `ExitChat`). Gets `UGameplayHUDComponent` reference via owning player controller in `NativeConstruct`.
 - **`UChatEntry`** — `UUserWidget` subclass. Single chat message row. Requires bound widget: `TextBlock` (`UTextBlock`). Exposes `Message` (`FString`, expose on spawn). Sets text in `NativeConstruct`.
-- **`UGameplayHUDComponent`** — `UActorComponent` subclass. Manages HUD widget lifecycle, chat networking, and Enhanced Input setup. Caches `PlayerControllerRef` (`APlayerController`) and `InputSubsystemRef` (`UEnhancedInputLocalPlayerSubsystem`) in `BeginPlay`. Creates `GameplayScreenClass` widget on `BeginPlay` (local clients only), grabs `DiceSelectorManagerRef` and `ChatBoxRef` via `GetWidgetFromName`. Binds to `OnAllDiceRolled` and `OnDiceFailsafeDestroyed` on the `DiceSelectorManager`. Adds `IMC_Gameplay` (priority 0) to the Enhanced Input subsystem and binds `IA_FocusChat`, `IA_ExitChat`, `IA_ScrollChatUp`, `IA_ScrollChatDown` via `UEnhancedInputComponent`. `Input_FocusChat` adds `IMC_Chat` (priority 1); `Input_ExitChat` removes it. Has Server RPC `SendChatMessageOnServer` (broadcasts to all clients) and Client RPC `AddChatMessageOnOwningClient`. `AddRollResultToChat` formats roll results as "[Player] Rolled:\n[value] on a [type]" per die. `OnDiceFailsafeHandler` sends "[Player] lost a [type] to the void". Expose IMCs and IAs via `EditAnywhere` UPROPERTYs (assigned in `BP_HUDComponent` details panel).
+- **`UGameplayHUDComponent`** — `UActorComponent` subclass. Manages HUD widget lifecycle and chat networking. Created in `AGameplayController` constructor. Caches `PlayerControllerRef` in `BeginPlay`. Creates `GameplayScreenClass` widget (local clients only), grabs `DiceSelectorManagerRef` and `ChatBoxRef` via `GetWidgetFromName`. Binds to `OnAllDiceRolled` and `OnDiceFailsafeDestroyed`. Has Server RPC `SendChatMessageOnServer` (broadcasts to all clients) and Client RPC `AddChatMessageOnOwningClient`. `AddRollResultToChat` formats roll results as "[Player] Rolled:\n[value] on a [type]" per die. `OnDiceFailsafeHandler` sends "[Player] lost a [type] to the void". Exposes public chat wrappers `FocusChat()`, `ExitChat()`, `ScrollChat(bool bUp)` for the controller to call.
+
+### Pawns/
+- **`AGameplayPawn`** — `APawn` subclass. Camera pawn for top-down view. Component hierarchy: `Root` (USceneComponent) → `Sphere` (UStaticMeshComponent) → `SpringArm` (USpringArmComponent) → `Camera` (UCameraComponent). All components public so `AGameplayController` can access `SpringArm->TargetArmLength` for speed calculation.
+
+### PlayerControllers/
+- **`AGameplayController`** — `APlayerController` subclass. Central hub for all player input and HUD management. Creates `HUDComponent` (`UGameplayHUDComponent`) in constructor. `BeginPlay` sets `bShowMouseCursor = true`. In `OnPossess`: casts possessed pawn to `AGameplayPawn`, sets up `UEnhancedInputLocalPlayerSubsystem` with `IMC_Gameplay` (priority 0), binds all input actions via `UEnhancedInputComponent`. **Movement**: `IA_CameraMove` (Vector2D) moves along the pawn's forward/right vectors scaled by `CalculateCameraMovementSpeed() * CurrentCameraSpeedMultiplier`; `Delta.Z` zeroed to keep movement flat on the ground plane regardless of camera pitch. `CalculateCameraMovementSpeed()` clamps `SpringArm->TargetArmLength / 100` between `MinCameraMovementSpeed` and `MaxCameraMovementSpeed`. **Sprint**: `IA_CameraSprint` (bool, Triggered+Completed) sets `CurrentCameraSpeedMultiplier` to `CameraSpeedMultiplier` when held, `1.f` when released. **Pan**: `IA_CameraPan` (bool, Started+Triggered+Completed) — Started/Completed toggle `bCanCameraMove`; Triggered calls `GetInputMouseDelta` and rotates the pawn: DeltaX→Yaw (unrestricted), DeltaY→Pitch (clamped to `[MinCameraPitch, MaxCameraPitch]`). `IA_CameraPanReset` resets pitch to -15.f while preserving Yaw. **Zoom**: `IA_CameraZoom` (float) adjusts `SpringArm->TargetArmLength` by `FMath::Sign(input) * ZoomSpeed`, clamped to `[MinZoomLength, MaxZoomLength]`. **Chat**: `IA_FocusChat`/`IA_ExitChat` swap `IMC_Chat` (priority 1) in/out and delegate to `HUDComponent`. `IA_ScrollChat` (float) passes sign to `HUDComponent->ScrollChat()`. **Editor validation**: `PostEditChangeProperty` (`#if WITH_EDITOR`) enforces positive minimums and min < max for all camera range properties — when min ≥ max, max is bumped up to preserve the min value. Camera properties: `MinCameraMovementSpeed` (5), `MaxCameraMovementSpeed` (20), `CameraSpeedMultiplier` (2), `MinCameraPitch` (-15), `MaxCameraPitch` (45), `CameraPanSpeedMultiplier` (5), `MinZoomLength` (100), `MaxZoomLength` (2500), `ZoomSpeed` (50). Private non-UPROPERTY: `CurrentCameraSpeedMultiplier` (runtime sprint state). `bCanCameraMove` is a plain `bool` (no UPROPERTY) to avoid Blueprint CDO override. Input assets: `IMC_Gameplay`, `IA_CameraMove`, `IA_CameraPan`, `IA_CameraPanReset`, `IA_CameraSprint`, `IA_CameraZoom`, `IA_FocusChat` (Gameplay Input); `IMC_Chat`, `IA_ExitChat`, `IA_ScrollChat` (Chat Input). All assigned in `PC_Gameplay` details panel.
 
 ### Utility/
 - **`UFunctionLibrary`** — `UBlueprintFunctionLibrary`. General-purpose helper functions accessible from both C++ and Blueprint.
@@ -152,6 +162,14 @@ Content/
 - Declaring `Type* MemberName = Cast<...>` in `BeginPlay` creates a local variable that shadows the member — the member is never assigned. Use `MemberName = Cast<...>` (no type prefix) to assign to the member
 - For Actor Components, Enhanced Input setup goes in `BeginPlay`: get subsystem via `PC->GetLocalPlayer()->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>()`, bind actions via `Cast<UEnhancedInputComponent>(PC->InputComponent)->BindAction(...)`
 - `UEnhancedInputLocalPlayerSubsystem` can be forward-declared in `.h` and included via `EnhancedInputSubsystems.h` in `.cpp`
+- **Blueprint CDO overrides C++ constructor defaults** — any `UPROPERTY` on a Blueprint subclass uses the Blueprint's own saved CDO value, not the C++ constructor value. If a Blueprint was created before a default was set (or with a different value), it will keep its saved value forever. Fix: use `EditDefaultsOnly` and set the value in the Blueprint details panel, or set it explicitly in the constructor AND open the Blueprint to reset its CDO, or remove `UPROPERTY` if the value only needs C++ control
+- `NewObject` cannot be used in constructors to create components — use `CreateDefaultSubobject`. `CreateDefaultSubobject` handles registration automatically; no `RegisterComponent` call needed
+- For `APlayerController`, Enhanced Input setup (subsystem + action bindings) goes in `OnPossess`, not `BeginPlay` — `OnPossess` fires when the pawn is possessed and `InputComponent` is already valid at that point
+- `Cast<UEnhancedInputComponent>(InputComponent)` silently returns null if **Project Settings → Input → Default Classes → Default Input Component Class** is not set to `EnhancedInputComponent` — verify this setting when moving Enhanced Input bindings from Blueprint to C++
+- `FRotator(Pitch, Yaw, Roll)` — constructor order is NOT (X, Y, Z). Passing mouse DeltaX/DeltaY in the wrong positions scrambles rotation axes and causes violent camera bouncing
+- `GetActorForwardVector()` has a Z component when the pawn is pitched — after computing movement delta from forward/right vectors, zero out `Delta.Z` to keep movement flat on the ground plane
+- `PostEditChangeProperty` only fires in editor builds — always wrap with `#if WITH_EDITOR` / `#endif`. For runtime property validation, extract the logic into a shared `ValidateCameraSettings()` function callable from both `PostEditChangeProperty` and the runtime settings apply path. **This is required before shipping a settings menu** — without it, a player could set MinZoom > MaxZoom or a speed of 0, which would break camera movement silently
+- `FMath::Sign(float)` returns `1.f`, `-1.f`, or `0.f` — useful for collapsing if/else scroll direction checks into a single clamped expression
 
 ---
 
@@ -174,6 +192,7 @@ The foundation of the project. All dice logic, data, and UI.
 - [x] Roll result reading (face detection via normal dot product, verified working)
 - [x] Roll result display in UI — complete (results broadcast to chat via OnAllDiceRolled → GameplayHUDComponent)
 - [ ] Tune dice physics settings (mass, damping, impulse values) so rolls look and feel realistic
+- [ ] **Bug:** Rolling again before the previous roll despawns causes the second roll to vanish immediately and the first roll to remain permanently — `DiceSelectorManager` needs to handle overlapping roll sessions
 - [ ] Sound effects for dice rolls
 - [ ] Visual effects for dice rolls
 - [ ] Custom dice support (user-importable meshes and face values)
@@ -189,7 +208,10 @@ Establish the game framework and player interaction foundation.
 - [x] Production Game Mode (`GM_Gameplay`)
 - [x] Production Player Controller (`PC_Gameplay`)
 - [x] HUD component (`BP_HUDComponent`) — complete, reparented to `UGameplayHUDComponent`
-- [ ] Player movement system (camera + input via Enhanced Input)
+- [x] Player controller C++ class (`AGameplayController`) — owns all input, HUD component, camera movement
+- [x] Camera pawn (`AGameplayPawn`) — top-down camera rig (Root → Sphere → SpringArm → Camera)
+- [x] Camera movement polish (panning, zoom, bounds) — pan rotates pawn (yaw unrestricted, pitch clamped), zoom adjusts spring arm length, sprint multiplier, pan reset, editor property validation via PostEditChangeProperty. Runtime settings save system pending.
+- [ ] Runtime camera settings menu (`USaveGame`-based) — exposes camera properties (speeds, zoom range, pan speed, pitch limits) to the player at runtime. **Requirements before shipping:** (1) extract `PostEditChangeProperty` validation logic into a shared `ValidateCameraSettings()` function callable at runtime; (2) call it when settings are applied so invalid values (min ≥ max, zero speeds) can never reach the camera movement code; (3) load saved settings in `BeginPlay` and apply before any input is processed.
 - [ ] Basic camera system (top-down / isometric view)
 - [ ] Scene/session management (start, load, save)
 
@@ -265,7 +287,7 @@ Ideas to revisit later.
 
 ---
 
-*Last updated: 2026-03-20* — Chat input system overhauled: click-to-focus, stay-in-chat after send, click-outside/Escape to exit. Switched from hard-coded BindKey to Enhanced Input (IMC_Gameplay, IMC_Chat, four IAs). GameplayHUDComponent now caches PlayerControllerRef and InputSubsystemRef. EnhancedInput added to Build.cs. Added Content/Input/ folder structure.
+*Last updated: 2026-03-20* — Full camera system implemented: WASD movement along pawn forward/right vectors, middle-mouse pan (yaw + clamped pitch), scroll zoom, sprint multiplier, pan reset. Editor property validation via PostEditChangeProperty. Added IA_CameraPanReset, IA_CameraSprint. AGameplayController description updated.
 
 ---
 
