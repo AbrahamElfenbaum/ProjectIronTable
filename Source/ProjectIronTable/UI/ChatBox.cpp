@@ -16,6 +16,18 @@ void UChatBox::NativeConstruct()
 	}
 
 	EditableText->OnTextCommitted.AddDynamic(this, &UChatBox::OnTextCommitted);
+
+}
+
+FReply UChatBox::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (!bChatFocused)
+	{
+		FocusChat();
+		return FReply::Handled();
+	}
+
+	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
 void UChatBox::FocusChat()
@@ -26,6 +38,7 @@ void UChatBox::FocusChat()
 		EditableText->SetUserFocus(PC);
 		bChatFocused = true;
 		EditableText->SetIsEnabled(true);
+		PC->SetInputMode(FInputModeUIOnly());
 	}
 }
 
@@ -48,7 +61,7 @@ void UChatBox::Scroll(bool bUp)
 	ScrollBox->SetScrollOffset(
 		FMath::Clamp(
 			ScrollBox->GetScrollOffset() + (ScrollMultiplier * scrollDirection),
-			0.0f, 
+			0.0f,
 			ScrollBox->GetScrollOffsetOfEnd()));
 }
 
@@ -76,8 +89,15 @@ void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod
 				FString FullMessage = FString::Printf(TEXT("%s: %s"), *PlayerName, *Message);
 				HUDComponentRef->SendChatMessageOnServer(FullMessage);
 			}
-		}
 
+			EditableText->SetText(FText::GetEmpty());
+
+			FocusChat();
+		}
+	}
+	else if (CommitMethod == ETextCommit::OnUserMovedFocus ||
+		     CommitMethod == ETextCommit::OnCleared)
+	{
 		ExitChat();
 	}
 }

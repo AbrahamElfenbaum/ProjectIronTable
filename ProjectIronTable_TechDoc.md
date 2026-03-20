@@ -46,6 +46,9 @@ Content/
 ├── Materials/
 │   └── Dice/                   — Dice materials (Dungeons of Dice by NNJohn)
 ├── Textures/
+├── Input/
+│   ├── Gameplay/               — IMC_Gameplay, IA_FocusChat
+│   └── Chat/                   — IMC_Chat, IA_ExitChat, IA_ScrollChatUp, IA_ScrollChatDown
 ├── UI/
 │   ├── Dice/                   — Dice widget elements (WE_DiceSelector, WE_DiceSelectorManager)
 │   ├── HUD/                    — HUD widget elements (WE_ChatBox, WE_ChatEntry)
@@ -82,9 +85,9 @@ Content/
 ### UI/
 - **`UDiceSelector`** — `UUserWidget` subclass. Requires bound widgets: `TypeText`, `CountText` (`UTextBlock`), `IncreaseButton`, `DecreaseButton` (`UButton`). Exposes `DiceClass` (`TSubclassOf<ABaseDiceActor>`), `DiceType` (`EDiceType`), and `DiceCount` (`int32`, visible/read-only). Button clicks bound in `NativeConstruct`. All logic is in C++ — the Blueprint exists only for layout and styling.
 - **`UDiceSelectorManager`** — `UUserWidget` subclass. Requires bound widgets: `D4`, `D6`, `D8`, `D10`, `D12`, `D20`, `D100` (`UDiceSelector`), `RollButton` (`UButton`). Exposes `StartingLocation`, `Impulse`, `AngularImpulse` (`FVector`), `ImpulseRange`, `AngularImpulseRange` (`float`), and `TimeBeforeDestroyingDice` (`float`, default 5s) in the inspector. Selectors array is built in `NativeConstruct`. Each die spawns at `StartingLocation` with a random rotation and unit scale, then has a randomized impulse applied via `GetRandomizedVector`. Collects results via delegate, broadcasts `OnAllDiceRolled` when all dice settle, then destroys actors after the configured delay. Broadcasts `OnDiceFailsafeDestroyed` (with `EDiceType`) when a die is lost to the failsafe.
-- **`UChatBox`** — `UUserWidget` subclass. Chat log display. Requires bound widgets: `ScrollBox` (`UScrollBox`), `EditableText` (`UEditableText`). Holds a `ChatEntryClass` (`TSubclassOf<UChatEntry>`) set in the editor. Handles focus, scroll, message display, and text commit input. Gets `UGameplayHUDComponent` reference via owning player controller in `NativeConstruct`.
+- **`UChatBox`** — `UUserWidget` subclass. Chat log display. Requires bound widgets: `ScrollBox` (`UScrollBox`), `EditableText` (`UEditableText`). Holds a `ChatEntryClass` (`TSubclassOf<UChatEntry>`) set in the editor. `FocusChat()` enables the `EditableText`, sets user focus, and sets input mode to `FInputModeUIOnly`. `ExitChat()` disables it, clears the text, and restores `FInputModeGameAndUI`. `NativeOnMouseButtonDown` calls `FocusChat()` on click when not already focused. `OnTextCommitted` handles `OnEnter` (send message, clear field, re-focus to stay in chat), `OnUserMovedFocus` (click outside → `ExitChat`), and `OnCleared` (Escape → `ExitChat`). Gets `UGameplayHUDComponent` reference via owning player controller in `NativeConstruct`.
 - **`UChatEntry`** — `UUserWidget` subclass. Single chat message row. Requires bound widget: `TextBlock` (`UTextBlock`). Exposes `Message` (`FString`, expose on spawn). Sets text in `NativeConstruct`.
-- **`UGameplayHUDComponent`** — `UActorComponent` subclass. Manages HUD widget lifecycle and chat networking. Creates `GameplayScreenClass` widget on `BeginPlay` (local clients only), grabs `DiceSelectorManagerRef` and `ChatBoxRef` via `GetWidgetFromName`. Binds to `OnAllDiceRolled` and `OnDiceFailsafeDestroyed` on the `DiceSelectorManager`. Has Server RPC `SendChatMessageOnServer` (broadcasts to all clients) and Client RPC `AddChatMessageOnOwningClient`. `AddRollResultToChat` formats roll results as "[Player] Rolled:\n[value] on a [type]" per die. `OnDiceFailsafeHandler` sends "[Player] lost a [type] to the void".
+- **`UGameplayHUDComponent`** — `UActorComponent` subclass. Manages HUD widget lifecycle, chat networking, and Enhanced Input setup. Caches `PlayerControllerRef` (`APlayerController`) and `InputSubsystemRef` (`UEnhancedInputLocalPlayerSubsystem`) in `BeginPlay`. Creates `GameplayScreenClass` widget on `BeginPlay` (local clients only), grabs `DiceSelectorManagerRef` and `ChatBoxRef` via `GetWidgetFromName`. Binds to `OnAllDiceRolled` and `OnDiceFailsafeDestroyed` on the `DiceSelectorManager`. Adds `IMC_Gameplay` (priority 0) to the Enhanced Input subsystem and binds `IA_FocusChat`, `IA_ExitChat`, `IA_ScrollChatUp`, `IA_ScrollChatDown` via `UEnhancedInputComponent`. `Input_FocusChat` adds `IMC_Chat` (priority 1); `Input_ExitChat` removes it. Has Server RPC `SendChatMessageOnServer` (broadcasts to all clients) and Client RPC `AddChatMessageOnOwningClient`. `AddRollResultToChat` formats roll results as "[Player] Rolled:\n[value] on a [type]" per die. `OnDiceFailsafeHandler` sends "[Player] lost a [type] to the void". Expose IMCs and IAs via `EditAnywhere` UPROPERTYs (assigned in `BP_HUDComponent` details panel).
 
 ### Utility/
 - **`UFunctionLibrary`** — `UBlueprintFunctionLibrary`. General-purpose helper functions accessible from both C++ and Blueprint.
@@ -140,6 +143,15 @@ Content/
 - Actor Component C++ classes must have `Blueprintable` in their `UCLASS` specifier to appear as a reparent option in Blueprint. Without it the class will not show up in the picker even after a clean build and editor restart
 - `FVector3f` is float precision (GPU/rendering use). World positions must use `FVector` (`TVector<double>`) — `FTransform` and `SpawnActor` will not accept `FVector3f`
 - Includes that are only used in the `.cpp` belong in the `.cpp`, not the `.h` (e.g. `Kismet/KismetMathLibrary.h`)
+- After adding a new module to `Build.cs`, regenerate VS project files so IntelliSense picks up the new include paths — autocomplete won't work until then even though E1696 isn't a real error
+- `UPROPERTY` category names with spaces must use quoted strings: `Category = "My Category"` — unquoted names with spaces cause a UHT001 error
+- `FInputModeUIOnly()` does NOT block Enhanced Input actions — it only affects legacy input and Slate viewport capture. To block game input while in chat, remove the movement IMC from the subsystem in `FocusChat()` and re-add it in `ExitChat()`
+- `ETextCommit::OnCleared` fires when Escape is pressed in a focused `UEditableText` — the widget consumes Escape before Enhanced Input sees it, so handle exit-on-Escape in `OnTextCommitted` rather than via an input action
+- `ETextCommit::OnUserMovedFocus` fires when the user clicks away from a focused `UEditableText` — use this to detect "click outside to exit"
+- When `UEditableText` commits on Enter, it also immediately fires `OnUserMovedFocus` — if you want to stay in chat after sending, call `FocusChat()` at the end of the `OnEnter` block to re-establish focus
+- Declaring `Type* MemberName = Cast<...>` in `BeginPlay` creates a local variable that shadows the member — the member is never assigned. Use `MemberName = Cast<...>` (no type prefix) to assign to the member
+- For Actor Components, Enhanced Input setup goes in `BeginPlay`: get subsystem via `PC->GetLocalPlayer()->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>()`, bind actions via `Cast<UEnhancedInputComponent>(PC->InputComponent)->BindAction(...)`
+- `UEnhancedInputLocalPlayerSubsystem` can be forward-declared in `.h` and included via `EnhancedInputSubsystems.h` in `.cpp`
 
 ---
 
@@ -177,6 +189,7 @@ Establish the game framework and player interaction foundation.
 - [x] Production Game Mode (`GM_Gameplay`)
 - [x] Production Player Controller (`PC_Gameplay`)
 - [x] HUD component (`BP_HUDComponent`) — complete, reparented to `UGameplayHUDComponent`
+- [ ] Player movement system (camera + input via Enhanced Input)
 - [ ] Basic camera system (top-down / isometric view)
 - [ ] Scene/session management (start, load, save)
 
@@ -252,7 +265,7 @@ Ideas to revisit later.
 
 ---
 
-*Last updated: 2026-03-20* — Added roadmap items: dice physics tuning (Phase 1) and custom UI art assets (Phase 6).
+*Last updated: 2026-03-20* — Chat input system overhauled: click-to-focus, stay-in-chat after send, click-outside/Escape to exit. Switched from hard-coded BindKey to Enhanced Input (IMC_Gameplay, IMC_Chat, four IAs). GameplayHUDComponent now caches PlayerControllerRef and InputSubsystemRef. EnhancedInput added to Build.cs. Added Content/Input/ folder structure.
 
 ---
 

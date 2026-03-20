@@ -1,11 +1,12 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "GameplayHUDComponent.h"
-#include "InputCoreTypes.h"
 #include "Blueprint/UserWidget.h"
 #include "ChatBox.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
 #include "DiceSelectorManager.h"
+#include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
 
 UGameplayHUDComponent::UGameplayHUDComponent()
 {
@@ -17,10 +18,10 @@ void UGameplayHUDComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	APlayerController* PC = Cast<APlayerController>(GetOwner());
+	PlayerControllerRef = Cast<APlayerController>(GetOwner());
 
-	if (PC && 
-		PC->IsLocalPlayerController() &&
+	if (PlayerControllerRef && 
+		PlayerControllerRef->IsLocalPlayerController() &&
 		GameplayScreenClass)
 	{
 		GameplayScreenRef = CreateWidget<UUserWidget>(GetWorld(), GameplayScreenClass);
@@ -40,21 +41,54 @@ void UGameplayHUDComponent::BeginPlay()
 			UE_LOG(LogTemp, Warning, TEXT("Dice Selector Not Found"));
 		}
 
-		#pragma region Testing
-		if (PC->InputComponent)
+		ULocalPlayer* LP = PlayerControllerRef->GetLocalPlayer();
+		if (LP)
 		{
-			PC->InputComponent->BindKey(EKeys::Enter, IE_Pressed, this, &UGameplayHUDComponent::Input_FocusChat);
-			PC->InputComponent->BindKey(EKeys::MouseScrollUp, IE_Pressed, this, &UGameplayHUDComponent::Input_ScrollUp);
-			PC->InputComponent->BindKey(EKeys::MouseScrollDown, IE_Pressed, this, &UGameplayHUDComponent::Input_ScrollDown);
+			InputSubsystemRef = LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
+			if (InputSubsystemRef)
+			{
+				InputSubsystemRef->AddMappingContext(IMC_Gameplay, 0);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Enhanced Input Subsystem not found on Local Player"));
+			}
 		}
-		#pragma endregion
+
+		if (UEnhancedInputComponent* EIC = Cast<UEnhancedInputComponent>(PlayerControllerRef->InputComponent))
+		{
+			EIC->BindAction(IA_FocusChat, ETriggerEvent::Triggered, this, &UGameplayHUDComponent::Input_FocusChat);
+
+			EIC->BindAction(IA_ExitChat, ETriggerEvent::Triggered, this, &UGameplayHUDComponent::Input_ExitChat);
+
+			EIC->BindAction(IA_ScrollChatUp, ETriggerEvent::Triggered, this, &UGameplayHUDComponent::Input_ScrollUp);
+
+			EIC->BindAction(IA_ScrollChatDown, ETriggerEvent::Triggered, this, &UGameplayHUDComponent::Input_ScrollDown);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Enhanced Input Component not found on Player Controller"));
+		}
 	}
 }
 
 #pragma region Testing
 void UGameplayHUDComponent::Input_FocusChat()
 {
+	if (InputSubsystemRef)
+	{
+		InputSubsystemRef->AddMappingContext(IMC_Chat, 1);
+	}
 	if (ChatBoxRef) ChatBoxRef->FocusChat();
+}
+
+void UGameplayHUDComponent::Input_ExitChat()
+{
+	if (InputSubsystemRef)
+	{
+		InputSubsystemRef->RemoveMappingContext(IMC_Chat);
+	}
+	if (ChatBoxRef) ChatBoxRef->ExitChat();
 }
 
 void UGameplayHUDComponent::Input_ScrollUp()
@@ -93,8 +127,7 @@ void UGameplayHUDComponent::SendChatMessageOnServer_Implementation(const FString
 void UGameplayHUDComponent::AddRollResultToChat(TArray<FRollResult> Results)
 {
 	//Message starts with the player name
-	APlayerController* PC = Cast<APlayerController>(GetOwner());
-	FString Message = PC && PC->PlayerState ? PC->PlayerState->GetPlayerName() : TEXT("Unknown");
+	FString Message = PlayerControllerRef && PlayerControllerRef->PlayerState ? PlayerControllerRef->PlayerState->GetPlayerName() : TEXT("Unknown");
 
 	Message += TEXT(" Rolled:\n");
 
@@ -113,8 +146,7 @@ void UGameplayHUDComponent::AddRollResultToChat(TArray<FRollResult> Results)
 
 void UGameplayHUDComponent::OnDiceFailsafeHandler(EDiceType DiceType)
 {
-	APlayerController* PC = Cast<APlayerController>(GetOwner());
-	FString PlayerName = PC && PC->PlayerState ? PC->PlayerState->GetPlayerName() : TEXT("Unknown");
+	FString PlayerName = PlayerControllerRef && PlayerControllerRef->PlayerState ? PlayerControllerRef->PlayerState->GetPlayerName() : TEXT("Unknown");
 
 	FString DiceTypeName = UEnum::GetValueAsString(DiceType);
 	DiceTypeName = DiceTypeName.RightChop(DiceTypeName.Find(TEXT("::")) + 2);

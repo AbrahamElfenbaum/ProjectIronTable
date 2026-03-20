@@ -41,6 +41,8 @@ Unreal Engine 5.7 — TTRPG simulator (maps, minis, dice rolling).
 - `Materials/Dice/` — Dice materials
 - `Meshes/Dice/` — Dice meshes (*Dungeons of Dice* by NNJohn)
 - `Textures/` — Texture assets
+- `Input/Gameplay/` — `IMC_Gameplay`, `IA_FocusChat`
+- `Input/Chat/` — `IMC_Chat`, `IA_ExitChat`, `IA_ScrollChatUp`, `IA_ScrollChatDown`
 - `UI/Dice/` — Dice widget elements (`WE_DiceSelector`, `WE_DiceSelectorManager`)
 - `UI/HUD/` — HUD widget elements (`WE_ChatBox`, `WE_ChatEntry`)
 - `UI/Screens/` — Full screen widgets (`W_GameplayScreen`)
