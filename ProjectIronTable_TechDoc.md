@@ -161,6 +161,7 @@ The foundation of the project. All dice logic, data, and UI.
 - [x] Physics-based roll simulation
 - [x] Roll result reading (face detection via normal dot product, verified working)
 - [x] Roll result display in UI — complete (results broadcast to chat via OnAllDiceRolled → GameplayHUDComponent)
+- [ ] Tune dice physics settings (mass, damping, impulse values) so rolls look and feel realistic
 - [ ] Sound effects for dice rolls
 - [ ] Visual effects for dice rolls
 - [ ] Custom dice support (user-importable meshes and face values)
@@ -220,6 +221,7 @@ First full game system implementation.
 ### Phase 6 — Audio & Visual Polish
 Immersive presentation layer.
 
+- [ ] Replace default Unreal UI assets with custom art (buttons, panels, screens)
 - [ ] Sound effects system (dice, movement, ambience)
 - [ ] Visual effects system (spells, hits, status effects)
 - [ ] User-importable sounds and VFX
@@ -250,7 +252,7 @@ Ideas to revisit later.
 
 ---
 
-*Last updated: 2026-03-19* — Roll results display in chat complete. Dice physics improved (PhysicalMaterial, angular impulse, post-settle lock). Failsafe destroy system added with chat notification. DiceSelector count display resets correctly after rolling.
+*Last updated: 2026-03-20* — Added roadmap items: dice physics tuning (Phase 1) and custom UI art assets (Phase 6).
 
 ---
 
