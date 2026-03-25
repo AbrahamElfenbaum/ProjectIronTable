@@ -8,6 +8,8 @@
 #include "Components/Button.h"
 #include "DiceSelector.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDiceCountChanged);
+
 UCLASS()
 class PROJECTIRONTABLE_API UDiceSelector : public UUserWidget
 {
@@ -45,4 +47,7 @@ public:
 	int32 DiceCount = 0;
 
 	void ResetCount();
+
+	UPROPERTY(BlueprintAssignable, Category = "Dice")
+	FOnDiceCountChanged OnCountChanged;
 };

@@ -17,6 +17,7 @@ void UDiceSelector::IncreaseDiceCount()
 {
 	DiceCount++;
 	CountText->SetText(FText::AsNumber(DiceCount));
+	OnCountChanged.Broadcast();
 }
 
 void UDiceSelector::DecreaseDiceCount()
@@ -25,6 +26,7 @@ void UDiceSelector::DecreaseDiceCount()
 	{
 		DiceCount--;
 		CountText->SetText(FText::AsNumber(DiceCount));
+		OnCountChanged.Broadcast();
 	}
 }
 
@@ -32,4 +34,5 @@ void UDiceSelector::ResetCount()
 {
 	DiceCount = 0;
 	CountText->SetText(FText::AsNumber(DiceCount));
+	OnCountChanged.Broadcast();
 }

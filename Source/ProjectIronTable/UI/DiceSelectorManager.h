@@ -70,6 +70,7 @@ private:
 	int32 ExpectedDiceCount = 0;
 	
 	FTimerHandle DestroyDiceTimerHandle;
+	bool bRollInProgress = false;
 
 public:
 	UFUNCTION(BlueprintCallable)
@@ -90,6 +91,11 @@ private:
 
 	UFUNCTION()
 	void OnDiceFailsafeHandler(EDiceType DiceType);
+
+	UFUNCTION()
+	void OnSelectorCountChanged();
+
+	void UpdateRollButtonState();
 
 	FVector GetRandomizedVector(const FVector& BaseVector, const float&, bool bUseZAxis);
 };

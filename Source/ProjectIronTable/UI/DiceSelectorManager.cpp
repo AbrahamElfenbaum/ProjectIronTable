@@ -8,11 +8,30 @@ void UDiceSelectorManager::NativeConstruct()
 
 	Selectors = { D4, D6, D8, D10, D12, D20, D100 };
 	RollButton->OnClicked.AddDynamic(this, &UDiceSelectorManager::RollDice);
+
+	for (auto Selector : Selectors)
+	{
+		Selector->OnCountChanged.AddDynamic(this, &UDiceSelectorManager::OnSelectorCountChanged);
+	}
+
+	UpdateRollButtonState();
 }
 
 void UDiceSelectorManager::RollDice()
 {
-	//Clear array of any data from a previous roll
+	// Cancel any pending destroy timer from a previous roll
+	GetWorld()->GetTimerManager().ClearTimer(DestroyDiceTimerHandle);
+
+	// Destroy any dice still in the world from a previous roll
+	for (auto Dice : SpawnedDice)
+	{
+		if (IsValid(Dice))
+		{
+			Dice->Destroy();
+		}
+	}
+
+	// Clear arrays of any data from the previous roll
 	SpawnedDice.Empty();
 	PendingResults.Empty();
 	ExpectedDiceCount = 0;
@@ -55,6 +74,9 @@ void UDiceSelectorManager::RollDice()
 
 	if (!SpawnedDice.IsEmpty())
 	{
+		bRollInProgress = true;
+		UpdateRollButtonState();
+
 		for (auto Dice : SpawnedDice)
 		{
 			//Roll the dice
@@ -81,12 +103,15 @@ void UDiceSelectorManager::OnDiceRolledHandler(FRollResult Result)
 		// Broadcast all results at once
 		OnAllDiceRolled.Broadcast(PendingResults);
 
+		bRollInProgress = false;
+		UpdateRollButtonState();
+
 		//Destroy all spawned dice after a delay of TimeBeforeDestroyingDice seconds
 		GetWorld()->GetTimerManager().SetTimer(
-			DestroyDiceTimerHandle, 
-			this, 
-			&UDiceSelectorManager::DestroyDice, 
-			TimeBeforeDestroyingDice, 
+			DestroyDiceTimerHandle,
+			this,
+			&UDiceSelectorManager::DestroyDice,
+			TimeBeforeDestroyingDice,
 			false);
 
 		// Clear arrays for the next roll
@@ -116,6 +141,9 @@ void UDiceSelectorManager::OnDiceFailsafeHandler(EDiceType DiceType)
 	{
 		OnAllDiceRolled.Broadcast(PendingResults);
 
+		bRollInProgress = false;
+		UpdateRollButtonState();
+
 		GetWorld()->GetTimerManager().SetTimer(
 			DestroyDiceTimerHandle,
 			this,
@@ -126,6 +154,21 @@ void UDiceSelectorManager::OnDiceFailsafeHandler(EDiceType DiceType)
 		PendingResults.Empty();
 		ExpectedDiceCount = 0;
 	}
+}
+
+void UDiceSelectorManager::OnSelectorCountChanged()
+{
+	UpdateRollButtonState();
+}
+
+void UDiceSelectorManager::UpdateRollButtonState()
+{
+	bool bAnyDiceSelected = Selectors.ContainsByPredicate([](UDiceSelector* S)
+	{
+		return S && S->DiceCount > 0;
+	});
+
+	RollButton->SetIsEnabled(!bRollInProgress && bAnyDiceSelected);
 }
 
 FVector UDiceSelectorManager::GetRandomizedVector(const FVector& BaseVector, const float& Range, bool bUseZAxis)

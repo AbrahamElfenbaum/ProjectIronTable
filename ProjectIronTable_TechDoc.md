@@ -192,7 +192,7 @@ The foundation of the project. All dice logic, data, and UI.
 - [x] Roll result reading (face detection via normal dot product, verified working)
 - [x] Roll result display in UI — complete (results broadcast to chat via OnAllDiceRolled → GameplayHUDComponent)
 - [ ] Tune dice physics settings (mass, damping, impulse values) so rolls look and feel realistic
-- [ ] **Bug:** Rolling again before the previous roll despawns causes the second roll to vanish immediately and the first roll to remain permanently — `DiceSelectorManager` needs to handle overlapping roll sessions
+- [x] **Bug:** Rolling again before the previous roll despawns causes the second roll to vanish immediately and the first roll to remain permanently — fixed by cancelling the destroy timer and destroying existing dice at the start of `RollDice()`
 - [ ] Sound effects for dice rolls
 - [ ] Visual effects for dice rolls
 - [ ] Custom dice support (user-importable meshes and face values)
