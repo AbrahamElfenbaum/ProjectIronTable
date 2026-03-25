@@ -1,6 +1,22 @@
 # ProjectIronTable
 
-Unreal Engine 5.7 — TTRPG simulator (maps, minis, dice rolling).
+A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable lets a group of players run a tabletop RPG session online — rolling physics-based dice, moving miniatures on a shared map, tracking initiative and character stats, and communicating through an in-session chat. Designed to feel like a real tabletop, not a video game.
+
+**Primary game system:** D&D 5e / 2024 (expandable to other TTRPGs)
+**Platform:** PC (Windows)
+**Status:** Active development
+
+### Features (planned)
+- Physics-based dice rolling with full result history
+- Private and public chat with dice result integration
+- Collaborative shared notes
+- Grid-based maps (flat image and tile-based formats)
+- 3D miniatures with fog of war and vision effects
+- Initiative tracker with GM staging list
+- D&D 5e character sheets, spell management, and condition tracking
+- Per-player customizable UI with draggable, resizable panels
+- Custom user-imported content (maps, minis, dice, sounds)
+- Multiplayer with separate GM and host roles
 
 ## Requirements
 - Unreal Engine 5.7

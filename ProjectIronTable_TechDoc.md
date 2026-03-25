@@ -193,6 +193,8 @@ The foundation of the project. All dice logic, data, and UI.
 - [x] Roll result display in UI — complete (results broadcast to chat via OnAllDiceRolled → GameplayHUDComponent)
 - [ ] Tune dice physics settings (mass, damping, impulse values) so rolls look and feel realistic
 - [x] **Bug:** Rolling again before the previous roll despawns causes the second roll to vanish immediately and the first roll to remain permanently — fixed by cancelling the destroy timer and destroying existing dice at the start of `RollDice()`
+- [ ] Advantage / disadvantage support — rolls two of the selected die type, takes the higher (advantage) or lower (disadvantage) result; applies to any die type, not just D20
+- [ ] Private / hidden rolls — any user can mark a roll as private, visible only to chosen recipients; roller can reveal at any time; non-recipients see a "[rolled privately]" indicator in chat
 - [ ] Sound effects for dice rolls
 - [ ] Visual effects for dice rolls
 - [ ] Custom dice support (user-importable meshes and face values)
@@ -214,48 +216,66 @@ Establish the game framework and player interaction foundation.
 - [ ] Runtime camera settings menu (`USaveGame`-based) — exposes camera properties (speeds, zoom range, pan speed, pitch limits) to the player at runtime. **Requirements before shipping:** (1) extract `PostEditChangeProperty` validation logic into a shared `ValidateCameraSettings()` function callable at runtime; (2) call it when settings are applied so invalid values (min ≥ max, zero speeds) can never reach the camera movement code; (3) load saved settings in `BeginPlay` and apply before any input is processed.
 - [ ] Basic camera system (top-down / isometric view)
 - [ ] Scene/session management (start, load, save)
+- [ ] GM permissions system — GM can grant/revoke specific permissions to individual players at any time; permissions are enforced in code; specific permission types TBD when built
+- [ ] Session player cap — default max 8 users (GM included); cap is enforced by default but can be removed; no hard engine limit
+- [ ] Private messaging — any user can send a chat message or dice result to specific recipients only; non-recipients see no indication (or a generic indicator — TBD); works in all directions (player-to-player, GM-to-player, player-to-GM)
+- [ ] Chat log persistence — full message and roll result history saved with session and restored on reload
+- [ ] Shared notes — per-user notes documents, private by default; owner can share with specific users or all players with read or edit access; multiple users can edit simultaneously in real time; notes persist with session. **Note:** real-time collaborative editing requires careful networking design (OT or CRDT) — scope carefully when building
 
 ---
 
 ### Phase 3 — Maps
 Virtual tabletop map system.
 
-- [ ] Map tile system
-- [ ] Grid overlay (square and hex)
-- [ ] Map loading and display
-- [ ] User-importable map tiles and images
-- [ ] Fog of war (optional / toggleable)
+Two map formats are supported and can be used simultaneously:
+- **Flat image** — user-imported image (PNG, JPG, etc.) used as map background; good for pre-drawn battle maps and scene art
+- **Tile-based** — grid of placeable tiles assembled in-session; good for procedural dungeon building
+
+- [ ] Flat image map support (import and display)
+- [ ] Tile-based map system
+- [ ] Grid overlay (square and hex, GM-toggled)
+- [ ] User-importable map images and tile sets
+- [ ] Fog of war (GM toggles revealed areas per-tile or per-region)
 - [ ] Lighting and atmosphere controls
+- [ ] Entity-based vision system — what a user sees is determined by what their controlled characters can perceive, not their role. The GM sees the full map but is still subject to vision-blocking effects (e.g., Sphere of Darkness) unless a controlled NPC can perceive through it. **Design note (future):** players and GMs need a way to see characters they control inside vision-blocking effects — likely via a character outline rendered through occluding geometry
 
 ---
 
 ### Phase 4 — Miniatures
 Character and creature representation on the map.
 
+**Scale:** Combat maps follow the active game system's movement rules (e.g., 1 tile = 5 feet in D&D 5e). Non-combat maps (world/region maps, scene art) have no enforced scale — the GM and players define distance in context.
+
 - [ ] Base miniature actor/pawn (TBD — Actor vs Pawn)
 - [ ] Miniature placement and movement on grid
+- [ ] Scale system tied to active game system for combat maps; free scale for non-combat maps
+- [ ] Default miniature options — game ships with built-in defaults; players can replace with custom assets (TBD: exact default design)
 - [ ] Rigging system for miniature animations
-- [ ] User-importable miniature meshes
-- [ ] Mini labels (name, HP, status)
+- [ ] User-importable miniature meshes (format TBD when import pipeline is built)
+- [ ] Mini labels (name, HP, status conditions)
 
 ---
 
 ### Phase 5 — D&D 5e / 2024 Game System
 First full game system implementation.
 
-- [ ] Character sheet (stats, skills, proficiencies, HP, etc.)
-- [ ] Initiative tracker / turn order system
-- [ ] Spell slot tracking
-- [ ] Condition tracking (Poisoned, Stunned, etc.)
-- [ ] Attack rolls, saving throws, skill checks tied to character stats
+- [ ] Character sheet — STR/DEX/CON/INT/WIS/CHA, proficiency bonus, saving throws, skill modifiers, HP (current/max/temp), hit dice, spell slots, conditions, inventory. Visible to owner, GM, and anyone the owner chooses to share with. GM can edit to some extent — specific limits TBD when built
+- [ ] Initiative tracker — public turn order visible to all players; GM has a private staging list of combatants not yet in combat (hidden NPCs, reinforcements, ambushes) that can be inserted into the tracker at any time
+- [ ] Initiative rolling — both manual (player rolls via dice UI) and automatic (pulled from character stats) supported
+- [ ] Spell management — choosing spells, tracking slots by level, concentration, components, and spell effects; goal is to reduce player confusion
+- [ ] Condition tracking — auto-applied when a triggering game event occurs; auto-apply is toggleable per table preference
+- [ ] Attack rolls, saving throws, skill checks tied to character sheet stats
 - [ ] Monster/NPC stat blocks
-- [ ] Basic combat flow
+- [ ] Basic combat flow (action economy: action, bonus action, reaction, movement)
 
 ---
 
-### Phase 6 — Audio & Visual Polish
-Immersive presentation layer.
+### Phase 6 — UI & Polish
+Presentation layer, UI system, and immersive audio/visual.
 
+- [ ] UI theming system — theme is decoupled from game system; each player can set their own theme; switching game systems can suggest a matching default theme but never forces it
+- [ ] Draggable, resizable, toggleable UI panels — players have full control over HUD layout; layout persists per user across sessions
+- [ ] Panel notification system — when activity occurs in a collapsed or hidden panel (new message, dice result, initiative change), a visible indicator appears so players don't miss events
 - [ ] Replace default Unreal UI assets with custom art (buttons, panels, screens)
 - [ ] Sound effects system (dice, movement, ambience)
 - [ ] Visual effects system (spells, hits, status effects)
@@ -268,18 +288,35 @@ Immersive presentation layer.
 ### Phase 7 — Custom Content & Extensibility
 Allow users to bring their own assets and game rules.
 
+**Asset library:** Imported assets belong to the user, not the session. Stored locally on the owner's machine (cloud storage is a future option). Assets persist across all sessions, campaigns, and game systems.
+
+- [ ] Local asset library — persists across sessions; assets usable in any campaign or game system
 - [ ] Custom asset import pipeline (sounds, maps, minis, effects)
 - [ ] Custom dice import
 - [ ] Plugin/mod support (TBD)
 - [ ] Support for additional TTRPG systems beyond D&D 5e
 - [ ] Player-to-player asset sharing (asset owners can optionally share custom files — minis, maps, sounds — with other players in a session)
+- [ ] Cloud asset storage (optional, future)
+
+---
+
+### Multiplayer Architecture (Pending Research)
+Networking decisions that require research before implementation.
+
+**Known decisions:**
+- GM role and session host role are separate — the GM does not need to be the machine hosting the server
+- Default player cap: 8 users per session (GM included); cap can be removed; no hard engine limit
+- When no GM is present (disconnect or absence), certain actions are locked (moving NPCs, editing stats); full disconnect policy TBD
+
+**Open (needs research):**
+- Listen server vs dedicated server
+- Session discovery / join flow (direct IP, lobby, friend invite)
 
 ---
 
 ### Future / Backlog (Unscheduled)
 Ideas to revisit later.
 
-- Multiplayer / networking
 - Campaign management (sessions, notes, loot)
 - Integrated rulebook reference
 - AI game master assistant
@@ -287,7 +324,7 @@ Ideas to revisit later.
 
 ---
 
-*Last updated: 2026-03-20* — Full camera system implemented: WASD movement along pawn forward/right vectors, middle-mouse pan (yaw + clamped pitch), scroll zoom, sprint multiplier, pan reset. Editor property validation via PostEditChangeProperty. Added IA_CameraPanReset, IA_CameraSprint. AGameplayController description updated.
+*Last updated: 2026-03-25* — Roadmap expanded from GDD session: added advantage/disadvantage and private rolls to Phase 1; GM permissions, session cap, private messaging, chat persistence, and shared notes to Phase 2; dual map format and entity-based vision to Phase 3; mini scale and default mini to Phase 4; full D&D 5e system spec (initiative staging list, character sheet visibility, spell management, condition auto-apply) to Phase 5; UI theming, draggable panels, and notification system to Phase 6 (renamed to UI & Polish); local asset library and cloud storage to Phase 7; new Multiplayer Architecture section. GDD created: `ProjectIronTable_GDD.md`.
 
 ---
 
