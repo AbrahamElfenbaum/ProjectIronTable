@@ -61,6 +61,8 @@ FRollResult ABaseDiceActor::GetRolledValue()
 {
 	FRollResult RollResult = FRollResult();
 
+	RollResult.DiceActor = this;
+
 	//for 1 die
 	if (!IsMeshValid(Mesh2) || !DiceFaces2)
 	{

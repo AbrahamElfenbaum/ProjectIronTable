@@ -7,6 +7,8 @@
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "BaseDiceActor.generated.h"
 
+class ABaseDiceActor;
+
 USTRUCT(BlueprintType)
 struct FRollResult
 {
@@ -18,15 +20,20 @@ struct FRollResult
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EDiceType DiceType;
 
+	UPROPERTY(BlueprintReadOnly)
+	ABaseDiceActor* DiceActor = nullptr;
+
 	FRollResult()
 		:Value(0),
-		DiceType()
+		DiceType(),
+		DiceActor(nullptr)
 	{
 	}
 
 	FRollResult(int32 InValue, EDiceType InDiceType)
 		:Value(InValue),
-		DiceType(InDiceType)
+		DiceType(InDiceType),
+		DiceActor(nullptr)
 	{
 	}
 };
@@ -78,6 +85,9 @@ public:
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Dice")
 	bool bMesh2Asleep = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dice")
+	bool bWasKept = true;
 
 public:
 	ABaseDiceActor();

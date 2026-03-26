@@ -3,9 +3,9 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "BaseDiceActor.h"
+#include "DiceSelectorManager.h"
 #include "GameplayHUDComponent.generated.h"
 
-class UDiceSelectorManager;
 class UChatBox;
 
 UCLASS(Blueprintable, ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
@@ -44,7 +44,7 @@ public:
 	void AddChatMessageOnOwningClient(const FString& Message);
 
 	UFUNCTION()
-	void AddRollResultToChat(TArray<FRollResult> Results);
+	void AddRollResultToChat(TArray<FRollResult> Results, EDiceRollMode RollMode);
 
 	UFUNCTION()
 	void OnDiceFailsafeHandler(EDiceType DiceType);

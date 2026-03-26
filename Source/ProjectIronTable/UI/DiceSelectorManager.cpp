@@ -1,3 +1,4 @@
+// Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "DiceSelectorManager.h"
 #include "DiceSelector.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -7,7 +8,11 @@ void UDiceSelectorManager::NativeConstruct()
 	Super::NativeConstruct();
 
 	Selectors = { D4, D6, D8, D10, D12, D20, D100 };
+	AdvantageButtons = { NormalRollButton, AdvantageRollButton, DisadvantageRollButton };
 	RollButton->OnClicked.AddDynamic(this, &UDiceSelectorManager::RollDice);
+	NormalRollButton->OnClicked.AddDynamic(this, &UDiceSelectorManager::OnNormalClicked);
+	AdvantageRollButton->OnClicked.AddDynamic(this, &UDiceSelectorManager::OnAdvantageClicked);
+	DisadvantageRollButton->OnClicked.AddDynamic(this, &UDiceSelectorManager::OnDisadvantageClicked);
 
 	for (auto Selector : Selectors)
 	{
@@ -15,6 +20,7 @@ void UDiceSelectorManager::NativeConstruct()
 	}
 
 	UpdateRollButtonState();
+	UpdateAdvantageButtonState();
 }
 
 void UDiceSelectorManager::RollDice()
@@ -35,12 +41,16 @@ void UDiceSelectorManager::RollDice()
 	SpawnedDice.Empty();
 	PendingResults.Empty();
 	ExpectedDiceCount = 0;
+	bRollInProgress = true;
 
 	for (auto Selector : Selectors)
 	{
 		if (Selector->DiceCount > 0)
 		{
-			for (int i = 0; i < Selector->DiceCount; i++)
+			bool bAdvantageRoll = RollMode != EDiceRollMode::Normal;
+			int32 SpawnCount = (bAdvantageRoll) ? 2 : Selector->DiceCount;
+
+			for (int i = 0; i < SpawnCount; i++)
 			{
 				FRotator RandomRot = UKismetMathLibrary::RandomRotator(true);
 				FTransform T(
@@ -74,8 +84,8 @@ void UDiceSelectorManager::RollDice()
 
 	if (!SpawnedDice.IsEmpty())
 	{
-		bRollInProgress = true;
 		UpdateRollButtonState();
+		UpdateAdvantageButtonState();
 
 		for (auto Dice : SpawnedDice)
 		{
@@ -83,6 +93,12 @@ void UDiceSelectorManager::RollDice()
 			Dice->Roll(GetRandomizedVector(Impulse, ImpulseRange, false),
 					   GetRandomizedVector(AngularImpulse, AngularImpulseRange, true));
 		}
+	}
+	else
+	{
+		bRollInProgress = false;
+		UpdateRollButtonState();
+		UpdateAdvantageButtonState();
 	}
 }
 
@@ -93,18 +109,39 @@ void UDiceSelectorManager::OnDiceRolledHandler(FRollResult Result)
 	// Check if all dice have finished rolling
 	if (PendingResults.Num() == ExpectedDiceCount)
 	{
-		// Debug: log each result to the output log
-		for (const FRollResult& RollResult : PendingResults)
+		if (RollMode != EDiceRollMode::Normal && PendingResults.Num() == 2)
 		{
-			FString DiceTypeName = UEnum::GetValueAsString(RollResult.DiceType);
-			UE_LOG(LogTemp, Display, TEXT("Type: %s | Value: %d"), *DiceTypeName, RollResult.Value);
-		}
+			bool bKeepFirst = (RollMode == EDiceRollMode::Advantage)
+				? PendingResults[0].Value >= PendingResults[1].Value
+				: PendingResults[0].Value <= PendingResults[1].Value;
 
-		// Broadcast all results at once
-		OnAllDiceRolled.Broadcast(PendingResults);
+			int32 LoserIndex = bKeepFirst ? 1 : 0;
+			int32 KeeperIndex = bKeepFirst ? 0 : 1;
+
+			if (IsValid(PendingResults[LoserIndex].DiceActor))
+			{
+				PendingResults[LoserIndex].DiceActor->bWasKept = false;
+			}
+
+			TArray<FRollResult> KeptResult = { PendingResults[KeeperIndex] };
+			OnAllDiceRolled.Broadcast(KeptResult, RollMode);
+		}
+		else
+		{
+			// Debug: log each result to the output log
+			for (const FRollResult& RollResult : PendingResults)
+			{
+				FString DiceTypeName = UEnum::GetValueAsString(RollResult.DiceType);
+				UE_LOG(LogTemp, Display, TEXT("Type: %s | Value: %d"), *DiceTypeName, RollResult.Value);
+			}
+
+			// Broadcast all results at once
+			OnAllDiceRolled.Broadcast(PendingResults, RollMode);
+		}
 
 		bRollInProgress = false;
 		UpdateRollButtonState();
+		UpdateAdvantageButtonState();
 
 		//Destroy all spawned dice after a delay of TimeBeforeDestroyingDice seconds
 		GetWorld()->GetTimerManager().SetTimer(
@@ -139,10 +176,11 @@ void UDiceSelectorManager::OnDiceFailsafeHandler(EDiceType DiceType)
 
 	if (ExpectedDiceCount > 0 && PendingResults.Num() == ExpectedDiceCount)
 	{
-		OnAllDiceRolled.Broadcast(PendingResults);
+		OnAllDiceRolled.Broadcast(PendingResults, RollMode);
 
 		bRollInProgress = false;
 		UpdateRollButtonState();
+		UpdateAdvantageButtonState();
 
 		GetWorld()->GetTimerManager().SetTimer(
 			DestroyDiceTimerHandle,
@@ -159,6 +197,25 @@ void UDiceSelectorManager::OnDiceFailsafeHandler(EDiceType DiceType)
 void UDiceSelectorManager::OnSelectorCountChanged()
 {
 	UpdateRollButtonState();
+	UpdateAdvantageButtonState();
+}
+
+void UDiceSelectorManager::OnNormalClicked()
+{
+	RollMode = EDiceRollMode::Normal;
+	UpdateAdvantageButtonState();
+}
+
+void UDiceSelectorManager::OnAdvantageClicked()
+{
+	RollMode = EDiceRollMode::Advantage;
+	UpdateAdvantageButtonState();
+}
+
+void UDiceSelectorManager::OnDisadvantageClicked()
+{
+	RollMode = EDiceRollMode::Disadvantage;
+	UpdateAdvantageButtonState();
 }
 
 void UDiceSelectorManager::UpdateRollButtonState()
@@ -169,6 +226,66 @@ void UDiceSelectorManager::UpdateRollButtonState()
 	});
 
 	RollButton->SetIsEnabled(!bRollInProgress && bAnyDiceSelected);
+}
+
+void UDiceSelectorManager::UpdateAdvantageButtonState()
+{
+	int32 TotalDiceCount = 0;
+	bool bAnyDiceSelected = true;
+	for (auto Selector : Selectors)
+	{
+		if (Selector->DiceCount > 1)
+		{
+			bAnyDiceSelected = false;
+			break;
+		}
+
+		if (Selector->DiceCount == 1)
+		{
+			TotalDiceCount++;
+			if (TotalDiceCount > 1)
+			{
+				bAnyDiceSelected = false;
+				break;
+			}
+		}
+	}
+
+	if (!bRollInProgress && 
+		bAnyDiceSelected &&
+		TotalDiceCount == 1)
+	{
+		for (auto Button : AdvantageButtons)
+		{
+			Button->SetIsEnabled(true);
+		}
+
+		switch (RollMode)
+		{
+		case EDiceRollMode::Normal:
+			NormalRollButton->SetIsEnabled(false);
+			break;
+		case EDiceRollMode::Advantage:
+			AdvantageRollButton->SetIsEnabled(false);
+			break;
+		case EDiceRollMode::Disadvantage:
+			DisadvantageRollButton->SetIsEnabled(false);
+			break;
+		default:
+			break;
+		}
+	}
+	else
+	{
+		if (!bRollInProgress)
+		{
+			RollMode = EDiceRollMode::Normal;
+		}
+		for (auto Button : AdvantageButtons)
+		{
+			Button->SetIsEnabled(false);
+		}
+	}
 }
 
 FVector UDiceSelectorManager::GetRandomizedVector(const FVector& BaseVector, const float& Range, bool bUseZAxis)

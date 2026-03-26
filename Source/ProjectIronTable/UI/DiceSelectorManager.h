@@ -6,9 +6,17 @@
 #include "Components/Button.h"
 #include "DiceSelectorManager.generated.h"
 
+UENUM(BlueprintType)
+enum class EDiceRollMode : uint8
+{
+	Normal,
+	Advantage,
+	Disadvantage
+};
+
 class UDiceSelector;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAllDiceRolled, TArray<FRollResult>, Results);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAllDiceRolled, TArray<FRollResult>, Results, EDiceRollMode, RollMode);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDiceFailsafeDestroyed, EDiceType, DiceType);
 
 UCLASS()
@@ -42,6 +50,15 @@ private:
 	TObjectPtr<UDiceSelector> D100;
 
 	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> NormalRollButton;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> AdvantageRollButton;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> DisadvantageRollButton;
+
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> RollButton;
 
 public:
@@ -63,10 +80,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
 	float TimeBeforeDestroyingDice = 5.0f;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dice")
+	EDiceRollMode RollMode = EDiceRollMode::Normal;
+
 private:
 	TArray<UDiceSelector*> Selectors;
 	TArray<ABaseDiceActor*> SpawnedDice;
 	TArray<FRollResult> PendingResults;
+	TArray<UButton*> AdvantageButtons;
 	int32 ExpectedDiceCount = 0;
 	
 	FTimerHandle DestroyDiceTimerHandle;
@@ -81,7 +102,6 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Dice")
 	FOnDiceFailsafeDestroyed OnDiceFailsafeDestroyed;
-
 private:
 	UFUNCTION()
 	void OnDiceRolledHandler(FRollResult Result);
@@ -95,7 +115,18 @@ private:
 	UFUNCTION()
 	void OnSelectorCountChanged();
 
+	UFUNCTION()
+	void OnNormalClicked();
+
+	UFUNCTION()
+	void OnAdvantageClicked();
+
+	UFUNCTION()
+	void OnDisadvantageClicked();
+
 	void UpdateRollButtonState();
+
+	void UpdateAdvantageButtonState();
 
 	FVector GetRandomizedVector(const FVector& BaseVector, const float&, bool bUseZAxis);
 };
