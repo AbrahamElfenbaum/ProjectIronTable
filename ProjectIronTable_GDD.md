@@ -90,7 +90,13 @@ Physics-based dice rolling using Unreal's physics simulation. Each die is a 3D a
 
 In-session text chat. Dice roll results are automatically posted to chat, attributed to the rolling player.
 
-**Visibility:** By default, messages and roll results are broadcast to all users. Any user (GM or player) can direct a message or roll result to specific recipients only — this works player-to-player, GM-to-player, and player-to-GM. Recipients outside the target list see no indication that a private message was sent (or see only a generic "[private message]" indicator — TBD).
+**Channels:** Chat is organized into tabs. The Server tab is always present and is the global broadcast channel. Private conversations each get their own tab, created automatically when a private message is first sent. Tab labels use the format `@P1 +2` (first recipient name, plus count of remaining). Users can rename tabs client-side; the internal channel identity is unchanged. Closing a tab hides it but does not destroy it — closed channels are accessible via a channels list button. An incoming message on a closed channel automatically reopens it.
+
+**Addressing:** To send a private message, prefix each recipient's name with `@` (e.g. `@P1 @P2 message`). Everything after the last `@recipient` block is the message body. A UI picker will replace this syntax in a future pass.
+
+**Private channel behavior:** When a sender creates a new private channel, they are automatically switched to that tab. All recipients see a notification indicator on the new tab. All participants (sender and all recipients) share the same channel and can send messages to it.
+
+**Visibility:** By default, messages and roll results are broadcast to all users via the Server tab. Private messages are visible only to the participants of that channel.
 
 **Persistence:** The full chat log (all messages and roll results) is saved as part of the session and restored on reload. Nothing is lost between sessions.
 
@@ -279,7 +285,7 @@ A consolidated list of unresolved design decisions:
 
 ---
 
-*Last updated: 2026-03-25*
+*Last updated: 2026-03-26* — Chat section updated with tabbed channel design: Server tab, private tabs with `@P1 +2` labels, `@Name` addressing syntax, auto-switch on send, notification on receive, channels list for reopening closed tabs.
 
 ---
 

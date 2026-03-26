@@ -12,6 +12,7 @@ public class ProjectIronTable : ModuleRules
 		PublicIncludePaths.AddRange(new string[] {
 			Path.Combine(ModuleDirectory, "Dice"),
 			Path.Combine(ModuleDirectory, "UI"),
+			Path.Combine(ModuleDirectory, "Chat"),
             Path.Combine(ModuleDirectory, "Utility"),
             Path.Combine(ModuleDirectory, "Pawns"),
             Path.Combine(ModuleDirectory, "PlayerControllers")

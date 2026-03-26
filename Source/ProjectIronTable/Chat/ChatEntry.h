@@ -19,5 +19,5 @@ private:
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ExposeOnSpawn = true))
 	FString Message;
-	
+
 };
