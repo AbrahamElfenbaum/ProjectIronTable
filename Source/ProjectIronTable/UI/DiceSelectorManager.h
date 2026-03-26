@@ -4,6 +4,7 @@
 #include "Blueprint/UserWidget.h"
 #include "BaseDiceActor.h"
 #include "Components/Button.h"
+#include "DiceSpawnVolume.h"
 #include "DiceSelectorManager.generated.h"
 
 UENUM(BlueprintType)
@@ -62,8 +63,8 @@ private:
 	TObjectPtr<UButton> RollButton;
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
-	FVector StartingLocation;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dice")
+	TObjectPtr<ADiceSpawnVolume> SpawnVolume;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
 	FVector Impulse;

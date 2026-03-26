@@ -25,6 +25,13 @@ void UDiceSelectorManager::NativeConstruct()
 
 void UDiceSelectorManager::RollDice()
 {
+	if (!IsValid(SpawnVolume))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DiceSelectorManager: SpawnVolume is not set!"));
+		bRollInProgress = false;
+		return;
+	}
+
 	// Cancel any pending destroy timer from a previous roll
 	GetWorld()->GetTimerManager().ClearTimer(DestroyDiceTimerHandle);
 
@@ -53,9 +60,12 @@ void UDiceSelectorManager::RollDice()
 			for (int i = 0; i < SpawnCount; i++)
 			{
 				FRotator RandomRot = UKismetMathLibrary::RandomRotator(true);
+
+				FVector SpawnPoint = FMath::RandPointInBox(SpawnVolume->GetSpawnBox());
+
 				FTransform T(
 					FQuat(RandomRot),
-					StartingLocation,
+					SpawnPoint,
 					FVector::OneVector
 				);
 

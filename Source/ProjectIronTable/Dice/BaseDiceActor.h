@@ -48,16 +48,16 @@ class PROJECTIRONTABLE_API ABaseDiceActor : public AActor
 
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Components)
-	UStaticMeshComponent* Mesh1;
+	TObjectPtr<UStaticMeshComponent> Mesh1;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Components)
-	UStaticMeshComponent* Mesh2;
+	TObjectPtr<UStaticMeshComponent> Mesh2;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
-	UDiceData* DiceFaces1;
+	TObjectPtr<UDiceData> DiceFaces1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
-	UDiceData* DiceFaces2;
+	TObjectPtr<UDiceData> DiceFaces2;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
 	float Mass = 1.f;
@@ -115,7 +115,7 @@ private:
 	bool IsMeshValid(UStaticMeshComponent* Mesh) const;
 
 	int32 GetFaceValue(UStaticMeshComponent* Mesh, UDiceData* DiceFaces) const;
-	
+
 	FTimerHandle FailsafeTimerHandle;
 
 	void FailsafeDestroy();

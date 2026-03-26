@@ -40,7 +40,7 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 ## Structure
 
 ### Source (`Source/ProjectIronTable/`)
-- `Dice/` — Dice actors (`ABaseDiceActor`) and data assets (`UDiceData`)
+- `Dice/` — Dice actors (`ABaseDiceActor`, `ADiceSpawnVolume`) and data assets (`UDiceData`)
 - `Pawns/` — Camera pawn (`AGameplayPawn`)
 - `PlayerControllers/` — Player controller (`AGameplayController`)
 - `UI/` — Widget classes (`UDiceSelector`, `UDiceSelectorManager`, `UChatBox`, `UChatEntry`, `UGameplayHUDComponent`)

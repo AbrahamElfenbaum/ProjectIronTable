@@ -5,6 +5,8 @@
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
 #include "DiceSelectorManager.h"
+#include "Kismet/GameplayStatics.h"
+#include "DiceSpawnVolume.h"
 
 UGameplayHUDComponent::UGameplayHUDComponent()
 {
@@ -33,6 +35,16 @@ void UGameplayHUDComponent::BeginPlay()
 			UE_LOG(LogTemp, Display, TEXT("Dice Selector Found"));
 			DiceSelectorManagerRef->OnAllDiceRolled.AddDynamic(this, &UGameplayHUDComponent::AddRollResultToChat);
 			DiceSelectorManagerRef->OnDiceFailsafeDestroyed.AddDynamic(this, &UGameplayHUDComponent::OnDiceFailsafeHandler);
+
+			ADiceSpawnVolume* SpawnVolume = Cast<ADiceSpawnVolume>(UGameplayStatics::GetActorOfClass(GetWorld(), ADiceSpawnVolume::StaticClass()));
+			if (SpawnVolume)
+			{
+				DiceSelectorManagerRef->SpawnVolume = SpawnVolume;
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("DiceSpawnVolume not found in level!"));
+			}
 		}
 		else
 		{
@@ -85,15 +97,15 @@ void UGameplayHUDComponent::AddRollResultToChat(TArray<FRollResult> Results, EDi
 
 	if (RollMode == EDiceRollMode::Advantage)
 	{
-		Message += TEXT(" Rolled with Advantage:\n");
+		Message += TEXT(" Rolled with Advantage: ");
 	}
 	else if (RollMode == EDiceRollMode::Disadvantage)
 	{
-		Message += TEXT(" Rolled with Disadvantage:\n");
+		Message += TEXT(" Rolled with Disadvantage: ");
 	}
 	else
 	{
-		Message += TEXT(" Rolled:\n");
+		Message += TEXT(" Rolled: ");
 	}
 
 	//Add in each rolled result on a new line
