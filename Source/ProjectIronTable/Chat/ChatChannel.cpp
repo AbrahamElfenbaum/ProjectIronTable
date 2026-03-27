@@ -20,3 +20,13 @@ void UChatChannel::SetChatEntryClass(TSubclassOf<UChatEntry> EntryClass)
 {
 	ChatEntryClass = EntryClass;
 }
+
+void UChatChannel::Scroll(bool bUp)
+{
+	int32 ScrollDirection = bUp ? 1 : -1;
+	ScrollBox->SetScrollOffset(
+		FMath::Clamp(
+			ScrollBox->GetScrollOffset() + (ScrollMultiplier * ScrollDirection),
+			0.0f,
+			ScrollBox->GetScrollOffsetOfEnd()));
+}

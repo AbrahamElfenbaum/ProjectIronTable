@@ -12,6 +12,9 @@ class PROJECTIRONTABLE_API UChatChannel : public UUserWidget
 {
 	GENERATED_BODY()
 	
+public:
+	float ScrollMultiplier = 60.f;
+
 private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UScrollBox> ScrollBox;
@@ -32,4 +35,6 @@ public:
 	void AddChatMessage(const FString& Message);
 
 	void SetChatEntryClass(TSubclassOf<UChatEntry> EntryClass);
+
+	void Scroll(bool bUp);
 };

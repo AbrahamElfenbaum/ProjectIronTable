@@ -65,12 +65,12 @@ void UGameplayHUDComponent::ExitChat()
 
 void UGameplayHUDComponent::ScrollChat(bool bUp)
 {
-	if (ChatBoxRef) ChatBoxRef->Scroll(bUp);
+	//if (ChatBoxRef) ChatBoxRef->Scroll(bUp);
 }
 
 void UGameplayHUDComponent::AddChatMessageOnOwningClient_Implementation(const FString& Message)
 {
-	ChatBoxRef->AddChatMessage(Message);
+	//ChatBoxRef->AddChatMessage(Message);
 }
 
 void UGameplayHUDComponent::SendChatMessageOnServer_Implementation(const FString& Message)
