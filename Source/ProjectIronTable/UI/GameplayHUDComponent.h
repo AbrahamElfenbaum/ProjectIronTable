@@ -38,10 +38,10 @@ private:
 
 public:
 	UFUNCTION(Reliable, Server)
-	void SendChatMessageOnServer(const FString& Message);
+	void SendChatMessageOnServer(const FString& Message, const TArray<FString>& Recipients);
 
 	UFUNCTION(Reliable, Client)
-	void AddChatMessageOnOwningClient(const FString& Message);
+	void AddChatMessageOnOwningClient(const FString& Message, const TArray<FString>& Recipients, bool bIsSender);
 
 	UFUNCTION()
 	void AddRollResultToChat(TArray<FRollResult> Results, EDiceRollMode RollMode);

@@ -65,27 +65,37 @@ void UGameplayHUDComponent::ExitChat()
 
 void UGameplayHUDComponent::ScrollChat(bool bUp)
 {
-	//if (ChatBoxRef) ChatBoxRef->Scroll(bUp);
+	if (ChatBoxRef) ChatBoxRef->Scroll(bUp);
 }
 
-void UGameplayHUDComponent::AddChatMessageOnOwningClient_Implementation(const FString& Message)
+void UGameplayHUDComponent::AddChatMessageOnOwningClient_Implementation(const FString& Message, const TArray<FString>& Recipients, bool bIsSender)
 {
-	//ChatBoxRef->AddChatMessage(Message);
+	ChatBoxRef->AddChatMessage(Message, Recipients, bIsSender);
 }
 
-void UGameplayHUDComponent::SendChatMessageOnServer_Implementation(const FString& Message)
+void UGameplayHUDComponent::SendChatMessageOnServer_Implementation(const FString& Message, const TArray<FString>& Recipients)
 {
+	//Get sender's player name for prefixing the message. If we can't get it for some reason, default to "Unknown"
+	APlayerController* SenderPC = Cast<APlayerController>(GetOwner());
+	FString SenderName = SenderPC && SenderPC->PlayerState ? SenderPC->PlayerState->GetPlayerName() : TEXT("Unknown");
+
+	//Get the game state to access the player array
 	AGameStateBase* GS = GetWorld()->GetGameState<AGameStateBase>();
-	for (auto Play : GS->PlayerArray)
+
+	//Send the message to each player's HUD component if they're a recipient(or if Recipients is empty, meaning it's a global message)
+	for (APlayerState* Play : GS->PlayerArray)
 	{
-		if (Play->GetPlayerController())
+		bool bIsParticipant = Recipients.IsEmpty() || //Is the recipients array empty?
+							  Recipients.Contains(Play->GetPlayerName()) || //Is the player's name in the recipients array?
+							  Play->GetPlayerName() == SenderName; //Is the player the sender?
+		
+		if (!bIsParticipant || !Play->GetPlayerController()) continue;
+
+		UGameplayHUDComponent* HUDComp = Cast<UGameplayHUDComponent>(
+			Play->GetPlayerController()->GetComponentByClass(UGameplayHUDComponent::StaticClass()));
+		if (HUDComp)
 		{
-			UGameplayHUDComponent* HUDComp = Cast<UGameplayHUDComponent>(
-				Play->GetPlayerController()->GetComponentByClass(UGameplayHUDComponent::StaticClass()));
-			if (HUDComp)
-			{
-				HUDComp->AddChatMessageOnOwningClient(Message);
-			}
+			HUDComp->AddChatMessageOnOwningClient(Message, Recipients, Play->GetPlayerName() == SenderName);
 		}
 	}
 }
@@ -118,7 +128,7 @@ void UGameplayHUDComponent::AddRollResultToChat(TArray<FRollResult> Results, EDi
 
 	//Trim the last newline off the end of the message and send it to the server to be broadcast to all clients
 	Message.TrimEndInline();
-	SendChatMessageOnServer(Message);
+	SendChatMessageOnServer(Message, {});
 }
 
 void UGameplayHUDComponent::OnDiceFailsafeHandler(EDiceType DiceType)
@@ -128,5 +138,5 @@ void UGameplayHUDComponent::OnDiceFailsafeHandler(EDiceType DiceType)
 	FString DiceTypeName = UEnum::GetValueAsString(DiceType);
 	DiceTypeName = DiceTypeName.RightChop(DiceTypeName.Find(TEXT("::")) + 2);
 
-	SendChatMessageOnServer(FString::Printf(TEXT("%s lost a %s to the void"), *PlayerName, *DiceTypeName));
+	SendChatMessageOnServer(FString::Printf(TEXT("%s lost a %s to the void"), *PlayerName, *DiceTypeName), {});
 }

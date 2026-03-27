@@ -15,7 +15,8 @@ public class ProjectIronTable : ModuleRules
 			Path.Combine(ModuleDirectory, "Chat"),
             Path.Combine(ModuleDirectory, "Utility"),
             Path.Combine(ModuleDirectory, "Pawns"),
-            Path.Combine(ModuleDirectory, "PlayerControllers")
+            Path.Combine(ModuleDirectory, "PlayerControllers"),
+            Path.Combine(ModuleDirectory, "PlayerList")
         });
 
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "PhysicsCore", "EnhancedInput" });

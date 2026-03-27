@@ -2,7 +2,6 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-//#include "Components/ScrollBox.h"
 #include "Components/HorizontalBox.h"
 #include "Components/WidgetSwitcher.h"
 #include "Components/EditableText.h"
@@ -19,8 +18,6 @@ class PROJECTIRONTABLE_API UChatBox : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	//float ScrollMultiplier = 60.f;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UChatChannel> ChannelClass;
 
@@ -37,9 +34,6 @@ protected:
 private:
 	UPROPERTY()
 	TObjectPtr<UGameplayHUDComponent> HUDComponentRef;
-
-	//UPROPERTY(meta = (BindWidget))
-	//TObjectPtr<UScrollBox> ScrollBox;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UHorizontalBox> TabBar;
@@ -68,13 +62,12 @@ public:
 
 	UChatChannel* CreateChannel(TArray<FString> Participants);
 
+	UFUNCTION()
 	void SwitchToChannel(UChatChannel* Channel);
 
 	void AddChatMessage(const FString& Message, TArray<FString> Participants, bool bIsSender);
 
-	//void Scroll(bool bUp);
-
-	//void AddChatMessage(const FString& Message);
+	void Scroll(bool bUp);
 
 private:
 	UFUNCTION()

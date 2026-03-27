@@ -110,18 +110,21 @@ void UChatBox::AddChatMessage(const FString& Message, TArray<FString> Participan
 	for (UChatChannel* Channel : Channels)
 	{
 		bool bChannelFound = true;
-		for (FString Participant : Participants)
+		if (Channel->Participants.Num() == Participants.Num())
 		{
-			if(!Channel->Participants.Contains(Participant))
+			for (FString Participant : Participants)
 			{
-				bChannelFound = false;
+				if (!Channel->Participants.Contains(Participant))
+				{
+					bChannelFound = false;
+					break;
+				}
+			}
+			if (bChannelFound)
+			{
+				CurrentChannel = Channel;
 				break;
 			}
-		}
-		if (bChannelFound)
-		{
-			CurrentChannel = Channel;
-			break;
 		}
 	}
 
@@ -142,25 +145,10 @@ void UChatBox::AddChatMessage(const FString& Message, TArray<FString> Participan
 	}
 }
 
-//void UChatBox::Scroll(bool bUp)
-//{
-//	int32 scrollDirection = bUp ? 1 : -1;
-//
-//	ScrollBox->SetScrollOffset(
-//		FMath::Clamp(
-//			ScrollBox->GetScrollOffset() + (ScrollMultiplier * scrollDirection),
-//			0.0f,
-//			ScrollBox->GetScrollOffsetOfEnd()));
-//}
-
-//void UChatBox::AddChatMessage(const FString& Message)
-//{
-//	if (!ChatEntryClass) return;
-//	UChatEntry* ChatEntry = CreateWidget<UChatEntry>(GetWorld(), ChatEntryClass);
-//	ChatEntry->Message = Message;
-//	ScrollBox->AddChild(ChatEntry);
-//	ScrollBox->ScrollToEnd();
-//}
+void UChatBox::Scroll(bool bUp)
+{
+	if (ActiveChannel) ActiveChannel->Scroll(bUp);
+}
 
 void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod)
 {
@@ -173,9 +161,30 @@ void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod
 			APlayerController* PC = Cast<APlayerController>(GetOwningPlayer());
 			if (PC && PC->PlayerState)
 			{
+				TArray<FString> Words;
+				Message.ParseIntoArray(Words, TEXT(" "), 1);
+
+				TArray<FString> Recipients;
+				TArray<FString> MessageArray;
+
+				for(FString Word : Words)
+				{
+					if (Word.StartsWith(TEXT("@")))
+					{
+						Word.RemoveAt(0);
+						Recipients.Add(Word);
+					}
+					else
+					{
+						MessageArray.Add(Word);
+					}
+				}
+
+				Message = FString::Join(MessageArray, TEXT(" "));
+
 				FString PlayerName = PC->PlayerState->GetPlayerName();
 				FString FullMessage = FString::Printf(TEXT("%s: %s"), *PlayerName, *Message);
-				HUDComponentRef->SendChatMessageOnServer(FullMessage);
+				HUDComponentRef->SendChatMessageOnServer(FullMessage, Recipients);
 			}
 
 			EditableText->SetText(FText::GetEmpty());
@@ -184,7 +193,7 @@ void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod
 		}
 	}
 	else if (CommitMethod == ETextCommit::OnUserMovedFocus ||
-		     CommitMethod == ETextCommit::OnCleared)
+			 CommitMethod == ETextCommit::OnCleared)
 	{
 		ExitChat();
 	}
