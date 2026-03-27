@@ -96,7 +96,11 @@ In-session text chat. Dice roll results are automatically posted to chat, attrib
 
 **Private channel behavior:** When a sender creates a new private channel, they are automatically switched to that tab. All recipients see a notification indicator on the new tab. All participants (sender and all recipients) share the same channel and can send messages to it.
 
-**Visibility:** By default, messages and roll results are broadcast to all users via the Server tab. Private messages are visible only to the participants of that channel.
+**Dice roll routing:** Dice roll results are posted to whichever channel the rolling player currently has active, not always broadcast to everyone. If the rolling player has a private channel open, the roll result goes only to that channel's participants. If the Server tab is active, the roll broadcasts to all. Starting a new private channel via a dice roll (rolling when no relevant private tab is open) is a future feature — not yet designed.
+
+> **Open Item (future):** How does a player initiate a private dice roll if they don't already have a private channel open with the relevant recipients? For example: rolling to hide something from specific players without first typing a private message. This requires a UI flow for selecting recipients before rolling, separate from the chat input. Not yet designed.
+
+**Visibility:** By default, messages and roll results are broadcast to all users via the Server tab. Private messages and private rolls are visible only to the participants of that channel.
 
 **Persistence:** The full chat log (all messages and roll results) is saved as part of the session and restored on reload. Nothing is lost between sessions.
 
@@ -285,7 +289,7 @@ A consolidated list of unresolved design decisions:
 
 ---
 
-*Last updated: 2026-03-27* — Private messaging and tabbed chat fully implemented. Player list widget added: collapsible scroll list of connected players, each row has an address button that appends `@PlayerName ` to the chat input field. No GDD design changes — all features match the existing design spec.
+*Last updated: 2026-03-27* — Dice roll routing design decision added: rolls go to the active channel, not always broadcast. Private dice roll initiation (starting a channel via a roll) added as a future open item.
 
 ---
 
