@@ -32,6 +32,11 @@ FReply UChatBox::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPoi
 	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
+void UChatBox::Scroll(bool bUp)
+{
+	if (ActiveChannel) ActiveChannel->Scroll(bUp);
+}
+
 void UChatBox::FocusChat()
 {
 	APlayerController* PC = Cast<APlayerController>(GetOwningPlayer());
@@ -145,9 +150,10 @@ void UChatBox::AddChatMessage(const FString& Message, TArray<FString> Participan
 	}
 }
 
-void UChatBox::Scroll(bool bUp)
+void UChatBox::AppendToInput(const FString& Text)
 {
-	if (ActiveChannel) ActiveChannel->Scroll(bUp);
+	FString Current = EditableText->GetText().ToString();
+	EditableText->SetText(FText::FromString(Current + Text));
 }
 
 void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod)

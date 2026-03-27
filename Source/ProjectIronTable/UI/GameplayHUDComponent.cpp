@@ -29,6 +29,7 @@ void UGameplayHUDComponent::BeginPlay()
 
 		DiceSelectorManagerRef = Cast<UDiceSelectorManager>(GameplayScreenRef->GetWidgetFromName(TEXT("DiceSelectorManager")));
 		ChatBoxRef = Cast<UChatBox>(GameplayScreenRef->GetWidgetFromName(TEXT("ChatBox")));
+		PlayerListRef = Cast<UPlayerList>(GameplayScreenRef->GetWidgetFromName(TEXT("PlayerList")));
 
 		if (DiceSelectorManagerRef)
 		{
@@ -49,6 +50,20 @@ void UGameplayHUDComponent::BeginPlay()
 		else
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Dice Selector Not Found"));
+		}
+
+		if (!ChatBoxRef)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Chat Box Not Found"));
+		}
+
+		if (PlayerListRef)
+		{
+			PlayerListRef->OnAddressClicked.AddDynamic(this, &UGameplayHUDComponent::OnPlayerAddressClicked);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Player List Not Found"));
 		}
 	}
 }
@@ -139,4 +154,9 @@ void UGameplayHUDComponent::OnDiceFailsafeHandler(EDiceType DiceType)
 	DiceTypeName = DiceTypeName.RightChop(DiceTypeName.Find(TEXT("::")) + 2);
 
 	SendChatMessageOnServer(FString::Printf(TEXT("%s lost a %s to the void"), *PlayerName, *DiceTypeName), {});
+}
+
+void UGameplayHUDComponent::OnPlayerAddressClicked(const FString& PlayerName)
+{
+	ChatBoxRef->AppendToInput(TEXT("@") + PlayerName + TEXT(" "));
 }

@@ -4,6 +4,7 @@
 #include "Components/ActorComponent.h"
 #include "BaseDiceActor.h"
 #include "DiceSelectorManager.h"
+#include "PlayerList.h"
 #include "GameplayHUDComponent.generated.h"
 
 class UChatBox;
@@ -36,6 +37,9 @@ private:
 	UPROPERTY()
 	TObjectPtr<APlayerController> PlayerControllerRef;
 
+	UPROPERTY()
+	TObjectPtr<UPlayerList> PlayerListRef;
+
 public:
 	UFUNCTION(Reliable, Server)
 	void SendChatMessageOnServer(const FString& Message, const TArray<FString>& Recipients);
@@ -48,6 +52,9 @@ public:
 
 	UFUNCTION()
 	void OnDiceFailsafeHandler(EDiceType DiceType);
+
+	UFUNCTION()
+	void OnPlayerAddressClicked(const FString& PlayerName);
 
 	void FocusChat();
 	void ExitChat();

@@ -285,7 +285,7 @@ A consolidated list of unresolved design decisions:
 
 ---
 
-*Last updated: 2026-03-26* — Chat section updated with tabbed channel design: Server tab, private tabs with `@P1 +2` labels, `@Name` addressing syntax, auto-switch on send, notification on receive, channels list for reopening closed tabs.
+*Last updated: 2026-03-27* — Private messaging and tabbed chat fully implemented. Player list widget added: collapsible scroll list of connected players, each row has an address button that appends `@PlayerName ` to the chat input field. No GDD design changes — all features match the existing design spec.
 
 ---
 

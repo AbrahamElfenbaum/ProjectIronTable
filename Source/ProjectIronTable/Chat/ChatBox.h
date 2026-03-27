@@ -56,6 +56,8 @@ private:
 	bool bChatFocused;
 
 public:
+	void Scroll(bool bUp);
+
 	void FocusChat();
 
 	void ExitChat();
@@ -67,7 +69,7 @@ public:
 
 	void AddChatMessage(const FString& Message, TArray<FString> Participants, bool bIsSender);
 
-	void Scroll(bool bUp);
+	void AppendToInput(const FString& Text);
 
 private:
 	UFUNCTION()
