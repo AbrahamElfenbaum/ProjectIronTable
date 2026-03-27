@@ -7,6 +7,7 @@ void UChatChannel::NativeConstruct()
 	Super::NativeConstruct();
 }
 
+// Creates a UChatEntry widget with the given message, appends it to the scroll box, and scrolls to the bottom.
 void UChatChannel::AddChatMessage(const FString& Message)
 {
 	if (!ChatEntryClass) return;
@@ -16,11 +17,13 @@ void UChatChannel::AddChatMessage(const FString& Message)
 	ScrollBox->ScrollToEnd();
 }
 
+// Sets the entry class used when creating new message widgets.
 void UChatChannel::SetChatEntryClass(TSubclassOf<UChatEntry> EntryClass)
 {
 	ChatEntryClass = EntryClass;
 }
 
+// Adjusts the scroll offset by ScrollMultiplier in the requested direction, clamped to valid range.
 void UChatChannel::Scroll(bool bUp)
 {
 	int32 ScrollDirection = bUp ? 1 : -1;

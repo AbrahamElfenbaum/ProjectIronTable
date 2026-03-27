@@ -3,6 +3,7 @@
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
 
+// Binds the toggle button, populates the list, and collapses the scroll box initially.
 void UPlayerList::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -11,6 +12,7 @@ void UPlayerList::NativeConstruct()
 	ScrollBox->SetVisibility(ESlateVisibility::Collapsed);
 }
 
+// Clears the scroll box and rebuilds it from the current game state's player array.
 void UPlayerList::PopulateList()
 {
 	ScrollBox->ClearChildren();
@@ -27,6 +29,7 @@ void UPlayerList::PopulateList()
 	}
 }
 
+// Toggles the expanded state, repopulating the list when expanding.
 void UPlayerList::OnToggleButtonClicked()
 {
 	bIsExpanded = !bIsExpanded;
@@ -37,6 +40,7 @@ void UPlayerList::OnToggleButtonClicked()
 	ScrollBox->SetVisibility(bIsExpanded ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 }
 
+// Forwards the player name upward through OnAddressClicked.
 void UPlayerList::OnPlayerAddressClicked(const FString& PlayerName)
 {
 	OnAddressClicked.Broadcast(PlayerName);

@@ -2,6 +2,7 @@
 
 #include "BaseDiceActor.h"
 
+// Creates root and both mesh subobjects, and applies physics properties to each.
 ABaseDiceActor::ABaseDiceActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -28,6 +29,7 @@ ABaseDiceActor::ABaseDiceActor()
 	Mesh2->SetAngularDamping(AngularDamping);
 }
 
+// Detaches meshes for independent physics simulation and binds sleep delegates; marks Mesh2 as asleep if unused.
 void ABaseDiceActor::BeginPlay()
 {
 	Super::BeginPlay();
@@ -57,6 +59,7 @@ void ABaseDiceActor::BeginPlay()
 	}
 }
 
+// Returns the roll result by finding the highest dot-product face on each mesh, combining for percentile dice.
 FRollResult ABaseDiceActor::GetRolledValue()
 {
 	FRollResult RollResult = FRollResult();
@@ -91,6 +94,7 @@ FRollResult ABaseDiceActor::GetRolledValue()
 	return RollResult;
 }
 
+// Applies impulse and angular impulse to each valid mesh and starts the failsafe timer.
 void ABaseDiceActor::Roll(FVector Impulse, FVector AngularImpulse)
 {
 	bMesh1Asleep = false;
@@ -104,24 +108,25 @@ void ABaseDiceActor::Roll(FVector Impulse, FVector AngularImpulse)
 
 	if (IsMeshValid(Mesh2) && Mesh2->IsSimulatingPhysics())
 	{
-		Mesh2->AddImpulse(Impulse + 
-						  FVector(FMath::FRandRange(-ImpulseRange, ImpulseRange), 
-								  FMath::FRandRange(-ImpulseRange, ImpulseRange), 
+		Mesh2->AddImpulse(Impulse +
+						  FVector(FMath::FRandRange(-ImpulseRange, ImpulseRange),
+								  FMath::FRandRange(-ImpulseRange, ImpulseRange),
 								  0));
 
-		Mesh2->AddAngularImpulseInRadians(AngularImpulse + 
-										  FVector(FMath::FRandRange(-AngularImpulseRange, AngularImpulseRange), 
-												  FMath::FRandRange(-AngularImpulseRange, AngularImpulseRange), 
+		Mesh2->AddAngularImpulseInRadians(AngularImpulse +
+										  FVector(FMath::FRandRange(-AngularImpulseRange, AngularImpulseRange),
+												  FMath::FRandRange(-AngularImpulseRange, AngularImpulseRange),
 												  FMath::FRandRange(-AngularImpulseRange, AngularImpulseRange)));
 	}
 
-	GetWorld()->GetTimerManager().SetTimer(FailsafeTimerHandle, 
-										   this, 
-										   &ABaseDiceActor::FailsafeDestroy, 
-										   FailSafeTime, 
+	GetWorld()->GetTimerManager().SetTimer(FailsafeTimerHandle,
+										   this,
+										   &ABaseDiceActor::FailsafeDestroy,
+										   FailSafeTime,
 										   false);
 }
 
+// Marks the sleeping mesh's flag and broadcasts OnDiceRolled once both meshes are asleep.
 void ABaseDiceActor::OnMeshSleep(UPrimitiveComponent* SleepingComponent, FName BoneName)
 {
 	SleepingComponent->SetSimulatePhysics(false);
@@ -144,11 +149,13 @@ void ABaseDiceActor::OnMeshSleep(UPrimitiveComponent* SleepingComponent, FName B
 	}
 }
 
+// Returns true only if the mesh pointer is valid and has a static mesh asset assigned.
 bool ABaseDiceActor::IsMeshValid(UStaticMeshComponent* Mesh) const
 {
 	return (Mesh && Mesh->GetStaticMesh());
 }
 
+// Iterates all faces and returns the value of the face whose transformed normal has the highest dot product with world up.
 int32 ABaseDiceActor::GetFaceValue(UStaticMeshComponent* Mesh, UDiceData* DiceFaces) const
 {
 	if (!IsMeshValid(Mesh) || !DiceFaces)
@@ -175,6 +182,7 @@ int32 ABaseDiceActor::GetFaceValue(UStaticMeshComponent* Mesh, UDiceData* DiceFa
 	return Result;
 }
 
+// Destroys the actor and broadcasts OnFailsafeDestroy if either mesh has not yet finished settling.
 void ABaseDiceActor::FailsafeDestroy()
 {
 	if (!bMesh1Asleep || !bMesh2Asleep)

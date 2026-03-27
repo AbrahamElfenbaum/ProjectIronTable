@@ -3,7 +3,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 
-// Sets default values
+// Sets default values and creates the root, sphere, spring arm, and camera component hierarchy.
 AGameplayPawn::AGameplayPawn()
 {
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
@@ -26,7 +26,7 @@ AGameplayPawn::AGameplayPawn()
 void AGameplayPawn::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 }
 
 // Called every frame

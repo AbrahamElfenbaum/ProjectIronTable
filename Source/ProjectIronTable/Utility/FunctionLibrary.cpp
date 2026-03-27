@@ -2,6 +2,7 @@
 
 #include "FunctionLibrary.h"
 
+// Returns the short string name for each EDiceType value.
 FString UFunctionLibrary::GetDiceName(EDiceType Type)
 {
 	switch (Type)

@@ -6,11 +6,13 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 
+// Creates and attaches the HUD component subobject.
 AGameplayController::AGameplayController()
 {
 	HUDComponent = CreateDefaultSubobject<UGameplayHUDComponent>(TEXT("HUDComponent"));
 }
 
+// Caches the pawn reference, registers the gameplay input context, and binds all input actions.
 void AGameplayController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
@@ -46,6 +48,7 @@ void AGameplayController::OnPossess(APawn* InPawn)
 }
 
 #if WITH_EDITOR
+// Clamps all camera config properties to sane ranges whenever a property is changed in the editor.
 void AGameplayController::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
@@ -75,6 +78,7 @@ void AGameplayController::BeginPlay()
 	bShowMouseCursor = true;
 }
 
+// Translates the pawn along the XY plane using the scaled movement speed.
 void AGameplayController::Input_CameraMove(const FInputActionValue& Value)
 {
 	FVector2D MoveInput = Value.Get<FVector2D>();
@@ -89,6 +93,7 @@ void AGameplayController::Input_CameraMove(const FInputActionValue& Value)
 	}
 }
 
+// Locks/unlocks movement and rotates the pawn yaw and pitch using mouse delta while panning.
 void AGameplayController::Input_CameraPan(const FInputActionValue& Value)
 {
 	bCanCameraMove = !Value.Get<bool>();
@@ -105,6 +110,7 @@ void AGameplayController::Input_CameraPan(const FInputActionValue& Value)
 	}
 }
 
+// Resets the pawn pitch to -15 degrees while preserving yaw and roll.
 void AGameplayController::Input_CameraPanReset()
 {
 	if (GameplayPawnRef)
@@ -114,11 +120,13 @@ void AGameplayController::Input_CameraPanReset()
 	}
 }
 
+// Sets the active camera speed multiplier to CameraSpeedMultiplier while held, and back to 1.0 on release.
 void AGameplayController::Input_CameraSprint(const FInputActionValue& Value)
 {
 	CurrentCameraSpeedMultiplier = Value.Get<bool>() ? CameraSpeedMultiplier : 1.f;
 }
 
+// Adjusts the spring arm length by ZoomSpeed in the direction of the scroll input, clamped to min/max.
 void AGameplayController::Input_CameraZoom(const FInputActionValue& Value)
 {
 	if (GameplayPawnRef)
@@ -131,18 +139,21 @@ void AGameplayController::Input_CameraZoom(const FInputActionValue& Value)
 	}
 }
 
+// Adds the chat input mapping context and tells the HUD to focus the chat box.
 void AGameplayController::Input_FocusChat()
 {
 	if (InputSubsystemRef) InputSubsystemRef->AddMappingContext(IMC_Chat, 1);
 	if (HUDComponent) HUDComponent->FocusChat();
 }
 
+// Removes the chat input mapping context and tells the HUD to exit chat.
 void AGameplayController::Input_ExitChat()
 {
 	if (InputSubsystemRef) InputSubsystemRef->RemoveMappingContext(IMC_Chat);
 	if (HUDComponent) HUDComponent->ExitChat();
 }
 
+// Forwards the scroll direction (positive = up) to the HUD chat scroll handler.
 void AGameplayController::Input_ScrollChat(const FInputActionValue& Value)
 {
 	float ScrollInput = Value.Get<float>();
@@ -150,6 +161,7 @@ void AGameplayController::Input_ScrollChat(const FInputActionValue& Value)
 	if (HUDComponent) HUDComponent->ScrollChat(ScrollInput > 0);
 }
 
+// Returns movement speed proportional to spring arm length, clamped between min and max.
 float AGameplayController::CalculateCameraMovementSpeed() const
 {
 	if (GameplayPawnRef)

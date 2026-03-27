@@ -1,12 +1,14 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "PlayerRow.h"
 
+// Binds the address button click delegate.
 void UPlayerRow::NativeConstruct()
 {
 	Super::NativeConstruct();
 	AddressButton->OnClicked.AddDynamic(this, &UPlayerRow::OnAddressButtonClicked);
 }
 
+// Stores the name and updates the name label text.
 void UPlayerRow::SetPlayerName(const FString& Name)
 {
 	PlayerName = Name;
@@ -16,6 +18,7 @@ void UPlayerRow::SetPlayerName(const FString& Name)
 	}
 }
 
+// Broadcasts OnAddressClicked with the stored player name.
 void UPlayerRow::OnAddressButtonClicked()
 {
 	OnAddressClicked.Broadcast(PlayerName);

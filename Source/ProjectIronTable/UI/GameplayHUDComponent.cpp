@@ -8,12 +8,14 @@
 #include "Kismet/GameplayStatics.h"
 #include "DiceSpawnVolume.h"
 
+// Disables tick and enables replication so server RPCs function correctly.
 UGameplayHUDComponent::UGameplayHUDComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicated(true);
 }
 
+// Creates and adds the gameplay screen widget, then caches references to child widgets and wires up delegates.
 void UGameplayHUDComponent::BeginPlay()
 {
 	Super::BeginPlay();
@@ -68,53 +70,66 @@ void UGameplayHUDComponent::BeginPlay()
 	}
 }
 
+// Delegates focus to the chat box widget.
 void UGameplayHUDComponent::FocusChat()
 {
 	if (ChatBoxRef) ChatBoxRef->FocusChat();
 }
 
+// Delegates exit to the chat box widget.
 void UGameplayHUDComponent::ExitChat()
 {
 	if (ChatBoxRef) ChatBoxRef->ExitChat();
 }
 
+// Delegates scroll direction to the chat box widget.
 void UGameplayHUDComponent::ScrollChat(bool bUp)
 {
 	if (ChatBoxRef) ChatBoxRef->Scroll(bUp);
 }
 
+// Delivers the incoming message to the chat box on the owning client.
 void UGameplayHUDComponent::AddChatMessageOnOwningClient_Implementation(const FString& Message, const TArray<FString>& Recipients, bool bIsSender)
 {
 	ChatBoxRef->AddChatMessage(Message, Recipients, bIsSender);
 }
 
+// Resolves sender name, builds the participant list, then delivers the message to each relevant player's HUD component.
 void UGameplayHUDComponent::SendChatMessageOnServer_Implementation(const FString& Message, const TArray<FString>& Recipients)
 {
 	//Get sender's player name for prefixing the message. If we can't get it for some reason, default to "Unknown"
 	APlayerController* SenderPC = Cast<APlayerController>(GetOwner());
 	FString SenderName = SenderPC && SenderPC->PlayerState ? SenderPC->PlayerState->GetPlayerName() : TEXT("Unknown");
 
+	//Build full participants list (sender + recipients). Empty Recipients means broadcast, keep it empty.
+	TArray<FString> Participants;
+	if (!Recipients.IsEmpty())
+	{
+		Participants = Recipients;
+		Participants.AddUnique(SenderName);
+	}
+
 	//Get the game state to access the player array
 	AGameStateBase* GS = GetWorld()->GetGameState<AGameStateBase>();
 
-	//Send the message to each player's HUD component if they're a recipient(or if Recipients is empty, meaning it's a global message)
+	//Send the message to each player's HUD component if they're a participant (or if broadcast)
 	for (APlayerState* Play : GS->PlayerArray)
 	{
-		bool bIsParticipant = Recipients.IsEmpty() || //Is the recipients array empty?
-							  Recipients.Contains(Play->GetPlayerName()) || //Is the player's name in the recipients array?
-							  Play->GetPlayerName() == SenderName; //Is the player the sender?
-		
+		bool bIsParticipant = Participants.IsEmpty() || //Is it a broadcast?
+							  Participants.Contains(Play->GetPlayerName()); //Is the player a participant?
+
 		if (!bIsParticipant || !Play->GetPlayerController()) continue;
 
 		UGameplayHUDComponent* HUDComp = Cast<UGameplayHUDComponent>(
 			Play->GetPlayerController()->GetComponentByClass(UGameplayHUDComponent::StaticClass()));
 		if (HUDComp)
 		{
-			HUDComp->AddChatMessageOnOwningClient(Message, Recipients, Play->GetPlayerName() == SenderName);
+			HUDComp->AddChatMessageOnOwningClient(Message, Participants, Play->GetPlayerName() == SenderName);
 		}
 	}
 }
 
+// Builds a formatted roll result string and sends it to the server for broadcast.
 void UGameplayHUDComponent::AddRollResultToChat(TArray<FRollResult> Results, EDiceRollMode RollMode)
 {
 	//Message starts with the player name
@@ -143,9 +158,14 @@ void UGameplayHUDComponent::AddRollResultToChat(TArray<FRollResult> Results, EDi
 
 	//Trim the last newline off the end of the message and send it to the server to be broadcast to all clients
 	Message.TrimEndInline();
-	SendChatMessageOnServer(Message, {});
+
+	if (ChatBoxRef)
+	{
+		SendChatMessageOnServer(Message, ChatBoxRef->GetActiveChannelParticipants());
+	}
 }
 
+// Sends a chat message to the server noting that a die of the given type was lost to the failsafe timer.
 void UGameplayHUDComponent::OnDiceFailsafeHandler(EDiceType DiceType)
 {
 	FString PlayerName = PlayerControllerRef && PlayerControllerRef->PlayerState ? PlayerControllerRef->PlayerState->GetPlayerName() : TEXT("Unknown");
@@ -156,6 +176,7 @@ void UGameplayHUDComponent::OnDiceFailsafeHandler(EDiceType DiceType)
 	SendChatMessageOnServer(FString::Printf(TEXT("%s lost a %s to the void"), *PlayerName, *DiceTypeName), {});
 }
 
+// Appends the player's name as an @mention in the chat input field.
 void UGameplayHUDComponent::OnPlayerAddressClicked(const FString& PlayerName)
 {
 	ChatBoxRef->AppendToInput(TEXT("@") + PlayerName + TEXT(" "));

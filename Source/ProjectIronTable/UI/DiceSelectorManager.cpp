@@ -3,6 +3,7 @@
 #include "DiceSelector.h"
 #include "Kismet/KismetMathLibrary.h"
 
+// Populates selector and button arrays, binds all button delegates, and refreshes initial button states.
 void UDiceSelectorManager::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -23,6 +24,7 @@ void UDiceSelectorManager::NativeConstruct()
 	UpdateAdvantageButtonState();
 }
 
+// Spawns and launches all selected dice, clearing leftover dice from the previous roll first.
 void UDiceSelectorManager::RollDice()
 {
 	if (!IsValid(SpawnVolume))
@@ -112,6 +114,7 @@ void UDiceSelectorManager::RollDice()
 	}
 }
 
+// Accumulates results; once all dice report in, resolves advantage/disadvantage and broadcasts OnAllDiceRolled.
 void UDiceSelectorManager::OnDiceRolledHandler(FRollResult Result)
 {
 	PendingResults.Add(Result);
@@ -167,6 +170,7 @@ void UDiceSelectorManager::OnDiceRolledHandler(FRollResult Result)
 	}
 }
 
+// Destroys all actors in SpawnedDice and empties the array.
 void UDiceSelectorManager::DestroyDice()
 {
 	for (auto Dice : SpawnedDice)
@@ -179,6 +183,7 @@ void UDiceSelectorManager::DestroyDice()
 	SpawnedDice.Empty();
 }
 
+// Decrements the expected count and finalises the roll early if remaining dice have all reported results.
 void UDiceSelectorManager::OnDiceFailsafeHandler(EDiceType DiceType)
 {
 	ExpectedDiceCount--;
@@ -204,30 +209,35 @@ void UDiceSelectorManager::OnDiceFailsafeHandler(EDiceType DiceType)
 	}
 }
 
+// Refreshes roll and advantage button states whenever any selector count changes.
 void UDiceSelectorManager::OnSelectorCountChanged()
 {
 	UpdateRollButtonState();
 	UpdateAdvantageButtonState();
 }
 
+// Sets roll mode to Normal and refreshes advantage button states.
 void UDiceSelectorManager::OnNormalClicked()
 {
 	RollMode = EDiceRollMode::Normal;
 	UpdateAdvantageButtonState();
 }
 
+// Sets roll mode to Advantage and refreshes advantage button states.
 void UDiceSelectorManager::OnAdvantageClicked()
 {
 	RollMode = EDiceRollMode::Advantage;
 	UpdateAdvantageButtonState();
 }
 
+// Sets roll mode to Disadvantage and refreshes advantage button states.
 void UDiceSelectorManager::OnDisadvantageClicked()
 {
 	RollMode = EDiceRollMode::Disadvantage;
 	UpdateAdvantageButtonState();
 }
 
+// Enables the roll button only when at least one die is selected and no roll is in progress.
 void UDiceSelectorManager::UpdateRollButtonState()
 {
 	bool bAnyDiceSelected = Selectors.ContainsByPredicate([](UDiceSelector* S)
@@ -238,6 +248,7 @@ void UDiceSelectorManager::UpdateRollButtonState()
 	RollButton->SetIsEnabled(!bRollInProgress && bAnyDiceSelected);
 }
 
+// Enables advantage buttons only when exactly one die total is selected; disables the currently active mode button.
 void UDiceSelectorManager::UpdateAdvantageButtonState()
 {
 	int32 TotalDiceCount = 0;
@@ -261,7 +272,7 @@ void UDiceSelectorManager::UpdateAdvantageButtonState()
 		}
 	}
 
-	if (!bRollInProgress && 
+	if (!bRollInProgress &&
 		bAnyDiceSelected &&
 		TotalDiceCount == 1)
 	{
@@ -298,10 +309,11 @@ void UDiceSelectorManager::UpdateAdvantageButtonState()
 	}
 }
 
+// Adds a uniform random offset within [-Range, Range] to each component of the base vector.
 FVector UDiceSelectorManager::GetRandomizedVector(const FVector& BaseVector, const float& Range, bool bUseZAxis)
 {
 	float Z = bUseZAxis ? FMath::FRandRange(-Range, Range) : 0.f;
-	return BaseVector + FVector(FMath::FRandRange(-Range, Range), 
-								FMath::FRandRange(-Range, Range), 
+	return BaseVector + FVector(FMath::FRandRange(-Range, Range),
+								FMath::FRandRange(-Range, Range),
 								Z);
 }

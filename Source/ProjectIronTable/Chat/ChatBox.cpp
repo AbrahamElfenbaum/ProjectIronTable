@@ -6,6 +6,7 @@
 #include "GameplayHUDComponent.h"
 #include "GameFramework/PlayerState.h"
 
+// Caches the HUD component reference, binds the text committed delegate, and creates the default server channel.
 void UChatBox::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -21,6 +22,7 @@ void UChatBox::NativeConstruct()
 	SwitchToChannel(CreateChannel({}));
 }
 
+// Focuses the chat box when the widget is clicked while not already focused.
 FReply UChatBox::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
 	if (!bChatFocused)
@@ -32,11 +34,13 @@ FReply UChatBox::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPoi
 	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
+// Delegates scroll to the active channel.
 void UChatBox::Scroll(bool bUp)
 {
 	if (ActiveChannel) ActiveChannel->Scroll(bUp);
 }
 
+// Sets keyboard focus on the editable text field and switches to UI-only input mode.
 void UChatBox::FocusChat()
 {
 	APlayerController* PC = Cast<APlayerController>(GetOwningPlayer());
@@ -49,6 +53,7 @@ void UChatBox::FocusChat()
 	}
 }
 
+// Clears and disables the input field and restores game-and-UI input mode.
 void UChatBox::ExitChat()
 {
 	bChatFocused = false;
@@ -61,6 +66,7 @@ void UChatBox::ExitChat()
 	}
 }
 
+// Creates and registers a new channel and its corresponding tab, returning the new channel.
 UChatChannel* UChatBox::CreateChannel(TArray<FString> Participants)
 {
 	//Build the label based on the participants
@@ -101,6 +107,7 @@ UChatChannel* UChatBox::CreateChannel(TArray<FString> Participants)
 	return Channel;
 }
 
+// Makes the given channel visible in the switcher and clears its unread notification.
 void UChatBox::SwitchToChannel(UChatChannel* Channel)
 {
 	ActiveChannel = Channel;
@@ -108,6 +115,7 @@ void UChatBox::SwitchToChannel(UChatChannel* Channel)
 	ChannelTabMap[Channel]->ClearNotification();
 }
 
+// Routes the message to the matching channel (creating one if needed), switching to it if the local player sent it.
 void UChatBox::AddChatMessage(const FString& Message, TArray<FString> Participants, bool bIsSender)
 {
 	UChatChannel* CurrentChannel = nullptr;
@@ -150,12 +158,27 @@ void UChatBox::AddChatMessage(const FString& Message, TArray<FString> Participan
 	}
 }
 
+// Appends the given text to whatever is currently in the input field.
 void UChatBox::AppendToInput(const FString& Text)
 {
 	FString Current = EditableText->GetText().ToString();
 	EditableText->SetText(FText::FromString(Current + Text));
 }
 
+// Returns the participant list of the active channel, or an empty array if no channel is active.
+TArray<FString> UChatBox::GetActiveChannelParticipants()
+{
+	if (ActiveChannel)
+	{
+		return ActiveChannel->Participants;
+	}
+	else
+	{
+		return {};
+	}
+}
+
+// On Enter: parses @mentions from the message and sends it to the server. On focus loss: exits chat.
 void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod)
 {
 	if (CommitMethod == ETextCommit::OnEnter)

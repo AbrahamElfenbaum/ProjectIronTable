@@ -1,6 +1,7 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "DiceSelector.h"
 
+// Initializes the type label, count label, and button delegates.
 void UDiceSelector::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -12,6 +13,7 @@ void UDiceSelector::NativeConstruct()
 	DecreaseButton->OnClicked.AddDynamic(this, &UDiceSelector::DecreaseDiceCount);
 }
 
+// Increments the count, refreshes the label, and broadcasts the change.
 void UDiceSelector::IncreaseDiceCount()
 {
 	DiceCount++;
@@ -19,6 +21,7 @@ void UDiceSelector::IncreaseDiceCount()
 	OnCountChanged.Broadcast();
 }
 
+// Decrements the count if above zero, refreshes the label, and broadcasts the change.
 void UDiceSelector::DecreaseDiceCount()
 {
 	if (DiceCount > 0)
@@ -29,6 +32,7 @@ void UDiceSelector::DecreaseDiceCount()
 	}
 }
 
+// Resets the count to zero, refreshes the label, and broadcasts the change.
 void UDiceSelector::ResetCount()
 {
 	DiceCount = 0;
