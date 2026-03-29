@@ -8,6 +8,7 @@
 #include "GameplayHUDComponent.generated.h"
 
 class UChatBox;
+class UTaskbar;
 
 /**
  * Actor component attached to AGameplayController that owns and manages all gameplay UI.
@@ -55,6 +56,10 @@ private:
 	/** Reference to the PlayerList widget found inside the gameplay screen. */
 	UPROPERTY()
 	TObjectPtr<UPlayerList> PlayerListRef;
+
+	/** Reference to the Taskbar widget found inside the gameplay screen. */
+	UPROPERTY()
+	TObjectPtr<UTaskbar> TaskbarRef;
 
 public:
 

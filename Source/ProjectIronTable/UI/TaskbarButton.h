@@ -1,0 +1,44 @@
+// Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
+#pragma once
+#include "CoreMinimal.h"
+#include "Blueprint/UserWidget.h"
+#include "Components/TextBlock.h"
+#include "Components/Button.h"
+#include "TaskbarButton.generated.h"
+
+/**
+ * A single button in the taskbar that tracks and toggles the visibility of one widget.
+ */
+UCLASS()
+class PROJECTIRONTABLE_API UTaskbarButton : public UUserWidget
+{
+	GENERATED_BODY()
+
+private:
+
+	// -- Widget References --
+
+	/** Button the player clicks to toggle the tracked widget. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> ToggleButton;
+
+	/** Displays the name of the tracked widget. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> WidgetLabel;
+
+	/** The widget this button controls. */
+	UPROPERTY()
+	TObjectPtr<UUserWidget> TrackedWidget;
+
+protected:
+	virtual void NativeConstruct() override;
+
+public:
+	/** Assigns the widget to track and sets the button label. */
+	void SetTrackedWidget(UUserWidget*, FString Label);
+
+	/** Toggles the tracked widget between Visible and Collapsed. */
+	UFUNCTION()
+	void OnToggleClicked();
+	
+};

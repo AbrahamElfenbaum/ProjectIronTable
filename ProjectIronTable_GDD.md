@@ -289,7 +289,7 @@ A consolidated list of unresolved design decisions:
 
 ---
 
-*Last updated: 2026-03-27* — Dice roll routing design decision added: rolls go to the active channel, not always broadcast. Private dice roll initiation (starting a channel via a roll) added as a future open item.
+*Last updated: 2026-03-29* — Taskbar minimize system implemented: a taskbar widget at the bottom of the screen holds toggle buttons for Chat, Dice, and Players panels. Panel toggle behavior is live; full draggable/resizable layout system is still planned.
 
 ---
 

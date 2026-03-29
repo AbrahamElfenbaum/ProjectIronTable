@@ -7,6 +7,7 @@
 #include "DiceSelectorManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "DiceSpawnVolume.h"
+#include "Taskbar.h"
 
 // Disables tick and enables replication so server RPCs function correctly.
 UGameplayHUDComponent::UGameplayHUDComponent()
@@ -29,9 +30,11 @@ void UGameplayHUDComponent::BeginPlay()
 		GameplayScreenRef = CreateWidget<UUserWidget>(GetWorld(), GameplayScreenClass);
 		GameplayScreenRef->AddToViewport();
 
+
 		DiceSelectorManagerRef = Cast<UDiceSelectorManager>(GameplayScreenRef->GetWidgetFromName(TEXT("DiceSelectorManager")));
 		ChatBoxRef = Cast<UChatBox>(GameplayScreenRef->GetWidgetFromName(TEXT("ChatBox")));
 		PlayerListRef = Cast<UPlayerList>(GameplayScreenRef->GetWidgetFromName(TEXT("PlayerList")));
+		TaskbarRef = Cast<UTaskbar>(GameplayScreenRef->GetWidgetFromName(TEXT("Taskbar")));
 
 		if (DiceSelectorManagerRef)
 		{
@@ -66,6 +69,41 @@ void UGameplayHUDComponent::BeginPlay()
 		else
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Player List Not Found"));
+		}
+
+		if (TaskbarRef)
+		{
+			if (ChatBoxRef)
+			{
+				TaskbarRef->RegisterWidget(ChatBoxRef, TEXT("Chat"));
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Chat Box Not Found, cannot register with Taskbar"));
+			}
+
+			if (DiceSelectorManagerRef)
+			{
+				TaskbarRef->RegisterWidget(DiceSelectorManagerRef, TEXT("Dice"));
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Dice Selector Not Found, cannot register with Taskbar"));
+			}
+
+			if (PlayerListRef)
+			{
+				TaskbarRef->RegisterWidget(PlayerListRef, TEXT("Players"));
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Player List Not Found, cannot register with Taskbar"));
+			}
+			//Register other widgets as needed
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Taskbar Not Found"));
 		}
 	}
 }
@@ -116,7 +154,7 @@ void UGameplayHUDComponent::SendChatMessageOnServer_Implementation(const FString
 	for (APlayerState* Play : GS->PlayerArray)
 	{
 		bool bIsParticipant = Participants.IsEmpty() || //Is it a broadcast?
-							  Participants.Contains(Play->GetPlayerName()); //Is the player a participant?
+			Participants.Contains(Play->GetPlayerName()); //Is the player a participant?
 
 		if (!bIsParticipant || !Play->GetPlayerController()) continue;
 
