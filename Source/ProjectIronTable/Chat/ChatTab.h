@@ -70,4 +70,6 @@ private:
 	UFUNCTION()
 	void OnTabButtonClicked();
 
+public:
+	void SetInteractable(bool bInteractable);
 };

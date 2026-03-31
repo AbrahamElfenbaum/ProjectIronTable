@@ -42,3 +42,8 @@ void UChatTab::OnTabButtonClicked()
 {
 	OnTabClicked.Broadcast(Channel);
 }
+
+void UChatTab::SetInteractable(bool bInteractable)
+{
+	TabButton->SetIsEnabled(bInteractable);
+}

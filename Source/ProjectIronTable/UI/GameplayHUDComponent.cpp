@@ -8,6 +8,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "DiceSpawnVolume.h"
 #include "Taskbar.h"
+#include "DraggablePanel.h"
 
 // Disables tick and enables replication so server RPCs function correctly.
 UGameplayHUDComponent::UGameplayHUDComponent()
@@ -78,32 +79,9 @@ void UGameplayHUDComponent::BeginPlay()
 
 		if (TaskbarRef)
 		{
-			if (ChatBoxRef)
-			{
-				TaskbarRef->RegisterWidget(ChatBoxRef, TEXT("Chat"));
-			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Chat Box Not Found, cannot register with Taskbar"));
-			}
-
-			if (DiceSelectorManagerRef)
-			{
-				TaskbarRef->RegisterWidget(DiceSelectorManagerRef, TEXT("Dice"));
-			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Dice Selector Not Found, cannot register with Taskbar"));
-			}
-
-			if (PlayerListRef)
-			{
-				TaskbarRef->RegisterWidget(PlayerListRef, TEXT("Players"));
-			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Player List Not Found, cannot register with Taskbar"));
-			}
+			DicePanel = FindAndRegisterPanel(TEXT("DicePanel"), TEXT("Dice"));
+			ChatPanel = FindAndRegisterPanel(TEXT("ChatPanel"), TEXT("Chat"));;
+			PlayersPanel = FindAndRegisterPanel(TEXT("PlayersPanel"), TEXT("Players"));
 			//Register other widgets as needed
 		}
 		else
@@ -129,6 +107,22 @@ void UGameplayHUDComponent::ExitChat()
 void UGameplayHUDComponent::ScrollChat(bool bUp)
 {
 	if (ChatBoxRef) ChatBoxRef->Scroll(bUp);
+}
+
+UDraggablePanel* UGameplayHUDComponent::FindAndRegisterPanel(const FName& WidgetName, const FString& Label)
+{
+	UDraggablePanel* Panel = Cast<UDraggablePanel>(GameplayScreenRef->GetWidgetFromName(WidgetName));
+	if (Panel)
+	{
+		TaskbarRef->RegisterWidget(Panel, Label);
+		return Panel;		
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Taskbar not found, cannot register %s panel"), *Label);
+		return nullptr;
+	}
+	
 }
 
 // Delivers the incoming message to the chat box on the owning client.

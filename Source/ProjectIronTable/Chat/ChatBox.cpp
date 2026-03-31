@@ -28,7 +28,7 @@ FReply UChatBox::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPoi
 	if (!bChatFocused)
 	{
 		FocusChat();
-		return FReply::Handled();
+		//return FReply::Handled();
 	}
 
 	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
@@ -111,7 +111,12 @@ UChatChannel* UChatBox::CreateChannel(TArray<FString> Participants)
 // Makes the given channel visible in the switcher and clears its unread notification.
 void UChatBox::SwitchToChannel(UChatChannel* Channel)
 {
+	if (ActiveChannel)
+	{
+		ChannelTabMap[ActiveChannel]->SetInteractable(true);
+	}
 	ActiveChannel = Channel;
+	ChannelTabMap[ActiveChannel]->SetInteractable(false);
 	ChannelContainer->SetActiveWidget(Channel);
 	ChannelTabMap[Channel]->ClearNotification();
 }
@@ -213,6 +218,16 @@ void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod
 				Message = FString::Join(MessageArray, TEXT(" "));
 
 				FString PlayerName = PC->PlayerState->GetPlayerName();
+
+				// If no @recipients were typed but the active channel is private,
+				// automatically route to that channel's participants so replies
+				// don't fall back to the public server channel.
+				if (Recipients.IsEmpty() && ActiveChannel && !ActiveChannel->Participants.IsEmpty())
+				{
+					Recipients = ActiveChannel->Participants;
+					Recipients.Remove(PlayerName);
+				}
+
 				FString FullMessage = FString::Printf(TEXT("%s: %s"), *PlayerName, *Message);
 				HUDComponentRef->SendChatMessageOnServer(FullMessage, Recipients);
 			}

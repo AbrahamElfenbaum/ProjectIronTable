@@ -9,6 +9,7 @@
 
 class UChatBox;
 class UTaskbar;
+class UDraggablePanel;
 
 /**
  * Actor component attached to AGameplayController that owns and manages all gameplay UI.
@@ -61,6 +62,18 @@ private:
 	UPROPERTY()
 	TObjectPtr<UTaskbar> TaskbarRef;
 
+	/** Reference to the DraggablePanel wrapping the DiceSelectorManager, registered with the Taskbar for toggling. */
+	UPROPERTY()
+	TObjectPtr<UDraggablePanel> DicePanel;
+
+	/** Reference to the DraggablePanel wrapping the ChatBox, registered with the Taskbar for toggling. */
+	UPROPERTY()
+	TObjectPtr<UDraggablePanel> ChatPanel;
+
+	/** Reference to the DraggablePanel wrapping the PlayerList, registered with the Taskbar for toggling. */
+	UPROPERTY()
+	TObjectPtr<UDraggablePanel> PlayersPanel;
+
 public:
 
 	// -- Replicated Chat Methods --
@@ -97,4 +110,8 @@ public:
 
 	/** Scrolls the active chat channel up or down. */
 	void ScrollChat(bool bUp);
+
+private:
+	/** Finds a DraggablePanel by widget name, registers it with the Taskbar, and returns it. Logs a warning if not found. */
+	UDraggablePanel* FindAndRegisterPanel(const FName& WidgetName, const FString& Label);
 };
