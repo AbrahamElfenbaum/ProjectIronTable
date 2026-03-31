@@ -250,7 +250,7 @@ Establish the game framework and player interaction foundation.
 - [x] Camera pawn (`AGameplayPawn`) — top-down camera rig (Root → Sphere → SpringArm → Camera)
 - [x] Camera movement polish (panning, zoom, bounds) — pan rotates pawn (yaw unrestricted, pitch clamped), zoom adjusts spring arm length, sprint multiplier, pan reset, editor property validation via PostEditChangeProperty. Runtime settings save system pending.
 - [ ] Runtime camera settings menu (`USaveGame`-based) — exposes camera properties (speeds, zoom range, pan speed, pitch limits) to the player at runtime. **Requirements before shipping:** (1) extract `PostEditChangeProperty` validation logic into a shared `ValidateCameraSettings()` function callable at runtime; (2) call it when settings are applied so invalid values (min ≥ max, zero speeds) can never reach the camera movement code; (3) load saved settings in `BeginPlay` and apply before any input is processed.
-- [ ] Basic camera system (top-down / isometric view)
+- [x] Basic camera system (top-down / isometric view) — functional; may need revisiting as more systems are added
 - [ ] Scene/session management (start, load, save)
 - [ ] GM permissions system — GM can grant/revoke specific permissions to individual players at any time; permissions are enforced in code; specific permission types TBD when built
 - [ ] Session player cap — default max 8 users (GM included); cap is enforced by default but can be removed; no hard engine limit
