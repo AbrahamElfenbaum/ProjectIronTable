@@ -45,7 +45,7 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - `Pawns/` — Camera pawn (`AGameplayPawn`)
 - `PlayerControllers/` — Player controller (`AGameplayController`)
 - `PlayerList/` — Player list widget classes (`UPlayerList`, `UPlayerRow`)
-- `UI/` — Non-chat widget classes (`UDiceSelector`, `UDiceSelectorManager`, `UGameplayHUDComponent`, `UTaskbar`, `UTaskbarButton`)
+- `UI/` — Non-chat widget classes (`UDiceSelector`, `UDiceSelectorManager`, `UGameplayHUDComponent`, `UTaskbar`, `UTaskbarButton`, `UDraggablePanel`, `UDragHandle`, `UResizeHandle`)
 - `Physics/Materials/` — Physical material assets (friction, restitution for dice)
 - `Utility/` — Blueprint function libraries (`UFunctionLibrary`)
 
@@ -68,5 +68,6 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - `UI/Chat/` — Chat widgets (`W_ChatBox`, `WE_ChatChannel`, `WE_ChatTab`, `WE_ChatEntry`)
 - `UI/PlayerList/` — Player list widgets (`W_PlayerList`, `WE_PlayerRow`)
 - `UI/Taskbar/` — Taskbar widgets (`W_Taskbar`, `WE_TaskbarButton`)
+- `UI/Utility/` — Reusable utility widgets (`W_DraggablePanel`, `WBP_DragHandle`, `WBP_ResizeHandle`)
 - `UI/Screens/` — Full screen widgets (`S_GameplayScreen`)
 - `UI/Testing/` — Debug/test widgets (`WE_DebugDisplay`)

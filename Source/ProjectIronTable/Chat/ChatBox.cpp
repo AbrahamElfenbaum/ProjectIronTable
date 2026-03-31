@@ -63,6 +63,7 @@ void UChatBox::ExitChat()
 	if (PC)
 	{
 		PC->SetInputMode(FInputModeGameAndUI());
+		PC->bShowMouseCursor = true;
 	}
 }
 

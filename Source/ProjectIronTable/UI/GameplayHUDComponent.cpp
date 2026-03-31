@@ -30,6 +30,11 @@ void UGameplayHUDComponent::BeginPlay()
 		GameplayScreenRef = CreateWidget<UUserWidget>(GetWorld(), GameplayScreenClass);
 		GameplayScreenRef->AddToViewport();
 
+		FInputModeGameAndUI InputMode;
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		PlayerControllerRef->SetInputMode(InputMode);
+		PlayerControllerRef->bShowMouseCursor = true;
+
 
 		DiceSelectorManagerRef = Cast<UDiceSelectorManager>(GameplayScreenRef->GetWidgetFromName(TEXT("DiceSelectorManager")));
 		ChatBoxRef = Cast<UChatBox>(GameplayScreenRef->GetWidgetFromName(TEXT("ChatBox")));

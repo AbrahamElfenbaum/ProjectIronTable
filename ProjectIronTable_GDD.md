@@ -289,7 +289,7 @@ A consolidated list of unresolved design decisions:
 
 ---
 
-*Last updated: 2026-03-29* — Taskbar minimize system implemented: a taskbar widget at the bottom of the screen holds toggle buttons for Chat, Dice, and Players panels. Panel toggle behavior is live; full draggable/resizable layout system is still planned.
+*Last updated: 2026-03-31* — Draggable and resizable panels implemented: Chat, Dice, and Players panels are now independently moveable and resizable via title bar drag and bottom-right corner resize. Single-corner resize (bottom-right); 8-direction resize deferred to a future pass.
 
 ---
 
