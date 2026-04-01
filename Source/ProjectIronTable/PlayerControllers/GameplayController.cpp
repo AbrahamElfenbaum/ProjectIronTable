@@ -76,6 +76,9 @@ void AGameplayController::BeginPlay()
 {
 	Super::BeginPlay();
 	bShowMouseCursor = true;
+	FInputModeGameAndUI InputMode;
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(InputMode);
 }
 
 // Translates the pawn along the XY plane using the scaled movement speed.

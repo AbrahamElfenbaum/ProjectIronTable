@@ -328,7 +328,7 @@ A consolidated list of unresolved design decisions:
 
 ---
 
-*Last updated: 2026-04-01* — Added Home Screen and Asset Library sections. Defined import flow: type selector → file dialog or drag-and-drop → copy to destination folder. Supported formats: PNG/JPG (images), WAV (audio); mesh import deferred. Established that home screen is a separate scene with its own controller and game mode.
+*Last updated: 2026-04-01* — Home screen implemented and working. Play button transitions to gameplay scene. Join, Library, and Settings are stubs pending their respective systems.
 
 ---
 

@@ -47,23 +47,25 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - `Chat/` — Chat widget classes (`UChatBox`, `UChatEntry`, `UChatChannel`, `UChatTab`, `UChatChannelListEntry`)
 - `Dice/` — Dice actors (`ABaseDiceActor`, `ADiceSpawnVolume`) and data assets (`UDiceData`)
 - `Pawns/` — Camera pawn (`AGameplayPawn`)
-- `PlayerControllers/` — Player controller (`AGameplayController`)
+- `PlayerControllers/` — Player controllers (`AGameplayController`, `AHomeScreenController`)
 - `PlayerList/` — Player list widget classes (`UPlayerList`, `UPlayerRow`)
 - `SaveLoad/` — Save game classes (`UPanelLayoutSave`)
-- `UI/` — Non-chat widget classes (`UDiceSelector`, `UDiceSelectorManager`, `UGameplayHUDComponent`, `UTaskbar`, `UTaskbarButton`, `UDraggablePanel`, `UDragHandle`, `UResizeHandle`)
+- `UI/` — Non-chat widget classes (`UDiceSelector`, `UDiceSelectorManager`, `UGameplayHUDComponent`, `UHomeScreenHUDComponent`, `UTaskbar`, `UTaskbarButton`, `UDraggablePanel`, `UDragHandle`, `UResizeHandle`)
 - `Physics/Materials/` — Physical material assets (friction, restitution for dice)
 - `Utility/` — Blueprint function libraries (`UFunctionLibrary`)
 
 ### Content (`Content/`)
-- `Blueprints/Core/GameModes/` — Game mode blueprints (`GM_Testing`, `GM_Gameplay`)
-- `Blueprints/Core/PlayerControllers/` — Player controller blueprints (`PC_Testing`, `PC_Gameplay`)
+- `Blueprints/Core/GameModes/` — Game mode blueprints (`GM_Testing`, `GM_Gameplay`, `GM_HomeScreen`)
+- `Blueprints/Core/PlayerControllers/` — Player controller blueprints (`PC_Testing`, `PC_Gameplay`, `PC_HomeScreen`)
 - `Blueprints/Core/Components/` — Actor components (`BP_HUDComponent`)
 - `Blueprints/Pawns/` — Camera pawn Blueprint (`P_GameplayPawn`)
 - `Blueprints/Dice/` — Base dice actor Blueprint (`A_BaseDiceActor`)
 - `Blueprints/Dice/DiceActors/` — Individual die blueprints
 - `Blueprints/Utility/` — Utility blueprints
 - `Data/DataAssets/Dice/` — Dice data assets
-- `Levels/Dev/` — Development/test levels
+- `Levels/Dev/` — Development/test levels (`Dev_` prefix)
+- `Levels/HomeScreen/` — Home screen level (`L_HomeScreen`)
+- `Levels/Gameplay/` — Gameplay levels (`L_Gameplay`)
 - `Materials/Dice/` — Dice materials
 - `Audio/Dice/` — Dice collision sound assets (Kenney Impact Sounds, CC0)
 - `Meshes/Dice/` — Dice meshes (*Dungeons of Dice* by NNJohn)
@@ -75,5 +77,5 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - `UI/PlayerList/` — Player list widgets (`W_PlayerList`, `WE_PlayerRow`)
 - `UI/Taskbar/` — Taskbar widgets (`W_Taskbar`, `WE_TaskbarButton`)
 - `UI/Utility/` — Reusable utility widgets (`W_DraggablePanel`, `WBP_DragHandle`, `WBP_ResizeHandle`)
-- `UI/Screens/` — Full screen widgets (`S_GameplayScreen`)
+- `UI/Screens/` — Full screen widgets (`S_GameplayScreen`, `S_HomeScreen`)
 - `UI/Testing/` — Debug/test widgets (`WE_DebugDisplay`)
