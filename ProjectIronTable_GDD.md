@@ -96,9 +96,9 @@ In-session text chat. Dice roll results are automatically posted to chat, attrib
 
 **Private channel behavior:** When a sender creates a new private channel, they are automatically switched to that tab. All recipients see a notification indicator on the new tab. All participants (sender and all recipients) share the same channel and can send messages to it.
 
-**Dice roll routing:** Dice roll results are posted to whichever channel the rolling player currently has active, not always broadcast to everyone. If the rolling player has a private channel open, the roll result goes only to that channel's participants. If the Server tab is active, the roll broadcasts to all. Starting a new private channel via a dice roll (rolling when no relevant private tab is open) is a future feature — not yet designed.
+**Dice roll routing:** Dice roll results are posted to whichever channel the rolling player currently has active, not always broadcast to everyone. If the rolling player has a private channel open, the roll result goes only to that channel's participants. If the Server tab is active, the roll broadcasts to all.
 
-> **Open Item (future):** How does a player initiate a private dice roll if they don't already have a private channel open with the relevant recipients? For example: rolling to hide something from specific players without first typing a private message. This requires a UI flow for selecting recipients before rolling, separate from the chat input. Not yet designed.
+**Private roll initiation:** To start a private roll without an existing private channel, the player types `@Name` tokens into the chat input field and then clicks Roll. The roll button parses the input: if recipients are found, it sends a message to those recipients first (`"Rolling..."` if no other text was typed, or the typed text as the body), creating the private channel and switching to it. The dice result then arrives on that channel automatically since it was just made active. The input field is cleared after the message is sent but persists through click-away so players don't lose their typed recipients by accidentally clicking the roll button area first.
 
 **Visibility:** By default, messages and roll results are broadcast to all users via the Server tab. Private messages and private rolls are visible only to the participants of that channel.
 
@@ -289,7 +289,7 @@ A consolidated list of unresolved design decisions:
 
 ---
 
-*Last updated: 2026-04-01* — Panel layout persistence implemented. Position, size, and collapsed/visible state now saved per client and restored on launch.
+*Last updated: 2026-04-01* — Panel layout persistence implemented. Private dice roll initiation implemented — players type `@Names` in chat input then click Roll to create a private channel and route the result there. Input field now persists on click-away; clears on channel switch or send.
 
 ---
 

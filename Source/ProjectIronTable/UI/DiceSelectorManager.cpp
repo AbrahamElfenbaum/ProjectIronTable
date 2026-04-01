@@ -46,6 +46,8 @@ void UDiceSelectorManager::RollDice()
 		}
 	}
 
+	OnRollInitiated.Broadcast();
+
 	// Clear arrays of any data from the previous roll
 	SpawnedDice.Empty();
 	PendingResults.Empty();

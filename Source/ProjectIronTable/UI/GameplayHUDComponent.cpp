@@ -49,6 +49,7 @@ void UGameplayHUDComponent::BeginPlay()
 			UE_LOG(LogTemp, Display, TEXT("Dice Selector Found"));
 			DiceSelectorManagerRef->OnAllDiceRolled.AddDynamic(this, &UGameplayHUDComponent::AddRollResultToChat);
 			DiceSelectorManagerRef->OnDiceFailsafeDestroyed.AddDynamic(this, &UGameplayHUDComponent::OnDiceFailsafeHandler);
+			DiceSelectorManagerRef->OnRollInitiated.AddDynamic(this, &UGameplayHUDComponent::OnRollInitiated);
 
 			ADiceSpawnVolume* SpawnVolume = Cast<ADiceSpawnVolume>(UGameplayStatics::GetActorOfClass(GetWorld(), ADiceSpawnVolume::StaticClass()));
 			if (SpawnVolume)
@@ -143,6 +144,12 @@ void UGameplayHUDComponent::SavePanelLayout()
 	//Apply other panels as needed
 
 	UGameplayStatics::SaveGameToSlot(PanelLayoutSave, TEXT("PanelLayout"), 0);
+}
+
+// Notifies the chat box that a roll has been initiated so it can prepare for incoming roll result messages.
+void UGameplayHUDComponent::OnRollInitiated()
+{
+	ChatBoxRef->TrySendPrivateRollMessage();
 }
 
 // Loads the PanelLayout save slot and applies stored position, size, and visibility to each panel.

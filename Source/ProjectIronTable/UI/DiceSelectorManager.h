@@ -24,6 +24,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAllDiceRolled, TArray<FRollResul
 /** Fired when a single die is destroyed by its failsafe timer before settling. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDiceFailsafeDestroyed, EDiceType, DiceType);
 
+/** Fired when a roll is initiated, before any dice are spawned. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRollInitiated);
+
 /** Widget that manages all DiceSelector widgets, handles spawning and rolling, and broadcasts results. */
 UCLASS()
 class PROJECTIRONTABLE_API UDiceSelectorManager : public UUserWidget
@@ -155,6 +158,10 @@ public:
 	/** Fired when any individual die is destroyed by its failsafe timer. */
 	UPROPERTY(BlueprintAssignable, Category = "Dice")
 	FOnDiceFailsafeDestroyed OnDiceFailsafeDestroyed;
+
+	/** Fired when a roll is initiated, before any dice are spawned. Used to send a private roll message if recipients are in the chat input. */
+	UPROPERTY(BlueprintAssignable, Category = "Dice")
+	FOnRollInitiated OnRollInitiated;
 
 private:
 

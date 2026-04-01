@@ -127,6 +127,9 @@ public:
 	/** Returns the participant list of the currently active channel. */
 	TArray<FString> GetActiveChannelParticipants();
 
+	/** If the current input starts with a private message command, sends it and clears the input. */
+	void TrySendPrivateRollMessage();
+
 private:
 
 	/** Sends the typed message to the server on Enter, or exits chat on focus loss. */
@@ -141,6 +144,7 @@ private:
 	UFUNCTION()
 	void CloseChannel(UChatChannel* Channel);
 
+	UFUNCTION()
 	/** Removes the given channel from the closed set, restores its tab, and switches to it. */
 	void ReopenChannel(UChatChannel* Channel);
 

@@ -70,7 +70,6 @@ void UChatBox::ExitChat()
 {
 	bChatFocused = false;
 	EditableText->SetIsEnabled(false);
-	EditableText->SetText(FText::GetEmpty());
 	APlayerController* PC = Cast<APlayerController>(GetOwningPlayer());
 	if (PC)
 	{
@@ -133,6 +132,7 @@ void UChatBox::SwitchToChannel(UChatChannel* Channel)
 	ChannelTabMap[ActiveChannel]->SetInteractable(false);
 	ChannelContainer->SetActiveWidget(Channel);
 	ChannelTabMap[Channel]->ClearNotification();
+	EditableText->SetText(FText::GetEmpty());
 }
 
 // Routes the message to the matching channel (creating one if needed), switching to it if the local player sent it.
@@ -169,7 +169,7 @@ void UChatBox::AddChatMessage(const FString& Message, TArray<FString> Participan
 	CurrentChannel->AddChatMessage(Message);
 
 	if (ClosedChannels.Contains(CurrentChannel))
-	{ 
+	{
 		ReopenChannel(CurrentChannel);
 	}
 	else if (bIsSender)
@@ -202,6 +202,56 @@ TArray<FString> UChatBox::GetActiveChannelParticipants()
 	}
 }
 
+// Parses the input field for @mentions and sends a message to those recipients without switching the active channel, 
+// used for rolling in private channels without losing context.
+void UChatBox::TrySendPrivateRollMessage()
+{
+	FString Message = EditableText->GetText().ToString();
+
+	APlayerController* PC = Cast<APlayerController>(GetOwningPlayer());
+	if (PC && PC->PlayerState)
+	{
+		TArray<FString> Words;
+		Message.ParseIntoArray(Words, TEXT(" "), 1);
+
+		TArray<FString> Recipients;
+		TArray<FString> MessageArray;
+
+		for (FString Word : Words)
+		{
+			if (Word.StartsWith(TEXT("@")))
+			{
+				Word.RemoveAt(0);
+				Recipients.Add(Word);
+			}
+			else
+			{
+				MessageArray.Add(Word);
+			}
+		}
+
+		if (MessageArray.IsEmpty())
+		{
+			Message = TEXT("Rolling...");
+		}
+		else
+		{
+			Message = FString::Join(MessageArray, TEXT(" "));
+		}
+
+		FString PlayerName = PC->PlayerState->GetPlayerName();
+
+		if (!Recipients.IsEmpty())
+		{
+			Recipients.Remove(PlayerName);
+
+			FString FullMessage = FString::Printf(TEXT("%s: %s"), *PlayerName, *Message);
+			HUDComponentRef->SendChatMessageOnServer(FullMessage, Recipients);
+			EditableText->SetText(FText::GetEmpty());
+		}
+	}
+}
+
 // On Enter: parses @mentions from the message and sends it to the server. On focus loss: exits chat.
 void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod)
 {
@@ -220,7 +270,7 @@ void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod
 				TArray<FString> Recipients;
 				TArray<FString> MessageArray;
 
-				for(FString Word : Words)
+				for (FString Word : Words)
 				{
 					if (Word.StartsWith(TEXT("@")))
 					{
@@ -256,7 +306,7 @@ void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod
 		}
 	}
 	else if (CommitMethod == ETextCommit::OnUserMovedFocus ||
-			 CommitMethod == ETextCommit::OnCleared)
+		CommitMethod == ETextCommit::OnCleared)
 	{
 		ExitChat();
 	}

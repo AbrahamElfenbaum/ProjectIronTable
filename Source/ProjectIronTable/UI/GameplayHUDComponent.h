@@ -120,6 +120,10 @@ private:
 	UFUNCTION()
 	void SavePanelLayout();
 
+	/** Called when a roll is initiated; forwards to the chat box to send a private roll message if recipients are present in the input. */
+	UFUNCTION()
+	void OnRollInitiated();
+
 	/** Loads the saved layout of all draggable panels from a save game object and applies it. Called on HUD initialization. */
 	void LoadPanelLayout();
 
