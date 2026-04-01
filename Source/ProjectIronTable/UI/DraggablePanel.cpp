@@ -13,6 +13,17 @@ void UDraggablePanel::NativeConstruct()
 	}
 }
 
+// Stores the panel ID used to key into the layout save game.
+void UDraggablePanel::SetPanelID(const FString& ID)
+{
+	PanelID = ID;
+}
+
+FString UDraggablePanel::GetPanelID() const
+{
+	return PanelID;
+}
+
 // Updates the stored title and refreshes the title text block.
 void UDraggablePanel::SetPanelTitle(FText NewTitle)
 {
@@ -38,6 +49,7 @@ void UDraggablePanel::UpdateDrag(FVector2D MousePos)
 // Called when the drag is released. Reserved for future cleanup.
 void UDraggablePanel::StopDrag()
 {
+	OnPanelStateChanged.Broadcast();
 }
 
 // Records the mouse position and current panel size as the baseline for resize calculations.
@@ -57,4 +69,22 @@ void UDraggablePanel::UpdateResize(FVector2D MousePos)
 // Called when the resize is released. Reserved for future cleanup.
 void UDraggablePanel::StopResize()
 {
+	OnPanelStateChanged.Broadcast();
+}
+
+// Returns the panel's current position, size, and visibility as a layout data struct.
+FPanelLayoutData UDraggablePanel::GetPanelLayoutData() const
+{
+	return FPanelLayoutData(
+		CanvasSlot->GetPosition(), 
+		CanvasSlot->GetSize(), 
+		GetVisibility() == ESlateVisibility::Visible);
+}
+
+// Restores the panel's position, size, and visibility from the given layout data struct.
+void UDraggablePanel::ApplyPanelLayoutData(const FPanelLayoutData& LayoutData)
+{
+	CanvasSlot->SetPosition(LayoutData.Position);
+	CanvasSlot->SetSize(LayoutData.Size);
+	SetVisibility(LayoutData.bVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 }

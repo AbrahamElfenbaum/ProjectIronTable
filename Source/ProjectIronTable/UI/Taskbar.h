@@ -33,6 +33,6 @@ private:
 
 public:
 	/** Creates a TaskbarButton for the given widget and adds it to the taskbar. */
-	void RegisterWidget(UUserWidget* Widget, FString Label);
+	UTaskbarButton* RegisterWidget(UUserWidget* Widget, FString Label);
 	
 };

@@ -6,6 +6,8 @@
 #include "Components/Button.h"
 #include "TaskbarButton.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnToggled);
+
 /**
  * A single button in the taskbar that tracks and toggles the visibility of one widget.
  */
@@ -40,5 +42,7 @@ public:
 	/** Toggles the tracked widget between Visible and Collapsed. */
 	UFUNCTION()
 	void OnToggleClicked();
-	
+
+	/** Broadcasts when the button is toggled, used to trigger taskbar visibility changes. */
+	FOnToggled OnToggled;
 };

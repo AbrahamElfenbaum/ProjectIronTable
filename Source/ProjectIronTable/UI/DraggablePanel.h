@@ -3,9 +3,12 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/TextBlock.h"
+#include "PanelLayoutSave.h"
 #include "DraggablePanel.generated.h"
 
 class UCanvasPanelSlot;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPanelStateChanged);
 
 /**
  * A wrapper widget that makes any content widget draggable and resizable at runtime.
@@ -38,6 +41,9 @@ public:
 private:
 
 	// -- Runtime State --
+
+	/** Unique identifier for this panel, used for saving and loading layout. Should be set in the editor or constructor. */
+	FString PanelID;
 
 	/** Offset from the panel's canvas position to the mouse at the start of a drag. */
 	FVector2D DragOffset;
@@ -74,6 +80,12 @@ protected:
 	virtual void NativeConstruct() override;
 
 public:
+	/** Sets the unique identifier used to save and restore this panel's layout. Should be called once after creation. */
+	void SetPanelID(const FString& ID);
+
+	/** Returns the unique identifier used to save and restore this panel's layout. */
+	FString GetPanelID() const;
+
 	/** Sets the panel title text at runtime. */
 	void SetPanelTitle(FText NewTitle);
 
@@ -94,4 +106,13 @@ public:
 
 	/** Called when the resize is released. Reserved for future cleanup. */
 	void StopResize();
+
+	/** Captures the current panel layout data, including position, size, and visibility, for saving. */
+	FPanelLayoutData GetPanelLayoutData() const;
+
+	/** Applies the given panel layout data to restore position, size, and visibility. */
+	void ApplyPanelLayoutData(const FPanelLayoutData& LayoutData);
+
+	/** Broadcast when the panel finishes being dragged or resized, signaling that the layout should be saved. */
+	FOnPanelStateChanged OnPanelStateChanged;
 };

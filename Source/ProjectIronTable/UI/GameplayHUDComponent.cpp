@@ -9,6 +9,8 @@
 #include "DiceSpawnVolume.h"
 #include "Taskbar.h"
 #include "DraggablePanel.h"
+#include "TaskbarButton.h"
+#include "PanelLayoutSave.h"
 
 // Disables tick and enables replication so server RPCs function correctly.
 UGameplayHUDComponent::UGameplayHUDComponent()
@@ -83,6 +85,7 @@ void UGameplayHUDComponent::BeginPlay()
 			ChatPanel = FindAndRegisterPanel(TEXT("ChatPanel"), TEXT("Chat"));;
 			PlayersPanel = FindAndRegisterPanel(TEXT("PlayersPanel"), TEXT("Players"));
 			//Register other widgets as needed
+			LoadPanelLayout();
 		}
 		else
 		{
@@ -109,12 +112,17 @@ void UGameplayHUDComponent::ScrollChat(bool bUp)
 	if (ChatBoxRef) ChatBoxRef->Scroll(bUp);
 }
 
+// Finds a DraggablePanel by widget name, registers it with the Taskbar, assigns its PanelID, and binds save delegates.
 UDraggablePanel* UGameplayHUDComponent::FindAndRegisterPanel(const FName& WidgetName, const FString& Label)
 {
 	UDraggablePanel* Panel = Cast<UDraggablePanel>(GameplayScreenRef->GetWidgetFromName(WidgetName));
 	if (Panel)
 	{
-		TaskbarRef->RegisterWidget(Panel, Label);
+		UTaskbarButton* Button = TaskbarRef->RegisterWidget(Panel, Label);
+		Panel->SetPanelID(Label);
+		Panel->OnPanelStateChanged.AddDynamic(this, &UGameplayHUDComponent::SavePanelLayout);
+		Button->OnToggled.AddDynamic(this, &UGameplayHUDComponent::SavePanelLayout);
+
 		return Panel;		
 	}
 	else
@@ -123,6 +131,67 @@ UDraggablePanel* UGameplayHUDComponent::FindAndRegisterPanel(const FName& Widget
 		return nullptr;
 	}
 	
+}
+
+// Collects layout data from all panels and writes it to the PanelLayout save slot.
+void UGameplayHUDComponent::SavePanelLayout()
+{
+	UPanelLayoutSave* PanelLayoutSave = NewObject<UPanelLayoutSave>();
+	SavePanelLayout(DicePanel, PanelLayoutSave);
+	SavePanelLayout(ChatPanel, PanelLayoutSave);
+	SavePanelLayout(PlayersPanel, PanelLayoutSave);
+	//Apply other panels as needed
+
+	UGameplayStatics::SaveGameToSlot(PanelLayoutSave, TEXT("PanelLayout"), 0);
+}
+
+// Loads the PanelLayout save slot and applies stored position, size, and visibility to each panel.
+void UGameplayHUDComponent::LoadPanelLayout()
+{
+	if (UGameplayStatics::DoesSaveGameExist(TEXT("PanelLayout"), 0))
+	{
+		UPanelLayoutSave* LoadedLayout = Cast<UPanelLayoutSave>(UGameplayStatics::LoadGameFromSlot(TEXT("PanelLayout"), 0));
+		if (LoadedLayout)
+		{
+			ApplyPanelLayout(DicePanel, LoadedLayout);
+			ApplyPanelLayout(ChatPanel, LoadedLayout);
+			ApplyPanelLayout(PlayersPanel, LoadedLayout);
+			//Apply other panels as needed
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Failed to load panel layout save"));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Display, TEXT("No existing panel layout save found"));
+	}
+}
+
+// Adds the panel's current position, size, and visibility to the save object under its PanelID key.
+void UGameplayHUDComponent::SavePanelLayout(const UDraggablePanel* Panel, UPanelLayoutSave* LayoutSave)
+{
+	if (Panel)
+	{
+		LayoutSave->PanelLayouts.Add(Panel->GetPanelID(), Panel->GetPanelLayoutData());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Panel not found, cannot apply layout"));
+	}
+}
+
+// Looks up the panel's saved layout by PanelID and applies position, size, and visibility if found.
+void UGameplayHUDComponent::ApplyPanelLayout(UDraggablePanel* Panel, UPanelLayoutSave* LoadedLayout)
+{
+	if (Panel)
+	{
+		if (const FPanelLayoutData* Data = LoadedLayout->PanelLayouts.Find(Panel->GetPanelID()))
+		{
+			Panel->ApplyPanelLayoutData(*Data);
+		}
+	}
 }
 
 // Delivers the incoming message to the chat box on the owning client.

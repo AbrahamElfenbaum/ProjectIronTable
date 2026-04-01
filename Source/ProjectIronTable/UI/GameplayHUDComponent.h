@@ -10,6 +10,7 @@
 class UChatBox;
 class UTaskbar;
 class UDraggablePanel;
+class UPanelLayoutSave;
 
 /**
  * Actor component attached to AGameplayController that owns and manages all gameplay UI.
@@ -114,4 +115,17 @@ public:
 private:
 	/** Finds a DraggablePanel by widget name, registers it with the Taskbar, and returns it. Logs a warning if not found. */
 	UDraggablePanel* FindAndRegisterPanel(const FName& WidgetName, const FString& Label);
+
+	/** Saves the current layout of all draggable panels to a save game object. Called when a panel is dragged, resized, or toggled. */
+	UFUNCTION()
+	void SavePanelLayout();
+
+	/** Loads the saved layout of all draggable panels from a save game object and applies it. Called on HUD initialization. */
+	void LoadPanelLayout();
+
+	/** Writes the given panel's current layout data into the save object using its PanelID as the key. */
+	void SavePanelLayout(const UDraggablePanel* Panel, UPanelLayoutSave* LayoutSave);
+
+	/** Reads the given panel's layout data from the save object and applies it if a matching key exists. */
+	void ApplyPanelLayout(UDraggablePanel* Panel, UPanelLayoutSave* LoadedLayout);
 };

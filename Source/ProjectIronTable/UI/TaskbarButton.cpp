@@ -30,4 +30,6 @@ void UTaskbarButton::OnToggleClicked()
 	{
 		TrackedWidget->SetVisibility(ESlateVisibility::Collapsed);
 	}
+
+	OnToggled.Broadcast();
 }

@@ -200,7 +200,7 @@ Players and GMs can import their own assets to use in a session.
 
 **Theming:** There is no single fixed default theme. The UI theme can change based on the game being played, and individual players can customize their own theme to suit their preferences. This implies a theming/skin system that is decoupled from game system — switching from D&D 5e to another system could offer a matching default theme, but players are never locked into it.
 
-**Panel layout:** All UI panels are draggable, resizable, and toggleable (collapsible/hideable). Players have complete control over how their HUD is arranged. Panel layout should persist per user across sessions.
+**Panel layout:** All UI panels are draggable, resizable, and toggleable (collapsible/hideable). Players have complete control over how their HUD is arranged. Panel layout persists per user across sessions — position, size, and collapsed state are all saved locally and restored on next launch.
 
 **Notifications:** When something occurs in a collapsed or hidden panel — a new chat message, a dice result, an initiative change — the player receives a visible notification on or near that panel so nothing is missed. The specific notification style (badge count, flash, icon) is TBD.
 
@@ -289,7 +289,7 @@ A consolidated list of unresolved design decisions:
 
 ---
 
-*Last updated: 2026-03-31* — Draggable and resizable panels implemented. Close/reopen private chat tabs implemented. Confirmed tab renaming is user-independent (each client names tabs locally; channel identity is participant-based, not name-based).
+*Last updated: 2026-04-01* — Panel layout persistence implemented. Position, size, and collapsed/visible state now saved per client and restored on launch.
 
 ---
 
