@@ -11,6 +11,9 @@ class UChatChannel;
 /** Fired when the tab button is clicked, passing the channel this tab represents. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTabClicked, UChatChannel*, ClickedChannel);
 
+/** Fired when the close button is clicked, passing the channel this tab represents. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTabClosed, UChatChannel*, ClickedChannel);
+
 /** A clickable tab button that represents and activates a single UChatChannel. */
 UCLASS()
 class PROJECTIRONTABLE_API UChatTab : public UUserWidget
@@ -24,6 +27,10 @@ private:
 	/** Button the player clicks to switch to this channel. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> TabButton;
+
+	/** Button the player clicks to close and hide this tab. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> CloseButton;
 
 	/** Label displaying the channel name. */
 	UPROPERTY(meta = (BindWidget))
@@ -50,6 +57,10 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnTabClicked OnTabClicked;
 
+	/** Fired when the close button is clicked. */
+	UPROPERTY(BlueprintAssignable)
+	FOnTabClosed OnTabClosed;
+
 	// -- Public Methods --
 
 	/** Assigns the channel this tab represents. */
@@ -70,6 +81,14 @@ private:
 	UFUNCTION()
 	void OnTabButtonClicked();
 
+	/** Broadcasts OnTabClosed with the assigned channel. */
+	UFUNCTION()
+	void OnCloseButtonClicked();
+
 public:
+	/** Enables or disables the tab button — used to prevent clicking the active tab. */
 	void SetInteractable(bool bInteractable);
+
+	/** Shows or hides the close button — pass false for the Server tab which cannot be closed. */
+	void SetCloseable(bool bShowButton);
 };

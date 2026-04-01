@@ -3,14 +3,17 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/HorizontalBox.h"
+#include "Components/VerticalBox.h"
 #include "Components/WidgetSwitcher.h"
 #include "Components/EditableText.h"
+#include "Components/Button.h"
 #include "ChatBox.generated.h"
 
 class UGameplayHUDComponent;
 class UChatEntry;
 class UChatChannel;
 class UChatTab;
+class UChatChannelListEntry;
 
 /** Root chat widget that manages multiple named channels, a tab bar, and the message input field. */
 UCLASS()
@@ -34,6 +37,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UChatEntry> ChatEntryClass;
 
+	/** Widget class used when creating entries in the closed channel list. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<UChatChannelListEntry> ChannelListEntryClass;
+
 protected:
 	virtual void NativeConstruct() override;
 
@@ -54,6 +61,10 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UHorizontalBox> TabBar;
 
+	/** Vertical box that holds the list of closed channel entries, shown when the list button is toggled. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UVerticalBox> ClosedChannelContainer;
+
 	/** Widget switcher that shows one channel's scroll box at a time. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidgetSwitcher> ChannelContainer;
@@ -61,6 +72,10 @@ private:
 	/** Editable text field where the player types messages. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UEditableText> EditableText;
+
+	/** Button that toggles the closed channel list panel. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> ChannelListButton;
 
 	// -- State --
 
@@ -78,6 +93,10 @@ private:
 
 	/** True while the chat input is focused and accepting keyboard input. */
 	bool bChatFocused;
+
+	/** Set of channels that have been closed and hidden from the tab bar. */
+	UPROPERTY()
+	TSet<UChatChannel*> ClosedChannels;
 
 public:
 
@@ -113,4 +132,18 @@ private:
 	/** Sends the typed message to the server on Enter, or exits chat on focus loss. */
 	UFUNCTION()
 	void OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod);
+
+	/** Toggles the closed channel list panel between visible and collapsed. */
+	UFUNCTION()
+	void OnChannelListButtonClicked();
+
+	/** Hides the tab for the given channel and adds it to the closed set; switches to Server if it was active. */
+	UFUNCTION()
+	void CloseChannel(UChatChannel* Channel);
+
+	/** Removes the given channel from the closed set, restores its tab, and switches to it. */
+	void ReopenChannel(UChatChannel* Channel);
+
+	/** Clears and repopulates the closed channel list panel from the current ClosedChannels set. */
+	void RefreshChannelList();
 };

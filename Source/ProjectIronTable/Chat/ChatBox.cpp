@@ -5,6 +5,7 @@
 #include "ChatChannel.h"
 #include "GameplayHUDComponent.h"
 #include "GameFramework/PlayerState.h"
+#include "ChatChannelListEntry.h"
 
 // Caches the HUD component reference, binds the text committed delegate, and creates the default server channel.
 void UChatBox::NativeConstruct()
@@ -18,7 +19,18 @@ void UChatBox::NativeConstruct()
 			PC->GetComponentByClass(UGameplayHUDComponent::StaticClass()));
 	}
 
-	EditableText->OnTextCommitted.AddDynamic(this, &UChatBox::OnTextCommitted);
+	if (ChannelListButton)
+	{
+		ChannelListButton->OnClicked.AddDynamic(this, &UChatBox::OnChannelListButtonClicked);
+	}
+
+	if (EditableText)
+	{
+		EditableText->OnTextCommitted.AddDynamic(this, &UChatBox::OnTextCommitted);
+	}
+
+	ClosedChannelContainer->SetVisibility(ESlateVisibility::Collapsed);
+
 	SwitchToChannel(CreateChannel({}));
 }
 
@@ -100,6 +112,8 @@ UChatChannel* UChatBox::CreateChannel(TArray<FString> Participants)
 	Tab->SetChannel(Channel);
 	Tab->SetLabel(Label);
 	Tab->OnTabClicked.AddDynamic(this, &UChatBox::SwitchToChannel);
+	Tab->OnTabClosed.AddDynamic(this, &UChatBox::CloseChannel);
+	Tab->SetCloseable(!Participants.IsEmpty());
 
 	ChannelTabMap.Add(Channel, Tab);
 
@@ -154,7 +168,11 @@ void UChatBox::AddChatMessage(const FString& Message, TArray<FString> Participan
 
 	CurrentChannel->AddChatMessage(Message);
 
-	if (bIsSender)
+	if (ClosedChannels.Contains(CurrentChannel))
+	{ 
+		ReopenChannel(CurrentChannel);
+	}
+	else if (bIsSender)
 	{
 		SwitchToChannel(CurrentChannel);
 	}
@@ -241,5 +259,60 @@ void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod
 			 CommitMethod == ETextCommit::OnCleared)
 	{
 		ExitChat();
+	}
+}
+
+// Toggles the closed channel list panel between visible and collapsed.
+void UChatBox::OnChannelListButtonClicked()
+{
+	if (ClosedChannelContainer->GetVisibility() == ESlateVisibility::Collapsed)
+	{
+		ClosedChannelContainer->SetVisibility(ESlateVisibility::Visible);
+	}
+	else if (ClosedChannelContainer->GetVisibility() == ESlateVisibility::Visible)
+	{
+		ClosedChannelContainer->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+// Hides the tab for the given channel, adds it to the closed set, and falls back to the Server channel if it was active.
+void UChatBox::CloseChannel(UChatChannel* Channel)
+{
+	ClosedChannels.Add(Channel);
+
+	ChannelTabMap[Channel]->SetVisibility(ESlateVisibility::Collapsed);
+
+	if (ActiveChannel == Channel)
+	{
+		SwitchToChannel(Channels[0]);
+	}
+
+	RefreshChannelList();
+}
+
+// Removes the given channel from the closed set, restores its tab, switches to it, and collapses the list panel.
+void UChatBox::ReopenChannel(UChatChannel* Channel)
+{
+	ClosedChannels.Remove(Channel);
+
+	ChannelTabMap[Channel]->SetVisibility(ESlateVisibility::Visible);
+
+	SwitchToChannel(Channel);
+
+	RefreshChannelList();
+
+	ClosedChannelContainer->SetVisibility(ESlateVisibility::Collapsed);
+}
+
+// Clears and repopulates the closed channel list panel from the current ClosedChannels set.
+void UChatBox::RefreshChannelList()
+{
+	ClosedChannelContainer->ClearChildren();
+	for (UChatChannel* Channel : ClosedChannels)
+	{
+		UChatChannelListEntry* Entry = CreateWidget<UChatChannelListEntry>(GetOwningPlayer(), ChannelListEntryClass);
+		Entry->SetChannel(Channel);
+		Entry->OnEntryClicked.AddDynamic(this, &UChatBox::ReopenChannel);
+		ClosedChannelContainer->AddChild(Entry);
 	}
 }

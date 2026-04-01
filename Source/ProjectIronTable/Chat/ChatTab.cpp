@@ -11,6 +11,11 @@ void UChatTab::NativeConstruct()
 	{
 		TabButton->OnClicked.AddDynamic(this, &UChatTab::OnTabButtonClicked);
 	}
+
+	if (CloseButton)
+	{
+		CloseButton->OnClicked.AddDynamic(this, &UChatTab::OnCloseButtonClicked);
+	}
 }
 
 // Stores the channel reference used when broadcasting tab click events.
@@ -43,7 +48,27 @@ void UChatTab::OnTabButtonClicked()
 	OnTabClicked.Broadcast(Channel);
 }
 
+// Broadcasts OnTabClosed with the stored channel pointer.
+void UChatTab::OnCloseButtonClicked()
+{
+	OnTabClosed.Broadcast(Channel);
+}
+
+// Enables or disables the tab button.
 void UChatTab::SetInteractable(bool bInteractable)
 {
 	TabButton->SetIsEnabled(bInteractable);
+}
+
+// Shows or hides the close button.
+void UChatTab::SetCloseable(bool bShowButton)
+{
+	if (bShowButton)
+	{
+		CloseButton->SetVisibility(ESlateVisibility::Visible);
+	}
+	else
+	{
+		CloseButton->SetVisibility(ESlateVisibility::Collapsed);
+	}
 }
