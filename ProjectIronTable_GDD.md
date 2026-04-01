@@ -185,6 +185,45 @@ Players and GMs can import their own assets to use in a session.
 
 ---
 
+## Home Screen
+
+The home screen is the first scene the player sees when launching the game. It is separate from the gameplay scene and has its own game mode, player controller, and HUD component.
+
+**Options (rough):**
+- Play / Host session
+- Join session
+- Library
+- Settings
+- Quit
+
+The home screen controller handles UI-only input — no camera pawn or game input is needed here.
+
+---
+
+## Asset Library
+
+Accessible from the home screen via a Library button. A file explorer-style view of all locally imported assets, organized by category folder (Sounds, Maps, etc.).
+
+**Import flow:**
+1. User clicks Import (or drags a file onto a folder)
+2. If using the Import button: a panel asks what type of asset they are importing (Sound, Map, etc.)
+3. The selected type determines the accepted file extensions and the destination folder
+4. User either browses via a file dialog or drag-and-drops a file from an open file explorer window
+5. File is validated against accepted extensions, copied to the destination folder, and registered
+
+**Drag-and-drop shortcut:** If the user is already browsing the library and navigates into a specific folder (e.g. Sounds), they can drag a file directly onto that folder view. The destination is implicit — the importer validates the file type against that folder's accepted extensions and rejects if it doesn't match.
+
+**Supported formats (current):**
+- Images: PNG, JPG — for maps and tokens
+- Audio: WAV — for dice sounds, ambience, music
+- Meshes: deferred — requires a runtime mesh loader plugin; to be decided when miniature/dice import is built
+
+**File dialog:** Windows native (`GetOpenFileName`), wrapped in `#if PLATFORM_WINDOWS` for future portability.
+
+**Asset storage:** All imported assets are stored on the local machine. They persist across sessions, campaigns, and game systems. Cloud storage is a future option.
+
+---
+
 ## UI / UX
 
 **Philosophy:** The UI should feel like the edge of a physical table — present when needed, invisible when not. During active play, the map and minis should dominate the screen. Panels slide in and out rather than covering the view.
@@ -289,7 +328,7 @@ A consolidated list of unresolved design decisions:
 
 ---
 
-*Last updated: 2026-04-01* — Dice collision SFX implemented. Sound plays on die-to-surface and die-to-die impacts; volume scales with impulse magnitude. Physics tuning (including sound values) deferred to a later polish pass. Kenney Impact Sounds (CC0) credited.
+*Last updated: 2026-04-01* — Added Home Screen and Asset Library sections. Defined import flow: type selector → file dialog or drag-and-drop → copy to destination folder. Supported formats: PNG/JPG (images), WAV (audio); mesh import deferred. Established that home screen is a separate scene with its own controller and game mode.
 
 ---
 

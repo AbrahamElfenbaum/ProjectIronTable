@@ -264,7 +264,9 @@ Establish the game framework and player interaction foundation.
 - [x] Camera movement polish (panning, zoom, bounds) — pan rotates pawn (yaw unrestricted, pitch clamped), zoom adjusts spring arm length, sprint multiplier, pan reset, editor property validation via PostEditChangeProperty. Runtime settings save system pending.
 - [ ] Runtime camera settings menu (`USaveGame`-based) — exposes camera properties (speeds, zoom range, pan speed, pitch limits) to the player at runtime. **Requirements before shipping:** (1) extract `PostEditChangeProperty` validation logic into a shared `ValidateCameraSettings()` function callable at runtime; (2) call it when settings are applied so invalid values (min ≥ max, zero speeds) can never reach the camera movement code; (3) load saved settings in `BeginPlay` and apply before any input is processed.
 - [x] Basic camera system (top-down / isometric view) — functional; may need revisiting as more systems are added
-- [ ] Scene/session management (start, load, save)
+- [ ] Scene/controller management — different levels use different game modes and player controllers. Currently only the gameplay scene exists. The home screen needs its own game mode (`GM_HomeScreen`), player controller (`AHomeScreenController`), and HUD component (`UHomeScreenHUDComponent`). Scene navigation (e.g. home → gameplay, gameplay → home) must be handled explicitly via `UGameplayStatics::OpenLevel`.
+- [ ] Home screen — first scene on launch; contains Play/Host, Join, Library, Settings, Quit; UI-only input (no camera pawn needed)
+- [ ] Session management (start, load, save)
 - [ ] GM permissions system — GM can grant/revoke specific permissions to individual players at any time; permissions are enforced in code; specific permission types TBD when built
 - [ ] Session player cap — default max 8 users (GM included); cap is enforced by default but can be removed; no hard engine limit
 - [x] Private messaging — `@Name` syntax in chat input routes messages to specific recipients; server-side routing sends only to sender + named recipients; each private conversation gets its own tab (auto-created on first send); sender auto-switches to new tab; recipients see a notification indicator; tabs labeled `@P1 +N`; non-participants receive nothing
@@ -344,9 +346,18 @@ Allow users to bring their own assets and game rules.
 
 **Asset library:** Imported assets belong to the user, not the session. Stored locally on the owner's machine (cloud storage is a future option). Assets persist across all sessions, campaigns, and game systems.
 
-- [ ] Local asset library — persists across sessions; assets usable in any campaign or game system
-- [ ] Custom asset import pipeline (sounds, maps, minis, effects)
-- [ ] Custom dice import
+**Import system architecture:**
+- `UAssetImporter` — generic C++ class (or component) configured with: accepted file extensions (`TArray<FString>`) and destination folder path (`FString`). Exposes `OpenFileDialog()` (Windows `GetOpenFileName`, wrapped in `#if PLATFORM_WINDOWS`) and `ImportFile(const FString& SourcePath)` (validates extension, copies to destination, broadcasts `OnImportComplete` delegate with the final path). One instance per asset type — each instance only differs in its extensions and destination.
+- Asset Library screen — file-explorer-style UI (part of home screen flow); organized by folder (Sounds, Maps, etc.); each folder is a drop target. Import button opens type selector panel → configures the appropriate `UAssetImporter` → opens file dialog. Drag-and-drop onto a folder bypasses the type selector — destination is implicit, extension is still validated.
+- Drag-and-drop: Slate widget `OnDrop` override receives dropped file paths; passes to `ImportFile` on the folder's associated importer.
+- Supported formats: PNG/JPG (images — loaded at runtime via `FImageUtils` → `UTexture2D::CreateTransient`), WAV (audio — loaded at runtime); mesh import deferred pending runtime loader plugin research.
+
+- [ ] `UAssetImporter` — generic importer class (extensions + destination + dialog + copy + delegate)
+- [ ] Asset Library screen — file explorer UI on home screen; folder-based organization; import button + drag-and-drop per folder
+- [ ] Image import (PNG/JPG → Maps folder) — runtime loading via `FImageUtils`
+- [ ] Audio import (WAV → Sounds folder) — runtime loading
+- [ ] Mesh import (dice, minis) — deferred; requires runtime mesh loader plugin; format TBD
+- [ ] Custom dice import — depends on mesh import
 - [ ] Plugin/mod support (TBD)
 - [ ] Support for additional TTRPG systems beyond D&D 5e
 - [ ] Player-to-player asset sharing (asset owners can optionally share custom files — minis, maps, sounds — with other players in a session)
@@ -378,7 +389,7 @@ Ideas to revisit later.
 
 ---
 
-*Last updated: 2026-04-01* — Dice collision SFX implemented: `ABaseDiceActor` now binds `OnComponentHit` on both meshes, selects surface vs. die sound based on `OtherActor`, scales volume by impulse magnitude, and throttles rapid hits. Added `CollisionSoundSurface`, `CollisionSoundDice`, `ThrottleInterval`, `ImpulseVolumeScale` properties. Added `SetNotifyRigidBodyCollision` gotcha. Kenney Impact Sounds and Dungeons of Dice credits added to README. Added `Content/Audio/Dice/` folder.
+*Last updated: 2026-04-01* — Dice collision SFX implemented. Added home screen and scene/controller management to Phase 2. Fleshed out Phase 7 with `UAssetImporter` architecture, asset library screen design, import flow (type selector → dialog or drag-and-drop), and supported formats (PNG/JPG, WAV; mesh deferred).
 
 ---
 
