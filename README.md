@@ -18,6 +18,10 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - Custom user-imported content (maps, minis, dice, sounds)
 - Multiplayer with separate GM and host roles
 
+## Credits
+- **Kenney Impact Sounds** — [kenney.nl](https://www.kenney.nl) (CC0)
+- **Dungeons of Dice** mesh pack — NNJohn
+
 ## Requirements
 - Unreal Engine 5.7
 - Git LFS (run `git lfs install` after cloning)
@@ -61,6 +65,7 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - `Data/DataAssets/Dice/` — Dice data assets
 - `Levels/Dev/` — Development/test levels
 - `Materials/Dice/` — Dice materials
+- `Audio/Dice/` — Dice collision sound assets (Kenney Impact Sounds, CC0)
 - `Meshes/Dice/` — Dice meshes (*Dungeons of Dice* by NNJohn)
 - `Textures/` — Texture assets
 - `Input/Gameplay/` — `IMC_Gameplay`, `IA_CameraMove`, `IA_CameraPan`, `IA_CameraPanReset`, `IA_CameraSprint`, `IA_CameraZoom`, `IA_FocusChat`

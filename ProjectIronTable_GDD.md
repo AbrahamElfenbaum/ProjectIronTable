@@ -80,7 +80,7 @@ Physics-based dice rolling using Unreal's physics simulation. Each die is a 3D a
 - Roll button is disabled while a roll is in progress and while no dice are selected
 - If a die gets stuck and never settles, a failsafe timer destroys it and reports it as lost
 
-**Hidden rolls:** Any user (GM or player) can choose to make a roll private. A private roll is visible only to the roller and any recipients they choose. The GM can roll on behalf of NPCs with results hidden from players, and may reveal those results at any time. Private rolls are indicated as hidden in the chat log to recipients who cannot see them (e.g. "[GM rolled privately]").
+**Hidden rolls:** Any user (GM or player) can make a roll private by typing `@Name` recipients in the chat input before rolling. The result is routed only to the private channel shared with those recipients. A "[rolled privately]" indicator visible to non-recipients is not yet implemented and may or may not be added.
 
 **Advantage / Disadvantage:** The dice UI supports advantage and disadvantage for any die type, not just D20. Advantage rolls two dice of the selected type and takes the higher result; disadvantage takes the lower. This is a general mechanic and is not hardcoded to D20 — games that use D100 or other dice for decision-making are equally supported.
 
@@ -289,7 +289,7 @@ A consolidated list of unresolved design decisions:
 
 ---
 
-*Last updated: 2026-04-01* — Panel layout persistence implemented. Private dice roll initiation implemented — players type `@Names` in chat input then click Roll to create a private channel and route the result there. Input field now persists on click-away; clears on channel switch or send.
+*Last updated: 2026-04-01* — Dice collision SFX implemented. Sound plays on die-to-surface and die-to-die impacts; volume scales with impulse magnitude. Physics tuning (including sound values) deferred to a later polish pass. Kenney Impact Sounds (CC0) credited.
 
 ---
 

@@ -1,6 +1,6 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
-
 #include "BaseDiceActor.h"
+#include "Kismet/GameplayStatics.h"
 
 // Creates root and both mesh subobjects, and applies physics properties to each.
 ABaseDiceActor::ABaseDiceActor()
@@ -40,8 +40,10 @@ void ABaseDiceActor::BeginPlay()
 		Mesh1->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 		Mesh1->SetSimulatePhysics(true);
 		Mesh1->RecreatePhysicsState();
+		Mesh1->SetNotifyRigidBodyCollision(true);
 
 		Mesh1->OnComponentSleep.AddDynamic(this, &ABaseDiceActor::OnMeshSleep);
+		Mesh1->OnComponentHit.AddDynamic(this, &ABaseDiceActor::OnMeshHit);
 	}
 
 	if (IsMeshValid(Mesh2))
@@ -50,8 +52,10 @@ void ABaseDiceActor::BeginPlay()
 		Mesh2->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 		Mesh2->SetSimulatePhysics(true);
 		Mesh2->RecreatePhysicsState();
+		Mesh2->SetNotifyRigidBodyCollision(true);
 
 		Mesh2->OnComponentSleep.AddDynamic(this, &ABaseDiceActor::OnMeshSleep);
+		Mesh2->OnComponentHit.AddDynamic(this, &ABaseDiceActor::OnMeshHit);
 	}
 	else
 	{
@@ -109,21 +113,21 @@ void ABaseDiceActor::Roll(FVector Impulse, FVector AngularImpulse)
 	if (IsMeshValid(Mesh2) && Mesh2->IsSimulatingPhysics())
 	{
 		Mesh2->AddImpulse(Impulse +
-						  FVector(FMath::FRandRange(-ImpulseRange, ImpulseRange),
-								  FMath::FRandRange(-ImpulseRange, ImpulseRange),
-								  0));
+			FVector(FMath::FRandRange(-ImpulseRange, ImpulseRange),
+				FMath::FRandRange(-ImpulseRange, ImpulseRange),
+				0));
 
 		Mesh2->AddAngularImpulseInRadians(AngularImpulse +
-										  FVector(FMath::FRandRange(-AngularImpulseRange, AngularImpulseRange),
-												  FMath::FRandRange(-AngularImpulseRange, AngularImpulseRange),
-												  FMath::FRandRange(-AngularImpulseRange, AngularImpulseRange)));
+			FVector(FMath::FRandRange(-AngularImpulseRange, AngularImpulseRange),
+				FMath::FRandRange(-AngularImpulseRange, AngularImpulseRange),
+				FMath::FRandRange(-AngularImpulseRange, AngularImpulseRange)));
 	}
 
 	GetWorld()->GetTimerManager().SetTimer(FailsafeTimerHandle,
-										   this,
-										   &ABaseDiceActor::FailsafeDestroy,
-										   FailSafeTime,
-										   false);
+		this,
+		&ABaseDiceActor::FailsafeDestroy,
+		FailSafeTime,
+		false);
 }
 
 // Marks the sleeping mesh's flag and broadcasts OnDiceRolled once both meshes are asleep.
@@ -147,6 +151,35 @@ void ABaseDiceActor::OnMeshSleep(UPrimitiveComponent* SleepingComponent, FName B
 		//UE_LOG(LogTemp, Warning, TEXT("Dice finished rolling! Result = %d"), Result.Value);
 		OnDiceRolled.Broadcast(Result);
 	}
+}
+
+// Throttles collision sound playback and selects surface or dice sound based on what was hit.
+void ABaseDiceActor::OnMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+	float CurrentTime = GetWorld()->GetTimeSeconds();
+	if (CurrentTime - LastHitTime < ThrottleInterval)
+	{
+		return;
+	}
+
+	LastHitTime = CurrentTime;
+	float Volume = FMath::Clamp(NormalImpulse.Size() / ImpulseVolumeScale, 0.1f, 1.f);
+
+	if (Cast<ABaseDiceActor>(OtherActor))
+	{
+		if (CollisionSoundDice)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, CollisionSoundDice, GetActorLocation(), Volume);
+		}
+	}
+	else
+	{
+		if (CollisionSoundSurface)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, CollisionSoundSurface, GetActorLocation(), Volume);
+		}
+	}
+
 }
 
 // Returns true only if the mesh pointer is valid and has a static mesh asset assigned.

@@ -1,10 +1,10 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
-
 #pragma once
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "DiceData.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
+#include "Sound/SoundBase.h"
 #include "BaseDiceActor.generated.h"
 
 class ABaseDiceActor;
@@ -76,6 +76,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
 	TObjectPtr<UDiceData> DiceFaces2;
 
+	/** Sound played when the die strikes a non-die surface (e.g. the table). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
+	TObjectPtr<USoundBase> CollisionSoundSurface;
+
+	/** Sound played when the die strikes another die. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
+	TObjectPtr<USoundBase> CollisionSoundDice;
+
 	/** Mass (kg) applied to both mesh physics bodies. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
 	float Mass = 1.f;
@@ -103,6 +111,14 @@ public:
 	/** Seconds after Roll() before the failsafe destroy fires if the die has not settled. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
 	float FailSafeTime = 10.0f;
+
+	/** Minimum seconds between collision sounds; prevents rapid-fire hits from spamming audio. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
+	float ThrottleInterval = 0.1f;
+
+	/** Divisor applied to the collision impulse magnitude to derive the volume multiplier (0.1–1.0). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
+	float ImpulseVolumeScale = 1000.f;
 
 	// -- State --
 
@@ -152,6 +168,10 @@ private:
 	UFUNCTION()
 	void OnMeshSleep(UPrimitiveComponent* SleepingComponent, FName BoneName);
 
+	/** Plays a collision sound when a mesh strikes another object; throttled to prevent rapid-fire hits. */
+	UFUNCTION()
+	void OnMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+
 	/** Returns true if the mesh is non-null and has a valid static mesh asset assigned. */
 	bool IsMeshValid(UStaticMeshComponent* Mesh) const;
 
@@ -160,6 +180,9 @@ private:
 
 	/** Timer handle for the failsafe destroy. */
 	FTimerHandle FailsafeTimerHandle;
+
+	/** World time of the last collision sound played; used to throttle hit sounds. */
+	float LastHitTime = 0.f;
 
 	/** Destroys the actor if it has not fully settled, broadcasting OnFailsafeDestroy first. */
 	void FailsafeDestroy();
