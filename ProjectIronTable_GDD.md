@@ -289,7 +289,7 @@ A consolidated list of unresolved design decisions:
 
 ---
 
-*Last updated: 2026-03-31* — Draggable and resizable panels implemented: Chat, Dice, and Players panels are now independently moveable and resizable via title bar drag and bottom-right corner resize. Single-corner resize (bottom-right); 8-direction resize deferred to a future pass.
+*Last updated: 2026-03-31* — Draggable and resizable panels implemented. Close/reopen private chat tabs implemented. Confirmed tab renaming is user-independent (each client names tabs locally; channel identity is participant-based, not name-based).
 
 ---
 
