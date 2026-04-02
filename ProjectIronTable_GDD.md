@@ -328,7 +328,7 @@ A consolidated list of unresolved design decisions:
 
 ---
 
-*Last updated: 2026-04-01* — Home screen implemented and working. Play button transitions to gameplay scene. Join, Library, and Settings are stubs pending their respective systems.
+*Last updated: 2026-04-01* — Camera settings system in progress. Settings slider widget implemented; full settings screen and wiring pending. No GDD design decisions changed this session.
 
 ---
 

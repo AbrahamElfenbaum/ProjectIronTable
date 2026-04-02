@@ -5,6 +5,8 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "CameraSettingsSave.h"
+#include "Kismet/GameplayStatics.h"
 
 // Creates and attaches the HUD component subobject.
 AGameplayController::AGameplayController()
@@ -47,12 +49,9 @@ void AGameplayController::OnPossess(APawn* InPawn)
 	}
 }
 
-#if WITH_EDITOR
-// Clamps all camera config properties to sane ranges whenever a property is changed in the editor.
-void AGameplayController::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+// Clamps all camera config properties to valid ranges; shared between editor validation and runtime apply.
+void AGameplayController::ValidateCameraSettings()
 {
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-
 	MinCameraMovementSpeed = FMath::Max(MinCameraMovementSpeed, 0.1f);
 	MaxCameraMovementSpeed = FMath::Max(MaxCameraMovementSpeed, 0.1f);
 	if (MinCameraMovementSpeed >= MaxCameraMovementSpeed)
@@ -70,8 +69,52 @@ void AGameplayController::PostEditChangeProperty(FPropertyChangedEvent& Property
 	if (MinCameraPitch >= MaxCameraPitch)
 		MaxCameraPitch = MinCameraPitch + 1.f;
 }
+
+// Copies all values from the save object into camera config properties, then validates.
+void AGameplayController::ApplyCameraSettings(const UCameraSettingsSave* Settings)
+{
+	if (!Settings) return;
+
+	MinCameraMovementSpeed = Settings->MinCameraMovementSpeed;
+	MaxCameraMovementSpeed = Settings->MaxCameraMovementSpeed;
+	CameraSpeedMultiplier = Settings->CameraSpeedMultiplier;
+	MinCameraPitch = Settings->MinCameraPitch;
+	MaxCameraPitch = Settings->MaxCameraPitch;
+	CameraPanSpeedMultiplier = Settings->CameraPanSpeedMultiplier;
+	MinZoomLength = Settings->MinZoomLength;
+	MaxZoomLength = Settings->MaxZoomLength;
+	ZoomSpeed = Settings->ZoomSpeed;
+
+	ValidateCameraSettings();
+}
+
+// Creates a new save object, writes current camera config values into it, and saves to slot "CameraSettings".
+void AGameplayController::SaveCameraSettings()
+{
+	UCameraSettingsSave* Save = NewObject<UCameraSettingsSave>();
+	Save->MinCameraMovementSpeed = MinCameraMovementSpeed;
+	Save->MaxCameraMovementSpeed = MaxCameraMovementSpeed;
+	Save->CameraSpeedMultiplier = CameraSpeedMultiplier;
+	Save->MinCameraPitch = MinCameraPitch;
+	Save->MaxCameraPitch = MaxCameraPitch;
+	Save->CameraPanSpeedMultiplier = CameraPanSpeedMultiplier;
+	Save->MinZoomLength = MinZoomLength;
+	Save->MaxZoomLength = MaxZoomLength;
+	Save->ZoomSpeed = ZoomSpeed;
+
+	UGameplayStatics::SaveGameToSlot(Save, TEXT("CameraSettings"), 0);
+}
+
+#if WITH_EDITOR
+// Delegates to ValidateCameraSettings so editor and runtime share the same validation logic.
+void AGameplayController::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+	ValidateCameraSettings();
+}
 #endif
 
+// Sets input mode and cursor, then loads and applies saved camera settings if a save exists.
 void AGameplayController::BeginPlay()
 {
 	Super::BeginPlay();
@@ -79,6 +122,12 @@ void AGameplayController::BeginPlay()
 	FInputModeGameAndUI InputMode;
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	SetInputMode(InputMode);
+
+	if (UGameplayStatics::DoesSaveGameExist(TEXT("CameraSettings"), 0))
+	{
+		UCameraSettingsSave* LoadedSettings = Cast<UCameraSettingsSave>(UGameplayStatics::LoadGameFromSlot(TEXT("CameraSettings"), 0));
+		ApplyCameraSettings(LoadedSettings);
+	}
 }
 
 // Translates the pawn along the XY plane using the scaled movement speed.

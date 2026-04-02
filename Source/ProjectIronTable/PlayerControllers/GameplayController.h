@@ -9,6 +9,7 @@
 class UGameplayHUDComponent;
 class AGameplayPawn;
 class UEnhancedInputLocalPlayerSubsystem;
+class UCameraSettingsSave;
 
 /** Main player controller. Drives camera movement and routes input to the HUD. */
 UCLASS()
@@ -143,6 +144,17 @@ public:
 	TObjectPtr<UInputAction> IA_ScrollChat;
 
 #pragma endregion
+
+public:
+
+	/** Clamps all camera config properties to valid ranges. Called at runtime and in the editor. */
+	void ValidateCameraSettings();
+
+	/** Copies values from the save object into camera config properties, then validates. */
+	void ApplyCameraSettings(const UCameraSettingsSave* Settings);
+
+	/** Writes current camera config properties to a new save object and saves to slot "CameraSettings". */
+	void SaveCameraSettings();
 
 protected:
 
