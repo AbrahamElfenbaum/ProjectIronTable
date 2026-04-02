@@ -4,6 +4,9 @@
 #include "Components/Button.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Components/WidgetSwitcher.h"
+#include "SettingsSlider.h"
+#include "FunctionLibrary.h"
 
 // Disables tick.
 UMainScreenHUDComponent::UMainScreenHUDComponent()
@@ -25,59 +28,97 @@ void UMainScreenHUDComponent::BeginPlay()
 		MainScreenRef = CreateWidget<UUserWidget>(GetWorld(), MainScreenClass);
 		MainScreenRef->AddToViewport();
 
-		PlayButtonRef = Cast<UButton>(MainScreenRef->GetWidgetFromName(TEXT("PlayButton")));
-		JoinButtonRef = Cast<UButton>(MainScreenRef->GetWidgetFromName(TEXT("JoinButton")));
-		LibraryButtonRef = Cast<UButton>(MainScreenRef->GetWidgetFromName(TEXT("LibraryButton")));
-		SettingsButtonRef = Cast<UButton>(MainScreenRef->GetWidgetFromName(TEXT("SettingsButton")));
-		QuitButtonRef = Cast<UButton>(MainScreenRef->GetWidgetFromName(TEXT("QuitButton")));
+		ScreenSwitcherRef = UFunctionLibrary::GetTypedWidgetFromName<UWidgetSwitcher>(MainScreenRef, TEXT("ScreenSwitcher"));
+		HomeScreenRef = UFunctionLibrary::GetTypedWidgetFromName<UUserWidget>(MainScreenRef, TEXT("HomeScreen"));
+		SettingsScreenRef = UFunctionLibrary::GetTypedWidgetFromName<UUserWidget>(MainScreenRef, TEXT("SettingsScreen"));
 
-		if (PlayButtonRef)
+		if (HomeScreenRef)
 		{
-			PlayButtonRef->OnClicked.AddDynamic(this, &UMainScreenHUDComponent::OnPlayClicked);
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Play Button Not Found"));
-		}
+			PlayButtonRef = UFunctionLibrary::GetTypedWidgetFromName<UButton>(HomeScreenRef, TEXT("PlayButton"));
+			JoinButtonRef = UFunctionLibrary::GetTypedWidgetFromName<UButton>(HomeScreenRef, TEXT("JoinButton"));
+			LibraryButtonRef = UFunctionLibrary::GetTypedWidgetFromName<UButton>(HomeScreenRef, TEXT("LibraryButton"));
+			SettingsButtonRef = UFunctionLibrary::GetTypedWidgetFromName<UButton>(HomeScreenRef, TEXT("SettingsButton"));
+			QuitButtonRef = UFunctionLibrary::GetTypedWidgetFromName<UButton>(HomeScreenRef, TEXT("QuitButton"));
 
-		if (JoinButtonRef)
-		{
-			JoinButtonRef->OnClicked.AddDynamic(this, &UMainScreenHUDComponent::OnJoinClicked);
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Join Button Not Found"));
-		}
+			if (PlayButtonRef)
+			{
+				PlayButtonRef->OnClicked.AddDynamic(this, &UMainScreenHUDComponent::OnPlayClicked);
+			}
 
-		if (LibraryButtonRef)
-		{
-			LibraryButtonRef->OnClicked.AddDynamic(this, &UMainScreenHUDComponent::OnLibraryClicked);
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Library Button Not Found"));
-		}
+			if (JoinButtonRef)
+			{
+				JoinButtonRef->OnClicked.AddDynamic(this, &UMainScreenHUDComponent::OnJoinClicked);
+			}
 
-		if (SettingsButtonRef)
-		{
-			SettingsButtonRef->OnClicked.AddDynamic(this, &UMainScreenHUDComponent::OnSettingsClicked);
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Settings Button Not Found"));
+			if (LibraryButtonRef)
+			{
+				LibraryButtonRef->OnClicked.AddDynamic(this, &UMainScreenHUDComponent::OnLibraryClicked);
+			}
+
+			if (SettingsButtonRef)
+			{
+				SettingsButtonRef->OnClicked.AddDynamic(this, &UMainScreenHUDComponent::OnSettingsClicked);
+			}
+
+			if (QuitButtonRef)
+			{
+				QuitButtonRef->OnClicked.AddDynamic(this, &UMainScreenHUDComponent::OnQuitClicked);
+			}
 		}
 
-		if (QuitButtonRef)
+		if (SettingsScreenRef)
 		{
-			QuitButtonRef->OnClicked.AddDynamic(this, &UMainScreenHUDComponent::OnQuitClicked);
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Quit Button Not Found"));
+			MaxCamSpeedSliderRef = UFunctionLibrary::GetTypedWidgetFromName<USettingsSlider>(SettingsScreenRef, TEXT("MaxCamSpeed"));
+			MinCamSpeedSliderRef = UFunctionLibrary::GetTypedWidgetFromName<USettingsSlider>(SettingsScreenRef, TEXT("MinCamSpeed"));
+			CamSpeedMultiplierSliderRef = UFunctionLibrary::GetTypedWidgetFromName<USettingsSlider>(SettingsScreenRef, TEXT("CamSpeedMultiplier"));
+			MaxPitchSliderRef = UFunctionLibrary::GetTypedWidgetFromName<USettingsSlider>(SettingsScreenRef, TEXT("MaxPitch"));
+			MinPitchSliderRef = UFunctionLibrary::GetTypedWidgetFromName<USettingsSlider>(SettingsScreenRef, TEXT("MinPitch"));
+			PanMultiplierSliderRef = UFunctionLibrary::GetTypedWidgetFromName<USettingsSlider>(SettingsScreenRef, TEXT("PanMultiplier"));
+			MaxZoomSliderRef = UFunctionLibrary::GetTypedWidgetFromName<USettingsSlider>(SettingsScreenRef, TEXT("MaxZoom"));
+			MinZoomSliderRef = UFunctionLibrary::GetTypedWidgetFromName<USettingsSlider>(SettingsScreenRef, TEXT("MinZoom"));
+			ZoomSpeedSliderRef = UFunctionLibrary::GetTypedWidgetFromName<USettingsSlider>(SettingsScreenRef, TEXT("ZoomSpeed"));
+			SettingsBackButtonRef = UFunctionLibrary::GetTypedWidgetFromName<UButton>(SettingsScreenRef, TEXT("BackButton"));
+			SettingsApplyButtonRef = UFunctionLibrary::GetTypedWidgetFromName<UButton>(SettingsScreenRef, TEXT("ApplyButton"));
+			SettingsResetButtonRef = UFunctionLibrary::GetTypedWidgetFromName<UButton>(SettingsScreenRef, TEXT("ResetButton"));
+
+			SettingsSliders = 
+			{ 
+				MaxCamSpeedSliderRef, 
+				MinCamSpeedSliderRef, 
+				CamSpeedMultiplierSliderRef, 
+				MaxPitchSliderRef, 
+				MinPitchSliderRef, 
+				PanMultiplierSliderRef, 
+				MaxZoomSliderRef, 
+				MinZoomSliderRef, 
+				ZoomSpeedSliderRef 
+			};
+
+			if (SettingsBackButtonRef)
+			{
+				SettingsBackButtonRef->OnClicked.AddDynamic(this, &UMainScreenHUDComponent::OnBackClicked);
+			}
+
+			if (SettingsApplyButtonRef)
+			{
+				SettingsApplyButtonRef->OnClicked.AddDynamic(this, &UMainScreenHUDComponent::OnApplyClicked);
+			}
+
+			if (SettingsResetButtonRef)
+			{
+				SettingsResetButtonRef->OnClicked.AddDynamic(this, &UMainScreenHUDComponent::OnResetClicked);
+			}
 		}
 	}
 }
 
+// Switches the screen switcher back to the home screen (index 0).
+void UMainScreenHUDComponent::OnBackClicked()
+{
+	ScreenSwitcherRef->SetActiveWidgetIndex(0);
+}
+
+#pragma region Main Screen
 // Opens the gameplay level.
 void UMainScreenHUDComponent::OnPlayClicked()
 {
@@ -94,9 +135,10 @@ void UMainScreenHUDComponent::OnLibraryClicked()
 {
 }
 
-// Placeholder — settings panel not yet implemented.
+// Switches the screen switcher to the settings screen (index 1).
 void UMainScreenHUDComponent::OnSettingsClicked()
 {
+	ScreenSwitcherRef->SetActiveWidgetIndex(1);
 }
 
 // Quits the application.
@@ -104,3 +146,25 @@ void UMainScreenHUDComponent::OnQuitClicked()
 {
 	UKismetSystemLibrary::QuitGame(this, PlayerControllerRef, EQuitPreference::Quit, false);
 }
+#pragma endregion
+
+#pragma region Settings Screen
+// Reads all slider values, populates a UCameraSettingsSave, and saves to slot "CameraSettings".
+void UMainScreenHUDComponent::OnApplyClicked()
+{
+	
+}
+
+// Resets all sliders to their default values then applies and saves the defaults.
+void UMainScreenHUDComponent::OnResetClicked()
+{
+	for (USettingsSlider* Slider : SettingsSliders)
+	{
+		Slider->ResetToDefault();
+	}
+
+	OnApplyClicked();
+}
+#pragma endregion
+
+

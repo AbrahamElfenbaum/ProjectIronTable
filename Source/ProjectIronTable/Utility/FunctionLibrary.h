@@ -4,6 +4,7 @@
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "DiceData.h"
+#include "Blueprint/UserWidget.h"
 #include "FunctionLibrary.generated.h"
 
 /** General-purpose static utility functions exposed to Blueprints. */
@@ -16,4 +17,20 @@ public:
 	/** Returns the display name string for a given EDiceType (e.g. "D20"). */
 	UFUNCTION(BlueprintPure, Category = "Dice")
 	static FString GetDiceName(EDiceType Type);
+
+	template<typename T>
+	static T* GetTypedWidgetFromName(UUserWidget* Widget, FName Name)
+	{
+		if (!Widget)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("GetTypedWidgetFromName: Widget is null"));
+			return nullptr;
+		}
+		T* Result = Cast<T>(Widget->GetWidgetFromName(Name));
+		if (!Result)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("GetTypedWidgetFromName: Failed to find or cast widget '%s'"), *Name.ToString());
+		}
+		return Result;
+	}
 };

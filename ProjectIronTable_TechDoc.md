@@ -9,7 +9,7 @@
 
 ## Overview
 
-ProjectIronTable is a TTRPG (Tabletop Role-Playing Game) simulator built in Unreal Engine 5.7. The goal is to provide a virtual tabletop experience that supports maps, miniatures, dice rolling, character sheets, initiative tracking, and more — with support for custom user-imported content. Development is structured in small, self-contained pieces starting with the dice system.
+ProjectIronTable is a TTRPG simulator built in Unreal Engine 5.7. It supports maps, miniatures, dice rolling, character sheets, initiative tracking, and custom user-imported content. Development is structured in small, self-contained pieces starting with the dice system.
 
 ---
 
@@ -19,12 +19,13 @@ ProjectIronTable is a TTRPG (Tabletop Role-Playing Game) simulator built in Unre
 ```
 Source/ProjectIronTable/
 ├── Chat/              — Chat widget classes (ChatBox, ChatEntry, ChatChannel, ChatTab, ChatChannelListEntry)
+├── Components/        — Actor component classes (GameplayHUDComponent, MainScreenHUDComponent)
 ├── Dice/              — Dice actors and data assets
 ├── Pawns/             — Pawn classes
 ├── PlayerControllers/ — Player controller classes
 ├── PlayerList/        — Player list widget classes (PlayerList, PlayerRow)
-├── SaveLoad/          — Save game classes (PanelLayoutSave)
-├── UI/                — Non-chat widget classes and HUD component
+├── SaveLoad/          — Save game classes (PanelLayoutSave, CameraSettingsSave)
+├── UI/                — Non-chat widget classes (no HUD components)
 └── Utility/           — Function libraries and general-purpose helpers
 ```
 
@@ -33,380 +34,721 @@ Source/ProjectIronTable/
 Content/
 ├── Blueprints/
 │   ├── Core/
-│   │   ├── GameModes/          — GM_Testing, GM_Gameplay
-│   │   ├── PlayerControllers/  — PC_Testing, PC_Gameplay
-│   │   └── Components/         — BP_HUDComponent (in progress)
+│   │   ├── GameModes/          — GM_Testing, GM_Gameplay, GM_MainScreen
+│   │   ├── PlayerControllers/  — PC_Testing, PC_Gameplay, PC_MainScreen
+│   │   └── Components/         — BP_HUDComponent, BP_HomeScreenHUDComponent
 │   ├── Dice/
 │   │   ├── A_BaseDiceActor     — Base dice actor Blueprint
 │   │   └── DiceActors/         — Individual die Blueprints (A_D4, A_D6, etc.)
-│   ├── Pawns/
-│   │   └── GameplayPawn    — Camera pawn Blueprint (P_GameplayPawn)
-│   └── Utility/
-├── Data/
-│   ├── DataAssets/
-│   │   └── Dice/               — DA_ prefixed dice data assets
-│   └── DataTables/
-├── Levels/
-│   └── Dev/                    — Development/test levels
-├── Meshes/
-│   └── Dice/                   — Dice static meshes (Dungeons of Dice by NNJohn)
-├── Materials/
-│   └── Dice/                   — Dice materials (Dungeons of Dice by NNJohn)
-├── Textures/
+│   └── Pawns/
+│       └── P_GameplayPawn      — Camera pawn Blueprint
+├── Data/DataAssets/Dice/       — DA_ prefixed dice data assets
 ├── Input/
 │   ├── Gameplay/               — IMC_Gameplay, IA_CameraMove, IA_CameraPan, IA_CameraPanReset, IA_CameraSprint, IA_CameraZoom, IA_FocusChat
 │   └── Chat/                   — IMC_Chat, IA_ExitChat, IA_ScrollChat
 ├── UI/
-│   ├── Dice/                   — Dice widget elements (WE_DiceSelector, WE_DiceSelectorManager)
-│   ├── Chat/                   — Chat widgets (W_ChatBox, WE_ChatChannel, WE_ChatTab, WE_ChatEntry)
-│   ├── PlayerList/             — Player list widgets (W_PlayerList, WE_PlayerRow)
-│   ├── Screens/                — Full screen widgets (S_GameplayScreen, S_HomeScreen)
-│   ├── Settings/               — Settings widget elements (WE_SettingsSlider)
-│   ├── Utility/                — Reusable utility widgets (W_DraggablePanel, WBP_DragHandle, WBP_ResizeHandle)
-│   └── Testing/                — Debug/test widgets (WE_DebugDisplay)
+│   ├── Dice/                   — WE_DiceSelector, W_DiceSelectorManager
+│   ├── Chat/                   — W_ChatBox, WE_ChatChannel, WE_ChatTab, WE_ChatEntry
+│   ├── PlayerList/             — W_PlayerList, WE_PlayerRow
+│   ├── Screens/                — S_GameplayScreen, S_HomeScreen, S_MainScreen, S_SettingsScreen
+│   ├── Settings/               — WE_SettingsSlider
+│   ├── HUD/                    — W_Taskbar, WE_TaskbarButton
+│   ├── Utility/                — W_DraggablePanel, WE_DragHandle, WE_ResizeHandle
+│   └── Testing/                — WE_DebugDisplay
+└── Physics/Materials/          — PM_Dice
 ```
 
 ---
 
 ## Naming Conventions
 
-| Asset Type          | Prefix |
-|---------------------|--------|
-| Actor (Blueprint)   | A_     |
-| Pawn (Blueprint)    | P_     |
-| Game Mode           | GM_    |
-| Player Controller   | PC_    |
-| Data Asset          | DA_    |
-| Data Table          | DT_    |
-| Screen              | S_     |
-| Widget              | W_     |
-| Widget Element      | WE_    |
-| Enumeration         | E_     |
-| Material            | M_     |
-| Material Instance   | MI_    |
-| Level (final)       | L_     |
-| Level (dev/test)    | Dev_   |
+| Asset Type        | Prefix |
+|-------------------|--------|
+| Actor (Blueprint) | A_     |
+| Pawn (Blueprint)  | P_     |
+| Game Mode         | GM_    |
+| Player Controller | PC_    |
+| Data Asset        | DA_    |
+| Data Table        | DT_    |
+| Screen            | S_     |
+| Widget            | W_     |
+| Widget Element    | WE_    |
+| Enumeration       | E_     |
+| Material          | M_     |
+| Material Instance | MI_    |
+| Level (final)     | L_     |
+| Level (dev/test)  | Dev_   |
 
 ---
 
 ## C++ Classes
 
+---
+
 ### Dice/
-- **`ADiceSpawnVolume`** — `AActor` subclass. Defines the area where dice can spawn. Has a single `UBoxComponent` (`SpawnArea`) as the root component — this makes the volume visible and resizable in the editor viewport. Exposes `GetSpawnBox()` which returns the world-space `FBox` via `SpawnArea->Bounds.GetBox()`. Place one in the level; `UGameplayHUDComponent` finds it automatically via `GetActorOfClass` and passes it to `UDiceSelectorManager` at runtime.
-- **`ABaseDiceActor`** — Parent class for all dice actors. Handles mesh assignment, physics sleep detection, roll result reporting, and collision sound playback. All individual die types inherit from this. Exposes `Mass`, `PhysicalMaterial`, `LinearDamping`, `AngularDamping`, `ImpulseRange`, `AngularImpulseRange`, `FailSafeTime` (`float`, default 10s), `CollisionSoundSurface` (`TObjectPtr<USoundBase>`, played when striking a non-die surface), `CollisionSoundDice` (`TObjectPtr<USoundBase>`, played when striking another die), `ThrottleInterval` (`float`, default 0.1s, minimum time between collision sounds), and `ImpulseVolumeScale` (`float`, default 1000, divisor applied to collision impulse magnitude to derive volume multiplier). On sleep, disables physics simulation on the settled mesh so it cannot be pushed again. Broadcasts `OnFailsafeDestroy` (with `EDiceType`) if a mesh hasn't settled within `FailSafeTime`. For two-mesh dice, Mesh2 receives an additional randomized offset impulse for varied separation. Has a `bWasKept` (`bool`, default `true`) — set to `false` by `UDiceSelectorManager` on the losing die of an advantage/disadvantage roll, for Blueprint visual feedback. `FRollResult` includes an `ABaseDiceActor* DiceActor` pointer (set in `GetRolledValue`) so the manager can identify which actor produced which result. `BeginPlay` calls `SetNotifyRigidBodyCollision(true)` on both meshes and binds `OnComponentHit` → private `OnMeshHit`. `OnMeshHit` throttles using `LastHitTime` (private `float`), then selects the appropriate sound based on whether `OtherActor` is an `ABaseDiceActor`, scales volume by `NormalImpulse.Size() / ImpulseVolumeScale` (clamped 0.1–1.0), and calls `UGameplayStatics::PlaySoundAtLocation`. Sounds are null-checked before playing. Requires `Kismet/GameplayStatics.h` in `.cpp`.
-- **`UDiceData`** — `UPrimaryDataAsset` subclass. Stores per-die configuration data (mesh, faces, type, etc.).
+
+#### ADiceSpawnVolume
+**Type:** `AActor` | **Place in level:** yes (one instance)
+
+Defines the spawn area for dice. `UGameplayHUDComponent` finds it at runtime and passes it to `UDiceSelectorManager`.
+
+**Components:** `SpawnArea` (`UBoxComponent`, root — visible/resizable in viewport)
+
+**Key Methods:**
+- `GetSpawnBox()` — returns world-space `FBox`
+
+---
+
+#### ABaseDiceActor
+**Type:** `AActor` | **Blueprint:** `A_BaseDiceActor`, with per-die child Blueprints (`A_D4`, `A_D6`, etc.)
+
+Parent class for all dice. Handles physics, sleep detection, roll result reading, and collision sounds.
+
+**Config (set in Blueprint):**
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `Mass` | float | — | Rigid body mass |
+| `LinearDamping` / `AngularDamping` | float | — | Physics damping |
+| `ImpulseRange` / `AngularImpulseRange` | float | — | Roll impulse range |
+| `FailSafeTime` | float | 10s | Auto-destroy if not settled |
+| `CollisionSoundSurface` | USoundBase | — | Sound when hitting non-die surface |
+| `CollisionSoundDice` | USoundBase | — | Sound when hitting another die |
+| `ThrottleInterval` | float | 0.1s | Min time between collision sounds |
+| `ImpulseVolumeScale` | float | 1000 | Divides impulse magnitude to get volume |
+
+**Key Behavior:**
+- `BeginPlay` — calls `SetNotifyRigidBodyCollision(true)` and binds `OnComponentHit` on both meshes
+- On hit — throttles by `LastHitTime`, picks sound by other actor type, scales volume by impulse
+- On sleep — calls `SetSimulatePhysics(false)` on settled mesh
+- `bWasKept` (`bool`, default `true`) — set `false` on losing die during advantage/disadvantage rolls
+
+**Delegates:**
+- `OnFailsafeDestroy` (`EDiceType`) — broadcast if mesh hasn't settled within `FailSafeTime`
+
+> **Note:** `OnComponentSleep` requires **Generate Wake Events** checked on the mesh component in Blueprint.
+
+---
+
+#### UDiceData
+**Type:** `UPrimaryDataAsset`
+
+Stores per-die configuration (mesh, face values, die type, etc.).
+
+---
 
 ### Chat/
-- **`UChatBox`** — `UUserWidget` subclass. Tabbed chat container. BindWidgets: `TabBar` (`UHorizontalBox`), `ClosedChannelContainer` (`UVerticalBox`), `ChannelContainer` (`UWidgetSwitcher`), `EditableText` (`UEditableText`), `ChannelListButton` (`UButton`). EditAnywhere: `ChannelClass` (`TSubclassOf<UChatChannel>`), `TabClass` (`TSubclassOf<UChatTab>`), `ChatEntryClass` (`TSubclassOf<UChatEntry>`, passed through to channels), `ChannelListEntryClass` (`TSubclassOf<UChatChannelListEntry>`). Private: `Channels` (`TArray<UChatChannel*>`), `ActiveChannel` (`TObjectPtr<UChatChannel>`), `ChannelTabMap` (`TMap<UChatChannel*, UChatTab*>`, for O(1) tab lookup), `ClosedChannels` (`TSet<UChatChannel*>`). `NativeConstruct` gets `HUDComponentRef`, binds `EditableText->OnTextCommitted`, binds `ChannelListButton->OnClicked` → `OnChannelListButtonClicked`, collapses `ClosedChannelContainer`, and creates the Server channel via `CreateChannel({})`. `CreateChannel(TArray<FString> Participants)` builds the tab label ("Server" for empty, "@Name" for one participant, "@Name +N" for multiple), creates and configures both the `UChatChannel` and `UChatTab` widgets, wires `OnTabClicked` → `SwitchToChannel`, wires `OnTabClosed` → `CloseChannel`, calls `Tab->SetCloseable(!Participants.IsEmpty())` so the Server tab has no close button, adds both to the UI, and returns the channel. `SwitchToChannel(UChatChannel*)` must be `UFUNCTION()` for `AddDynamic` to work — re-enables the previously active tab, sets `ActiveChannel`, disables the new tab via `SetInteractable`, activates the channel in `ChannelContainer`, calls `ClearNotification` on the new tab, and clears the input field (draft is discarded on channel switch). `AddChatMessage(const FString& Message, TArray<FString> Participants, bool bIsSender)` finds or creates the matching channel (matched by `Num()` equality first, then participant-by-participant containment check to avoid partial matches), adds the message, then: if the channel is in `ClosedChannels`, calls `ReopenChannel` (auto-reopen on incoming message); else if `bIsSender`, calls `SwitchToChannel`; else if not the active channel, calls `ShowNotification`. `OnTextCommitted` parses the input string on Enter: splits on spaces, collects `@Name` tokens into `Recipients` and remaining words into the message body; if no `@` tokens were found and the active channel is private, automatically uses that channel's participants as recipients (minus the sender) so replies don't fall back to the Server channel; then calls `HUDComponentRef->SendChatMessageOnServer(FullMessage, Recipients)`. `FocusChat()` / `ExitChat()` manage input mode. `ExitChat()` does NOT clear the input field — text persists when the player clicks away, so `@Name` tokens typed for a private roll are not lost. `NativeOnMouseButtonDown` calls `FocusChat()` when not focused but passes through to Super so the click still reaches child widgets (tabs, buttons). `ExitChat()` also restores `bShowMouseCursor = true`. `AppendToInput(const FString& Text)` appends text to the current editable text value (used by `UGameplayHUDComponent::OnPlayerAddressClicked`). `GetActiveChannelParticipants()` returns `ActiveChannel->Participants`, or `{}` if no channel is active — used by `UGameplayHUDComponent::AddRollResultToChat` to route dice rolls to the active channel. `TrySendPrivateRollMessage()` — parses the current input for `@Name` tokens; if any are found, sends the remaining text as the message body (defaulting to `"Rolling..."` if the body is empty) to those recipients via `SendChatMessageOnServer`, then clears the input; if no `@Name` tokens are found, does nothing. Called by `UGameplayHUDComponent::OnRollInitiated` before dice are spawned. Private `OnChannelListButtonClicked()` toggles `ClosedChannelContainer` between `Visible` and `Collapsed`. Private `CloseChannel(UChatChannel*)` adds the channel to `ClosedChannels`, collapses its tab widget, falls back to `Channels[0]` (Server) if the closed channel was active, then calls `RefreshChannelList`. Private `ReopenChannel(UChatChannel*)` (`UFUNCTION` — required for `AddDynamic` in `RefreshChannelList`) removes from `ClosedChannels`, restores tab visibility, calls `SwitchToChannel`, calls `RefreshChannelList`, and collapses `ClosedChannelContainer`. Private `RefreshChannelList()` clears `ClosedChannelContainer` and repopulates it with one `UChatChannelListEntry` per closed channel; each entry's `OnEntryClicked` is bound to `ReopenChannel`. **Blueprint layout:** the tab row is a `UHorizontalBox` containing `TabBar` and `ChannelListButton` side by side; `ClosedChannelContainer` sits between that row and `ChannelContainer` in the outer `UVerticalBox`. Full structure: Border → SizeBox → VerticalBox → [HorizontalBox(TabBar, ChannelListButton)], ClosedChannelContainer, ChannelContainer, EditableText.
-- **`UChatEntry`** — `UUserWidget` subclass. Single chat message row. Requires bound widget: `TextBlock` (`UTextBlock`). Exposes `Message` (`FString`, expose on spawn). Sets text in `NativeConstruct`.
-- **`UChatChannel`** — `UUserWidget` subclass. Represents one chat channel (tab). Requires bound widget: `ScrollBox` (`UScrollBox`). Public: `ChatEntryClass` (`TSubclassOf<UChatEntry>`), `DisplayName` (`FString`, client-side label — safe to rename per-user; channel identity and routing are determined by `Participants`, never by name), `Participants` (`TArray<FString>`, internal participant list), `ScrollMultiplier` (`float`, default 60). `AddChatMessage(const FString& Message)` creates and appends a `UChatEntry`. `SetChatEntryClass(TSubclassOf<UChatEntry>)` lets `UChatBox` pass down the entry class at creation time. `Scroll(bool bUp)` adjusts `ScrollBox` offset by `ScrollMultiplier`, clamped to valid range.
-- **`UChatTab`** — `UUserWidget` subclass. Clickable tab button in the tab bar. Requires bound widgets: `TabButton` (`UButton`), `CloseButton` (`UButton`), `TabLabel` (`UTextBlock`), `NotificationIndicator` (`UWidget`). Public: `OnTabClicked` delegate (`FOnTabClicked`, passes `UChatChannel*`), `OnTabClosed` delegate (`FOnTabClosed`, passes `UChatChannel*`), `SetChannel(UChatChannel*)`, `SetLabel(const FString&)`, `ShowNotification()`, `ClearNotification()`, `SetInteractable(bool)`, `SetCloseable(bool)`. `NativeConstruct` binds `TabButton->OnClicked` → private `OnTabButtonClicked` (broadcasts `OnTabClicked`) and `CloseButton->OnClicked` → private `OnCloseButtonClicked` (broadcasts `OnTabClosed`). `SetInteractable` calls `TabButton->SetIsEnabled` — used by `UChatBox::SwitchToChannel` to disable the active tab and re-enable the previous one. `SetCloseable` shows or hides `CloseButton` via Visibility (`Collapsed` when false) — the Server tab passes `false` so it cannot be closed.
-- **`UChatChannelListEntry`** — `UUserWidget` subclass. A single row in the closed channel list panel. Requires bound widgets: `EntryButton` (`UButton`), `EntryLabel` (`UTextBlock`). Private: `Channel` (`TObjectPtr<UChatChannel>`). Public: `OnEntryClicked` delegate (`FOnEntryClicked`, passes `UChatChannel*`), `SetChannel(UChatChannel*)`. `SetChannel` stores the channel reference and sets `EntryLabel` text from `Channel->DisplayName`. `NativeConstruct` binds `EntryButton->OnClicked` → private `OnEntryButtonClicked` which broadcasts `OnEntryClicked` with the stored channel.
+
+#### UChatBox
+**Type:** `UUserWidget` | **Blueprint:** `W_ChatBox`
+
+Tabbed chat container. Manages channels, routing, and input.
+
+**Bound Widgets:**
+| Name | Type |
+|---|---|
+| `TabBar` | `UHorizontalBox` |
+| `ClosedChannelContainer` | `UVerticalBox` |
+| `ChannelContainer` | `UWidgetSwitcher` |
+| `EditableText` | `UEditableText` |
+| `ChannelListButton` | `UButton` |
+
+**Config (EditAnywhere):** `ChannelClass`, `TabClass`, `ChatEntryClass`, `ChannelListEntryClass`
+
+**Blueprint layout:** `Border → SizeBox → VerticalBox → [HBox(TabBar, ChannelListButton)], ClosedChannelContainer, ChannelContainer, EditableText`
+
+**Key Methods:**
+- `CreateChannel(TArray<FString> Participants)` — creates channel + tab, wires delegates, returns channel. Empty participants = Server tab (not closeable).
+- `SwitchToChannel(UChatChannel*)` — activates channel, clears notification and input
+- `AddChatMessage(Message, Participants, bIsSender)` — routes to correct channel (creates if needed); auto-reopens closed channels on incoming message; shows notification if not active
+- `FocusChat()` / `ExitChat()` — manage input mode. `ExitChat` does **not** clear the input field.
+- `AppendToInput(FString)` — appends text to current input value
+- `GetActiveChannelParticipants()` — returns active channel's participants, or `{}` for Server
+- `TrySendPrivateRollMessage()` — if `@Name` tokens in input, sends them as a message and clears input; noop otherwise
+
+> **Note:** Channel matching checks `Participants.Num()` equality before content — required to avoid partial matches.
+> **Note:** `SwitchToChannel` must be `UFUNCTION()` for `AddDynamic` to work.
+> **Note:** `ExitChat` must not clear the input — players type `@Names` before clicking Roll.
+
+---
+
+#### UChatChannel
+**Type:** `UUserWidget` | **Blueprint:** `WE_ChatChanel`
+
+Represents one channel/tab's message list.
+
+**Bound Widgets:** `ScrollBox` (`UScrollBox`)
+
+**Config:** `ChatEntryClass`, `DisplayName` (client-local label — safe to rename; routing uses `Participants`), `Participants` (`TArray<FString>`), `ScrollMultiplier` (default 60)
+
+**Key Methods:**
+- `AddChatMessage(FString)` — creates and appends a `UChatEntry`
+- `Scroll(bool bUp)` — adjusts scroll offset by `ScrollMultiplier`
+
+---
+
+#### UChatTab
+**Type:** `UUserWidget` | **Blueprint:** `WE_ChatTab`
+
+Clickable tab button in the tab bar.
+
+**Bound Widgets:** `TabButton`, `CloseButton` (`UButton`), `TabLabel` (`UTextBlock`), `NotificationIndicator` (`UWidget`)
+
+**Key Methods:**
+- `SetInteractable(bool)` — enables/disables `TabButton` (active tab is disabled so it can't be re-clicked)
+- `SetCloseable(bool)` — shows/hides `CloseButton` (Server tab passes `false`)
+- `ShowNotification()` / `ClearNotification()`
+
+**Delegates:** `OnTabClicked` (→`UChatChannel*`), `OnTabClosed` (→`UChatChannel*`)
+
+---
+
+#### UChatEntry
+**Type:** `UUserWidget` | **Blueprint:** `WE_ChatEntry`
+
+Single message row. **Bound Widget:** `TextBlock`. **Expose on Spawn:** `Message`.
+
+---
+
+#### UChatChannelListEntry
+**Type:** `UUserWidget` | **Blueprint:** `WE_ChatChannelListEntry`
+
+Row in the closed channels dropdown. **Bound Widgets:** `EntryButton`, `EntryLabel`.
+
+**Delegate:** `OnEntryClicked` (→`UChatChannel*`)
+
+---
 
 ### PlayerList/
-- **`UPlayerRow`** — `UUserWidget` subclass. Single row in the player list. Requires bound widgets: `NameLabel` (`UTextBlock`), `AddressButton` (`UButton`). Public: `OnAddressClicked` delegate (`FOnAddressClicked`, passes `const FString& PlayerName`). `SetPlayerName(const FString&)` sets the display label and stores the name. `NativeConstruct` binds `AddressButton->OnClicked` to a private handler that broadcasts `OnAddressClicked` with the stored name. Declares `DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAddressClicked, const FString&, PlayerName)`.
-- **`UPlayerList`** — `UUserWidget` subclass. Collapsible scrollable list of connected players. Requires bound widgets: `ScrollBox` (`UScrollBox`), `ToggleButton` (`UButton`). EditAnywhere: `PlayerRowClass` (`TSubclassOf<UPlayerRow>`). Public: `OnAddressClicked` delegate (`FOnAddressClicked`), `PopulateList()`. `NativeConstruct` binds `ToggleButton`, calls `PopulateList()`, and collapses `ScrollBox`. `OnToggleButtonClicked` toggles `bIsExpanded`, calls `PopulateList()` when expanding (not at construct — `GameState` may not have all players yet), and sets `ScrollBox` visibility. `PopulateList()` clears children, iterates `GS->PlayerArray`, creates one `UPlayerRow` per player, and binds each row's `OnAddressClicked` to a local handler that bubbles `OnAddressClicked` upward.
+
+#### UPlayerRow
+**Type:** `UUserWidget` | **Blueprint:** `WE_PlayerRow`
+
+Single row in the player list. Clicking the address button @-mentions that player.
+
+**Bound Widgets:** `NameLabel` (`UTextBlock`), `AddressButton` (`UButton`)
+
+**Key Methods:** `SetPlayerName(FString)`
+
+**Delegate:** `OnAddressClicked` (→`FString PlayerName`)
+
+---
+
+#### UPlayerList
+**Type:** `UUserWidget` | **Blueprint:** `W_PlayerList`
+
+Collapsible scrollable list of connected players.
+
+**Bound Widgets:** `ScrollBox` (`UScrollBox`), `ToggleButton` (`UButton`)
+
+**Config:** `PlayerRowClass` (`TSubclassOf<UPlayerRow>`)
+
+**Key Methods:**
+- `PopulateList()` — clears and rebuilds rows from `GameState->PlayerArray`
+
+**Delegate:** `OnAddressClicked` (bubbled up from each row)
+
+> **Note:** `PopulateList` must also be called on toggle open — `GameState->PlayerArray` may be empty at construct time.
+
+---
 
 ### SaveLoad/
-- **`FPanelLayoutData`** — `USTRUCT`. Stores the saved layout of a single draggable panel: `Position` (`FVector2D`), `Size` (`FVector2D`), `bVisible` (`bool`, default `true`). Default constructor zero-initializes `Position` and `Size`. Convenience constructor takes all three values.
-- **`UPanelLayoutSave`** — `USaveGame` subclass. Stores panel layout data for all registered panels. Contains one property: `PanelLayouts` (`TMap<FString, FPanelLayoutData>`) keyed by panel ID. Saved to and loaded from slot `"PanelLayout"` (index 0) by `UGameplayHUDComponent`. One save per machine/client — no campaign context.
-- **`UCameraSettingsSave`** — `USaveGame` subclass. Persists all nine camera config properties across sessions. Fields: `MinCameraMovementSpeed`, `MaxCameraMovementSpeed`, `CameraSpeedMultiplier`, `MinCameraPitch`, `MaxCameraPitch`, `CameraPanSpeedMultiplier`, `MinZoomLength`, `MaxZoomLength`, `ZoomSpeed`. Saved to and loaded from slot `"CameraSettings"` (index 0) by `AGameplayController`. Defaults match the controller's C++ defaults.
+
+#### FPanelLayoutData
+**Type:** `USTRUCT`
+
+Stores saved layout for one panel. Fields: `Position` (`FVector2D`), `Size` (`FVector2D`), `bVisible` (`bool`, default `true`).
+
+---
+
+#### UPanelLayoutSave
+**Type:** `USaveGame` | **Slot:** `"PanelLayout"`, index 0
+
+Stores panel layout for all registered panels.
+
+**Fields:** `PanelLayouts` (`TMap<FString, FPanelLayoutData>`) — keyed by `PanelID`
+
+---
+
+#### UCameraSettingsSave
+**Type:** `USaveGame` | **Slot:** `"CameraSettings"`, index 0
+
+Persists all nine camera config properties across sessions.
+
+| Field | Default |
+|---|---|
+| `MinCameraMovementSpeed` | 5 |
+| `MaxCameraMovementSpeed` | 20 |
+| `CameraSpeedMultiplier` | 2 |
+| `MinCameraPitch` | -15 |
+| `MaxCameraPitch` | 45 |
+| `CameraPanSpeedMultiplier` | 5 |
+| `MinZoomLength` | 100 |
+| `MaxZoomLength` | 2500 |
+| `ZoomSpeed` | 50 |
+
+---
+
+### Components/
+
+#### UMainScreenHUDComponent
+**Type:** `UActorComponent` | **Blueprint:** `BP_HomeScreenHUDComponent` (rename pending)
+**Owner:** `AMainScreenController`
+
+Manages the main screen UI — creates the widget, caches all refs, and handles screen navigation and settings.
+
+**Config:**
+- `MainScreenClass` (`TSubclassOf<UUserWidget>`) — **must be set on the component instance inside `PC_MainScreen`**, not on a standalone component Blueprint
+
+**Widget names (must match exactly):**
+- Home screen: `PlayButton`, `JoinButton`, `LibraryButton`, `SettingsButton`, `QuitButton`
+- Settings screen: `MinCamSpeed`, `MaxCamSpeed`, `CamSpeedMultiplier`, `MinPitch`, `MaxPitch`, `PanMultiplier`, `MinZoom`, `MaxZoom`, `ZoomSpeed`, `ApplyButton`, `ResetButton`, `BackButton`
+- Root: `ScreenSwitcher` (`UWidgetSwitcher`), `HomeScreen`, `SettingsScreen`
+
+**Handlers:**
+- `OnPlayClicked` → `OpenLevel("L_Gameplay")`
+- `OnQuitClicked` → `QuitGame`
+- `OnSettingsClicked` → `ScreenSwitcherRef->SetActiveWidgetIndex(1)`
+- `OnBackClicked` → `ScreenSwitcherRef->SetActiveWidgetIndex(0)` — shared handler, not region-specific; reused by all future screens with a Back button
+- `OnResetClicked` → iterates `SettingsSliders` TArray, calls `ResetToDefault()` on each, then calls `OnApplyClicked()`
+- `OnApplyClicked` → stub (reads sliders → saves `UCameraSettingsSave` to slot `"CameraSettings"` — not yet implemented)
+- `OnJoinClicked`, `OnLibraryClicked` → stubs (not yet implemented)
+
+**Runtime:** `SettingsSliders` (`TArray<USettingsSlider*>`, `UPROPERTY()`) — all 9 slider refs in order for batch reset operations.
+
+> **Note:** `OnApplyClicked` and slider initialization from saved values are the remaining tasks.
+
+---
+
+#### UGameplayHUDComponent
+**Type:** `UActorComponent` | **Replicated:** yes
+**Owner:** `AGameplayController`
+
+Manages the gameplay HUD lifecycle and all chat networking.
+
+**Config:**
+- `GameplayScreenClass` (`TSubclassOf<UUserWidget>`)
+
+**Widget names it searches for (must match):** `DiceSelectorManager`, `ChatBox`, `PlayerList`, `Taskbar`, `DicePanel`, `ChatPanel`, `PlayersPanel`
+
+**Key Methods:**
+- `FindAndRegisterPanel(WidgetName, Label)` — finds `UDraggablePanel`, registers with taskbar, assigns ID, binds layout save delegates
+- `SavePanelLayout()` — writes all panel positions/sizes to `"PanelLayout"` save slot
+- `LoadPanelLayout()` — loads and applies saved panel layout on startup
+- `FocusChat()` / `ExitChat()` / `ScrollChat(bool)` — delegate to `ChatBoxRef`
+- `OnRollInitiated()` — calls `TrySendPrivateRollMessage` before dice spawn
+
+**RPCs:**
+- `SendChatMessageOnServer` (Server, Reliable) — resolves sender name, builds participant list, routes to each player's HUD
+- `AddChatMessageOnOwningClient` (Client, Reliable) — delivers message to `ChatBoxRef`
+
+> **Note:** Always place the Blueprint variant (`W_Taskbar`, etc.) in the screen widget — placing the raw C++ class causes null `BindWidget` crashes on first access.
+
+---
 
 ### UI/
-- **`UDragHandle`** — `UUserWidget` subclass. Hit-testable widget placed in the title bar of a `UDraggablePanel`. Captures mouse on press, forwards drag events to parent via `GetTypedOuter<UDraggablePanel>()`. Private: `bActive` (`bool`). Overrides `NativeOnMouseButtonDown` (sets `bActive`, calls `StartDrag`, captures mouse), `NativeOnMouseMove` (calls `UpdateDrag` while `bActive`, passes through to Super otherwise), `NativeOnMouseButtonUp` (clears `bActive`, calls `StopDrag`, releases capture).
-- **`UResizeHandle`** — `UUserWidget` subclass. Hit-testable widget placed in the bottom-right corner of a `UDraggablePanel`. Same structure as `UDragHandle` but calls `StartResize`, `UpdateResize`, `StopResize`.
-- **`UDraggablePanel`** — `UUserWidget` subclass. Wrapper widget that makes any content widget draggable and resizable at runtime. Must be placed inside a `UCanvasPanel` — caches its `UCanvasPanelSlot` in `NativeConstruct` for position/size updates. BindWidgets: `DragHandle` (`UWidget`), `ContentSlot` (`UNamedSlot`), `ResizeCorner` (`UWidget`), `TitleText` (`UTextBlock`). EditAnywhere: `TitleBarHeight` (`float`), `MinSize` (`FVector2D`), `PanelTitle` (`FText`). Private state: `PanelID` (`FString`, set via `SetPanelID`), `DragOffset`, `ResizeStartMouse`, `ResizeStartSize` (`FVector2D`), `CanvasSlot` (`TObjectPtr<UCanvasPanelSlot>`). Public: `SetPanelTitle(FText)`, `SetPanelID(const FString&)`, `GetPanelID() const`, `StartDrag`, `UpdateDrag`, `StopDrag`, `StartResize`, `UpdateResize`, `StopResize` (all called by `UDragHandle`/`UResizeHandle`), `GetPanelLayoutData() const` (returns `FPanelLayoutData` with current position, size, and visibility), `ApplyPanelLayoutData(const FPanelLayoutData&)` (sets position and size on canvas slot, sets visibility). Public delegate: `OnPanelStateChanged` (`FOnPanelStateChanged`, zero-param) — broadcast in `StopDrag` and `StopResize` to signal that layout should be saved. Blueprint: `W_DraggablePanel` in `Content/UI/Utility/`.
-- **`UDiceSelector`** — `UUserWidget` subclass. Requires bound widgets: `TypeText`, `CountText` (`UTextBlock`), `IncreaseButton`, `DecreaseButton` (`UButton`). Exposes `DiceClass` (`TSubclassOf<ABaseDiceActor>`), `DiceType` (`EDiceType`), and `DiceCount` (`int32`, visible/read-only). Button clicks bound in `NativeConstruct`. All logic is in C++ — the Blueprint exists only for layout and styling.
-- **`UDiceSelectorManager`** — `UUserWidget` subclass. Requires bound widgets: `D4`, `D6`, `D8`, `D10`, `D12`, `D20`, `D100` (`UDiceSelector`), `NormalRollButton`, `AdvantageRollButton`, `DisadvantageRollButton`, `RollButton` (`UButton`). Exposes `SpawnVolume` (`TObjectPtr<ADiceSpawnVolume>`, set at runtime by `UGameplayHUDComponent`), `Impulse`, `AngularImpulse` (`FVector`), `ImpulseRange`, `AngularImpulseRange` (`float`), `TimeBeforeDestroyingDice` (`float`, default 5s), and `RollMode` (`EDiceRollMode`, visible/read-only) in the inspector. Selectors and `AdvantageButtons` arrays built in `NativeConstruct`. Supports three roll modes via `EDiceRollMode` (Normal, Advantage, Disadvantage). Mode buttons are enabled only when exactly one selector has `DiceCount == 1` — clicking a mode button disables itself and enables the others. In Advantage/Disadvantage mode, two dice of the selected type are spawned; `OnDiceRolledHandler` picks the higher (Advantage) or lower (Disadvantage) result, sets `bWasKept = false` on the losing actor, and broadcasts only the winning result. `bRollInProgress` is set to `true` before the spawning loop (not after) to prevent `ResetCount` from triggering `UpdateAdvantageButtonState` and resetting `RollMode` mid-roll. Each die's spawn location is chosen via `FMath::RandPointInBox(SpawnVolume->GetSpawnBox())` — dice are distributed randomly across the volume instead of all spawning at the same point. `RollDice` guards against a null `SpawnVolume` and logs a warning if it isn't set. `OnAllDiceRolled` broadcasts `TArray<FRollResult>` and `EDiceRollMode`. Broadcasts `OnDiceFailsafeDestroyed` (with `EDiceType`) when a die is lost to the failsafe. Broadcasts `OnRollInitiated` (zero-param) at the very start of `RollDice()`, before old dice are destroyed and before new dice are spawned — used by `UGameplayHUDComponent` to trigger `TrySendPrivateRollMessage` so a private channel can be created before the roll result arrives.
-- **`UTaskbarButton`** — `UUserWidget` subclass. A single toggle button in the taskbar. Requires bound widgets: `ToggleButton` (`UButton`), `WidgetLabel` (`UTextBlock`). Private: `TrackedWidget` (`TObjectPtr<UUserWidget>`). `SetTrackedWidget(UUserWidget*, FString Label)` stores the widget reference and sets the label text. `OnToggleClicked()` (`UFUNCTION`) toggles `TrackedWidget` between `Visible` and `Collapsed`: if `Collapsed` → set `Visible`; else → set `Collapsed`; then broadcasts `OnToggled`. `NativeConstruct` binds `ToggleButton->OnClicked` to `OnToggleClicked`. Public delegate: `OnToggled` (`FOnToggled`, zero-param) — broadcast after each toggle, used by `UGameplayHUDComponent` to trigger layout save.
-- **`UTaskbar`** — `UUserWidget` subclass. Taskbar widget displayed at the bottom of the screen. Requires bound widget: `ButtonContainer` (`UHorizontalBox`). EditAnywhere: `TaskbarButtonClass` (`TSubclassOf<UTaskbarButton>`). `RegisterWidget(UUserWidget* Widget, FString Label)` creates a `UTaskbarButton` via `CreateWidget`, calls `SetTrackedWidget`, adds the button to `ButtonContainer`, and returns the `UTaskbarButton*` so callers can bind to its delegates. Called by `UGameplayHUDComponent::FindAndRegisterPanel` for each HUD panel.
-- **`UHomeScreenHUDComponent`** — `UActorComponent` subclass. Manages home screen UI. Created in `AHomeScreenController` constructor. `BeginPlay` caches `PlayerControllerRef`, creates and adds the `HomeScreenClass` widget (local clients only), then grabs `PlayButton`, `JoinButton`, `LibraryButton`, `SettingsButton`, and `QuitButton` via `GetWidgetFromName` and binds each to its handler. `OnPlayClicked` opens `L_Gameplay` via `UGameplayStatics::OpenLevel`. `OnQuitClicked` calls `UKismetSystemLibrary::QuitGame`. Join, Library, and Settings handlers are stubs — not yet implemented. Button names in the Blueprint widget must match exactly: `PlayButton`, `JoinButton`, `LibraryButton`, `SettingsButton`, `QuitButton`. Blueprint: `BP_HomeScreenHUDComponent`.
-- **`USettingsSlider`** — `UUserWidget` subclass. A labeled slider paired with an editable text field. Supports optional pairing with another `USettingsSlider` to enforce a min/max gap. Config (EditAnywhere): `Title` (`FText`, applied to `TitleText` in `NativeConstruct`), `SliderMin` / `SliderMax` (`float`, applied to `ValueSlider` bounds in `NativeConstruct`), `DefaultValue` (`float`), `PairedSlider` (`TObjectPtr<USettingsSlider>`, optional), `PairGap` (`float`, default 0.1), `bIsMin` (`bool`, if true this slider is capped below the paired slider's value). BindWidgets: `TitleText` (`UTextBlock`), `ValueSlider` (`USlider`), `ValueText` (`UEditableText`). Public: `GetValue() const` (returns `ValueSlider->GetValue()`), `SetValue(float)` (sets text and slider directly — does not trigger paired clamping; used for loading saved values and reset), `ResetToDefault()` (calls `SetValue(DefaultValue)`). Private: `OnSliderValueChanged(float)` — always syncs `ValueText` to the clamped value; only calls `ValueSlider->SetValue` when `ClampedValue != Value` to prevent infinite recursion. `OnTextCommitted(const FText&, ETextCommit::Type)` — parses `FCString::Atof`, clamps to `[SliderMin, SliderMax]`, then clamps to pair, then calls `SetValue`. `ClampToPair(float)` — if `bIsMin`, returns `FMath::Min(Value, PairedSlider->GetValue() - PairGap)`; else returns `FMath::Max(Value, PairedSlider->GetValue() + PairGap)`; returns `Value` unchanged if no pair set. Blueprint: `WE_SettingsSlider` in `Content/UI/Settings/`.
-- **`UGameplayHUDComponent`** — `UActorComponent` subclass. Manages HUD widget lifecycle and chat networking. Created in `AGameplayController` constructor. Caches `PlayerControllerRef` in `BeginPlay`. Sets `FInputModeGameAndUI` (with `DoNotLock`) and `bShowMouseCursor = true` at startup so UI widgets receive mouse events immediately. Creates `GameplayScreenClass` widget (local clients only), grabs `DiceSelectorManagerRef`, `ChatBoxRef`, `PlayerListRef`, and `TaskbarRef` via `GetWidgetFromName`. Binds to `OnAllDiceRolled` and `OnDiceFailsafeDestroyed`. After finding `DiceSelectorManagerRef`, uses `UGameplayStatics::GetActorOfClass` to locate the `ADiceSpawnVolume` in the level and assigns it to `DiceSelectorManagerRef->SpawnVolume` — logs a warning if none is found. Binds `PlayerListRef->OnAddressClicked` to `OnPlayerAddressClicked`, which calls `ChatBoxRef->AppendToInput("@" + PlayerName + " ")`. After finding `TaskbarRef`, calls private helper `FindAndRegisterPanel(FName WidgetName, FString Label)` for each panel — finds the named `UDraggablePanel` in the screen, calls `TaskbarRef->RegisterWidget` (gets back the `UTaskbarButton*`), assigns `PanelID` via `Panel->SetPanelID(Label)`, binds `Panel->OnPanelStateChanged` → `SavePanelLayout` and `Button->OnToggled` → `SavePanelLayout`, logs a warning if not found, and returns the panel ref. Stores results in `ChatPanel`, `DicePanel`, `PlayersPanel`. After all panels are registered, calls `LoadPanelLayout()`. Private `SavePanelLayout()` (`UFUNCTION`, zero-param, called via `AddDynamic`) — creates a new `UPanelLayoutSave` via `NewObject`, calls private `SavePanelLayout(const UDraggablePanel*, UPanelLayoutSave*)` helper for each panel (writes `GetPanelLayoutData()` into the map under the panel's ID), then calls `UGameplayStatics::SaveGameToSlot("PanelLayout", 0)`. Private `LoadPanelLayout()` — if `UGameplayStatics::DoesSaveGameExist("PanelLayout", 0)`, loads and casts it to `UPanelLayoutSave`, then calls private `ApplyPanelLayout(UDraggablePanel*, UPanelLayoutSave*)` helper for each panel (finds the panel's ID in the map and calls `ApplyPanelLayoutData`). Server RPC `SendChatMessageOnServer` and client RPC `AddChatMessageOnOwningClient` unchanged. `AddRollResultToChat`, `OnDiceFailsafeHandler`, `OnPlayerAddressClicked`, `FocusChat`, `ExitChat`, `ScrollChat` unchanged. Also binds `DiceSelectorManagerRef->OnRollInitiated` → `OnRollInitiated()` (`UFUNCTION`, zero-param) — calls `ChatBoxRef->TrySendPrivateRollMessage()` so a private channel is created before the dice result arrives. Includes `DiceSelectorManager.h`, `PlayerList.h`, `Taskbar.h`, `TaskbarButton.h`, `DraggablePanel.h`, and `PanelLayoutSave.h`.
+
+#### UDragHandle / UResizeHandle
+**Type:** `UUserWidget` | **Blueprints:** `WE_DragHandle`, `WE_ResizeHandle`
+
+Hit-testable widgets that capture mouse and forward drag/resize events to their parent `UDraggablePanel` via `GetTypedOuter<UDraggablePanel>()`. Guard mouse move with a `bActive` flag — `NativeOnMouseMove` fires on hover too.
+
+---
+
+#### UDraggablePanel
+**Type:** `UUserWidget` | **Blueprint:** `W_DraggablePanel`
+
+Makes any content widget draggable and resizable at runtime. **Must be inside a `UCanvasPanel` with top-left anchor.**
+
+**Bound Widgets:** `DragHandle` (`UWidget`), `ContentSlot` (`UNamedSlot`), `ResizeCorner` (`UWidget`), `TitleText` (`UTextBlock`)
+
+**Config (EditAnywhere):** `TitleBarHeight`, `MinSize` (`FVector2D`), `PanelTitle` (`FText`)
+
+**Key Methods:**
+- `SetPanelID(FString)` / `GetPanelID()` — ID used as save key
+- `GetPanelLayoutData()` — returns current position, size, visibility as `FPanelLayoutData`
+- `ApplyPanelLayoutData(const FPanelLayoutData&)` — restores position, size, visibility
+
+**Delegate:** `OnPanelStateChanged` (zero-param) — broadcast on drag/resize stop; triggers `SavePanelLayout`
+
+---
+
+#### UDiceSelector
+**Type:** `UUserWidget` | **Blueprint:** `WE_DiceSelector`
+
+UI row for selecting a die type and count. All logic is C++; Blueprint is layout only.
+
+**Bound Widgets:** `TypeText`, `CountText` (`UTextBlock`), `IncreaseButton`, `DecreaseButton` (`UButton`)
+
+**Config:** `DiceClass` (`TSubclassOf<ABaseDiceActor>`), `DiceType` (`EDiceType`), `DiceCount` (read-only)
+
+---
+
+#### UDiceSelectorManager
+**Type:** `UUserWidget` | **Blueprint:** `W_DiceSelectorManager`
+
+Manages all dice selectors and initiates rolls.
+
+**Bound Widgets:** `D4`–`D100` (`UDiceSelector`), `NormalRollButton`, `AdvantageRollButton`, `DisadvantageRollButton`, `RollButton` (`UButton`)
+
+**Config:** `SpawnVolume` (set at runtime by `UGameplayHUDComponent`), `Impulse`, `AngularImpulse`, `ImpulseRange`, `AngularImpulseRange`, `TimeBeforeDestroyingDice` (5s)
+
+**Roll Modes:** Normal / Advantage / Disadvantage — mode buttons enabled only when exactly one selector has `DiceCount == 1`. Advantage/Disadvantage spawn 2 dice and keep only the higher/lower result; losing die gets `bWasKept = false`.
+
+**Delegates:**
+- `OnAllDiceRolled` (`TArray<FRollResult>`, `EDiceRollMode`)
+- `OnDiceFailsafeDestroyed` (`EDiceType`)
+- `OnRollInitiated` (zero-param) — broadcast at the **very start** of `RollDice`, before spawning
+
+> **Note:** `bRollInProgress` must be set `true` before the spawning loop, not after — otherwise `ResetCount` resets `RollMode` mid-roll.
+> **Note:** `ADiceSpawnVolume` must be placed in the level or `RollDice` will log a warning and do nothing.
+
+---
+
+#### UTaskbar / UTaskbarButton
+**Type:** `UUserWidget` | **Blueprints:** `W_Taskbar`, `WE_TaskbarButton`
+
+Taskbar at the bottom of the screen. Each button toggles a tracked `UUserWidget` between visible and collapsed.
+
+**UTaskbar — Key Methods:**
+- `RegisterWidget(UUserWidget*, FString Label)` → `UTaskbarButton*` — creates button, adds to container, returns it for delegate binding
+
+**UTaskbarButton — Delegate:** `OnToggled` (zero-param) — broadcast after each toggle
+
+> **Note:** Toggle logic must use `if (Collapsed) → Visible; else → Collapsed` — default widget visibility is `SelfHitTestInvisible`, not `Visible`.
+
+---
+
+#### USettingsSlider
+**Type:** `UUserWidget` | **Blueprint:** `WE_SettingsSlider`
+
+Labeled slider paired with an editable text field. Supports optional pairing with another slider to enforce a min/max gap.
+
+**Bound Widgets:** `TitleText` (`UTextBlock`), `ValueSlider` (`USlider`), `ValueText` (`UEditableText`)
+
+**Config (EditAnywhere):**
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `Title` | FText | — | Label text |
+| `SliderMin` / `SliderMax` | float | 0 / 1 | Slider range |
+| `DefaultValue` | float | 0 | Value on reset |
+| `PairedSlider` | USettingsSlider* | null | Other slider in a min/max pair |
+| `PairGap` | float | 0.1 | Minimum gap between paired values |
+| `bIsMin` | bool | false | If true, this slider is capped below the paired slider |
+
+**Key Methods:**
+- `GetValue()` — returns current slider value
+- `SetValue(float)` — sets slider + text directly, no pair clamping (used for load/reset)
+- `ResetToDefault()` — calls `SetValue(DefaultValue)`
+
+> **Note:** `OnSliderValueChanged` only calls `SetValue` when the clamped value differs — calling it unconditionally causes infinite recursion.
+
+---
 
 ### Pawns/
-- **`AGameplayPawn`** — `APawn` subclass. Camera pawn for top-down view. Component hierarchy: `Root` (USceneComponent) → `Sphere` (UStaticMeshComponent) → `SpringArm` (USpringArmComponent) → `Camera` (UCameraComponent). All components public so `AGameplayController` can access `SpringArm->TargetArmLength` for speed calculation.
+
+#### AGameplayPawn
+**Type:** `APawn` | **Blueprint:** `P_GameplayPawn`
+
+Top-down camera rig.
+
+**Component hierarchy:** `Root (USceneComponent) → Sphere (UStaticMeshComponent) → SpringArm → Camera`
+
+All components are public so `AGameplayController` can access `SpringArm->TargetArmLength`.
+
+---
 
 ### PlayerControllers/
-- **`AHomeScreenController`** — `APlayerController` subclass. Player controller for the home screen. Creates `HUDComponent` (`UHomeScreenHUDComponent`) in constructor. `BeginPlay` sets `bShowMouseCursor = true` and `FInputModeUIOnly` — no camera pawn, no Enhanced Input. Blueprint: `PC_HomeScreen`.
-- **`AGameplayController`** — `APlayerController` subclass. Central hub for all player input and HUD management. Creates `HUDComponent` (`UGameplayHUDComponent`) in constructor. `BeginPlay` sets `bShowMouseCursor = true`. In `OnPossess`: casts possessed pawn to `AGameplayPawn`, sets up `UEnhancedInputLocalPlayerSubsystem` with `IMC_Gameplay` (priority 0), binds all input actions via `UEnhancedInputComponent`. **Movement**: `IA_CameraMove` (Vector2D) moves along the pawn's forward/right vectors scaled by `CalculateCameraMovementSpeed() * CurrentCameraSpeedMultiplier`; `Delta.Z` zeroed to keep movement flat on the ground plane regardless of camera pitch. `CalculateCameraMovementSpeed()` clamps `SpringArm->TargetArmLength / 100` between `MinCameraMovementSpeed` and `MaxCameraMovementSpeed`. **Sprint**: `IA_CameraSprint` (bool, Triggered+Completed) sets `CurrentCameraSpeedMultiplier` to `CameraSpeedMultiplier` when held, `1.f` when released. **Pan**: `IA_CameraPan` (bool, Started+Triggered+Completed) — Started/Completed toggle `bCanCameraMove`; Triggered calls `GetInputMouseDelta` and rotates the pawn: DeltaX→Yaw (unrestricted), DeltaY→Pitch (clamped to `[MinCameraPitch, MaxCameraPitch]`). `IA_CameraPanReset` resets pitch to -15.f while preserving Yaw. **Zoom**: `IA_CameraZoom` (float) adjusts `SpringArm->TargetArmLength` by `FMath::Sign(input) * ZoomSpeed`, clamped to `[MinZoomLength, MaxZoomLength]`. **Chat**: `IA_FocusChat`/`IA_ExitChat` swap `IMC_Chat` (priority 1) in/out and delegate to `HUDComponent`. `IA_ScrollChat` (float) passes sign to `HUDComponent->ScrollChat()`. **Editor validation**: `PostEditChangeProperty` (`#if WITH_EDITOR`) enforces positive minimums and min < max for all camera range properties — when min ≥ max, max is bumped up to preserve the min value. Camera properties: `MinCameraMovementSpeed` (5), `MaxCameraMovementSpeed` (20), `CameraSpeedMultiplier` (2), `MinCameraPitch` (-15), `MaxCameraPitch` (45), `CameraPanSpeedMultiplier` (5), `MinZoomLength` (100), `MaxZoomLength` (2500), `ZoomSpeed` (50). Private non-UPROPERTY: `CurrentCameraSpeedMultiplier` (runtime sprint state). `bCanCameraMove` is a plain `bool` (no UPROPERTY) to avoid Blueprint CDO override. **Settings persistence:** `ValidateCameraSettings()` (public) clamps all nine camera properties to valid ranges — shared between `PostEditChangeProperty` (editor) and the runtime apply path; `PostEditChangeProperty` now delegates to it instead of doing validation inline. `ApplyCameraSettings(const UCameraSettingsSave*)` copies all nine fields from the save object and calls `ValidateCameraSettings()`. `SaveCameraSettings()` creates a `UCameraSettingsSave` via `NewObject`, writes all nine fields, and saves to slot `"CameraSettings"` (index 0). `BeginPlay` checks `DoesSaveGameExist("CameraSettings", 0)` and applies loaded settings before any input is processed. Requires `CameraSettingsSave.h` and `Kismet/GameplayStatics.h` in `.cpp`. Input assets: `IMC_Gameplay`, `IA_CameraMove`, `IA_CameraPan`, `IA_CameraPanReset`, `IA_CameraSprint`, `IA_CameraZoom`, `IA_FocusChat` (Gameplay Input); `IMC_Chat`, `IA_ExitChat`, `IA_ScrollChat` (Chat Input). All assigned in `PC_Gameplay` details panel.
+
+#### AMainScreenController
+**Type:** `APlayerController` | **Blueprint:** `PC_MainScreen`
+
+UI-only controller for the main screen. No camera pawn, no Enhanced Input.
+
+**Constructor:** `CreateDefaultSubobject<UMainScreenHUDComponent>("HUDComponent")`
+
+**BeginPlay:** `bShowMouseCursor = true`, `FInputModeUIOnly()`
+
+---
+
+#### AGameplayController
+**Type:** `APlayerController` | **Blueprint:** `PC_Gameplay`
+
+Central hub for all player input and HUD management.
+
+**Constructor:** `CreateDefaultSubobject<UGameplayHUDComponent>("HUDComponent")`
+
+**Input (bound in `OnPossess`):**
+
+| Action | Type | Behavior |
+|---|---|---|
+| `IA_CameraMove` | Vector2D | Move along pawn forward/right; `Delta.Z` zeroed for flat movement |
+| `IA_CameraPan` | bool | Hold to rotate pawn: mouse X → Yaw, mouse Y → Pitch (clamped) |
+| `IA_CameraPanReset` | — | Reset pitch to -15, preserve yaw |
+| `IA_CameraSprint` | bool | Hold: apply `CameraSpeedMultiplier`; release: restore 1x |
+| `IA_CameraZoom` | float | Adjust `SpringArm->TargetArmLength` by `Sign * ZoomSpeed` (clamped) |
+| `IA_FocusChat` | — | Swap in `IMC_Chat` (priority 1), delegate to HUD |
+| `IA_ExitChat` | — | Swap out `IMC_Chat`, delegate to HUD |
+| `IA_ScrollChat` | float | Delegate sign to `HUDComponent->ScrollChat()` |
+
+**Camera Properties (defaults):**
+
+| Property | Default |
+|---|---|
+| `MinCameraMovementSpeed` | 5 |
+| `MaxCameraMovementSpeed` | 20 |
+| `CameraSpeedMultiplier` | 2 |
+| `MinCameraPitch` | -15 |
+| `MaxCameraPitch` | 45 |
+| `CameraPanSpeedMultiplier` | 5 |
+| `MinZoomLength` | 100 |
+| `MaxZoomLength` | 2500 |
+| `ZoomSpeed` | 50 |
+
+**Settings Methods:**
+- `ValidateCameraSettings()` — clamps all 9 properties to valid ranges; called by `PostEditChangeProperty` and `ApplyCameraSettings`
+- `ApplyCameraSettings(const UCameraSettingsSave*)` — copies fields from save object, calls Validate
+- `SaveCameraSettings()` — writes all 9 fields to `"CameraSettings"` slot
+- `BeginPlay` — loads and applies `"CameraSettings"` if it exists
+
+> **Note:** `bCanCameraMove` is a plain `bool` (no `UPROPERTY`) to avoid Blueprint CDO override.
+> **Note:** `PostEditChangeProperty` is wrapped in `#if WITH_EDITOR` — for runtime validation use `ValidateCameraSettings()` directly.
+
+---
 
 ### Utility/
-- **`UFunctionLibrary`** — `UBlueprintFunctionLibrary`. General-purpose helper functions accessible from both C++ and Blueprint.
+
+#### UFunctionLibrary
+**Type:** `UBlueprintFunctionLibrary`
+
+General-purpose helper functions accessible from C++ and Blueprint.
+
+**Functions:**
+- `GetDiceName(EDiceType)` → `FString` — returns display name (e.g. `"D20"`) *(BlueprintPure)*
+- `GetTypedWidgetFromName<T>(UUserWidget* Widget, FName Name)` → `T*` — template; casts result of `GetWidgetFromName`. Logs a warning if `Widget` is null or the cast fails. **C++-only** (no `UFUNCTION` — templates can't be `UFUNCTION`). Use this everywhere instead of `Cast<T>(Widget->GetWidgetFromName(...))`.
+
+> **Note:** The template definition must live entirely in the `.h` — no `.cpp` entry needed. Define it inside the class body (implicit `inline`) or outside with `inline`.
 
 ---
 
 ## Build Workflow
 
 **Every session:**
-1. Build in Visual Studio (Ctrl+Shift+B) — do this before opening the `.uproject`
+1. Build in Visual Studio (Ctrl+Shift+B) — do this **before** opening the `.uproject`
 2. Open the editor after the build succeeds
 
-**When things get weird** (warnings persist, crashes, odd behavior):
+**When things get weird** (warnings persist, crashes, odd behavior, or a renamed class won't appear):
 1. Close the editor
 2. Delete `Intermediate/` and `Binaries/` from the project root
 3. Right-click `.uproject` → Generate Visual Studio project files
 4. Build in Visual Studio
 5. Open the editor
 
-> Never let Unreal compile C++ on its own. Blueprint widgets that inherit from C++ classes will show "invalid parent class" warnings if the editor loads before C++ classes are fully registered.
+> Never let Unreal compile C++ on its own — Blueprint widgets that inherit from C++ classes will show "invalid parent class" warnings if the editor loads before C++ classes are registered.
 
 ---
 
 ## Build Configuration Notes
 
 - All source subdirectories must be added to `PublicIncludePaths` in `ProjectIronTable.Build.cs`
-- Uses `Path.Combine(ModuleDirectory, "FolderName")` — requires `using System.IO;` at the top of Build.cs
-- This allows `#include "FileName.h"` without path prefixes from any folder in the module
-- Without this, cross-folder includes fail even with correct relative paths
-- Current registered folders: `Chat`, `Dice`, `UI`, `Utility`, `Pawns`, `PlayerControllers`, `PlayerList`, `SaveLoad`
+- Uses `Path.Combine(ModuleDirectory, "FolderName")` — requires `using System.IO;` at the top
+- This allows `#include "FileName.h"` with no path prefix from any folder in the module
+- **Current registered folders:** `Chat`, `Components`, `Dice`, `UI`, `Utility`, `Pawns`, `PlayerControllers`, `PlayerList`, `SaveLoad`
 
 ---
 
 ## Developer Notes / Known Gotchas
 
+### Unreal Build & Editor
+- After adding new files/folders, regenerate VS project files — new folders won't appear in Content Browser otherwise
+- `E1696` in VS is an IntelliSense error, not a real compiler error — build anyway to confirm
+- After adding a module to `Build.cs`, regenerate VS project files so IntelliSense picks up the new paths
+- `UPROPERTY` category names with spaces must use quoted strings: `Category = "My Category"` — unquoted causes UHT001
 - Unreal's C++ class wizard generates incorrect include paths for files in subfolders — always verify after creation
-- After adding new files or folders, regenerate VS project files (right-click `.uproject` → Generate Visual Studio project files) or new folders won't appear in the Content Browser
-- `E1696` in Visual Studio is an IntelliSense error, not a real compiler error — build the project anyway to confirm
-- `DiceData.h` is included in `BaseDiceActor.h` as `"DiceData.h"` with no path prefix, because both files are in `Dice/` and that folder is in `PublicIncludePaths`
-- `OnComponentSleep` will not fire unless **Generate Wake Events** is checked on the Static Mesh component (Blueprint Details panel → Physics)
-- `ExpectedDiceCount` and `PendingResults` must be reset at the start of `RollDice`
-- `SpawnedDice` is cleared inside `DestroyDice()` after the timer fires — do not clear it earlier or dice won't be destroyed
-- Use `int32` instead of `int` consistently throughout the project
-- Pass `TArray` by const reference in `RollDice`
-- `bMesh1Asleep` / `bMesh2Asleep` are runtime state — use `VisibleInstanceOnly` not `EditAnywhere`
-- `IsMeshValid` and `GetFaceValue` are `const` methods — keep them that way
-- `UFunctionLibrary::GetDiceName` is kept for reference from TTRPG_Sim — evaluate whether to replace with `UEnum::GetValueAsString()` later
-- `UEnum::GetValueAsString()` returns `"EnumClass::ValueName"` — strip the prefix with `RightChop(str.Find("::") + 2)` before displaying to the user
-- `UPhysicalMaterial` requires the `PhysicsCore` module in `Build.cs` — add it to `PublicDependencyModuleNames`
-- Physical Materials (friction, restitution) live in `Content/Physics/Materials/` — assign via `UPhysicalMaterial*` UPROPERTY and apply with `SetPhysMaterialOverride` in `BeginPlay`
-- `AddDynamic` requires the bound function to be a `UFUNCTION` — without it the binding silently fails
-- Dice physics: settled meshes have `SetSimulatePhysics(false)` called in `OnMeshSleep` to prevent being pushed after landing
-- `BindWidget` pointers are null at member declaration time — never initialize arrays or do work with them in the header. Always do so in `NativeConstruct`, after binding has occurred
-- Actor Component C++ classes must have `Blueprintable` in their `UCLASS` specifier to appear as a reparent option in Blueprint. Without it the class will not show up in the picker even after a clean build and editor restart
-- `FVector3f` is float precision (GPU/rendering use). World positions must use `FVector` (`TVector<double>`) — `FTransform` and `SpawnActor` will not accept `FVector3f`
-- Includes that are only used in the `.cpp` belong in the `.cpp`, not the `.h` (e.g. `Kismet/KismetMathLibrary.h`)
-- After adding a new module to `Build.cs`, regenerate VS project files so IntelliSense picks up the new include paths — autocomplete won't work until then even though E1696 isn't a real error
-- `UPROPERTY` category names with spaces must use quoted strings: `Category = "My Category"` — unquoted names with spaces cause a UHT001 error
-- `FInputModeUIOnly()` does NOT block Enhanced Input actions — it only affects legacy input and Slate viewport capture. To block game input while in chat, remove the movement IMC from the subsystem in `FocusChat()` and re-add it in `ExitChat()`
-- `ETextCommit::OnCleared` fires when Escape is pressed in a focused `UEditableText` — the widget consumes Escape before Enhanced Input sees it, so handle exit-on-Escape in `OnTextCommitted` rather than via an input action
-- `ETextCommit::OnUserMovedFocus` fires when the user clicks away from a focused `UEditableText` — use this to detect "click outside to exit"
-- When `UEditableText` commits on Enter, it also immediately fires `OnUserMovedFocus` — if you want to stay in chat after sending, call `FocusChat()` at the end of the `OnEnter` block to re-establish focus
-- Declaring `Type* MemberName = Cast<...>` in `BeginPlay` creates a local variable that shadows the member — the member is never assigned. Use `MemberName = Cast<...>` (no type prefix) to assign to the member
-- For Actor Components, Enhanced Input setup goes in `BeginPlay`: get subsystem via `PC->GetLocalPlayer()->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>()`, bind actions via `Cast<UEnhancedInputComponent>(PC->InputComponent)->BindAction(...)`
-- `UEnhancedInputLocalPlayerSubsystem` can be forward-declared in `.h` and included via `EnhancedInputSubsystems.h` in `.cpp`
-- **Blueprint CDO overrides C++ constructor defaults** — any `UPROPERTY` on a Blueprint subclass uses the Blueprint's own saved CDO value, not the C++ constructor value. If a Blueprint was created before a default was set (or with a different value), it will keep its saved value forever. Fix: use `EditDefaultsOnly` and set the value in the Blueprint details panel, or set it explicitly in the constructor AND open the Blueprint to reset its CDO, or remove `UPROPERTY` if the value only needs C++ control
-- `NewObject` cannot be used in constructors to create components — use `CreateDefaultSubobject`. `CreateDefaultSubobject` handles registration automatically; no `RegisterComponent` call needed
-- For `APlayerController`, Enhanced Input setup (subsystem + action bindings) goes in `OnPossess`, not `BeginPlay` — `OnPossess` fires when the pawn is possessed and `InputComponent` is already valid at that point
-- `Cast<UEnhancedInputComponent>(InputComponent)` silently returns null if **Project Settings → Input → Default Classes → Default Input Component Class** is not set to `EnhancedInputComponent` — verify this setting when moving Enhanced Input bindings from Blueprint to C++
-- `FRotator(Pitch, Yaw, Roll)` — constructor order is NOT (X, Y, Z). Passing mouse DeltaX/DeltaY in the wrong positions scrambles rotation axes and causes violent camera bouncing
-- `GetActorForwardVector()` has a Z component when the pawn is pitched — after computing movement delta from forward/right vectors, zero out `Delta.Z` to keep movement flat on the ground plane
-- `PostEditChangeProperty` only fires in editor builds — always wrap with `#if WITH_EDITOR` / `#endif`. For runtime property validation, extract the logic into a shared `ValidateCameraSettings()` function callable from both `PostEditChangeProperty` and the runtime settings apply path. **This is required before shipping a settings menu** — without it, a player could set MinZoom > MaxZoom or a speed of 0, which would break camera movement silently
-- `FMath::Sign(float)` returns `1.f`, `-1.f`, or `0.f` — useful for collapsing if/else scroll direction checks into a single clamped expression
-- **`bRollInProgress` must be set before calling `ResetCount` on selectors** — `ResetCount` broadcasts `OnCountChanged` which triggers `UpdateAdvantageButtonState`. If `bRollInProgress` is still `false` at that point, the else branch fires and resets `RollMode` to Normal, breaking advantage/disadvantage rolls. Set `bRollInProgress = true` before the spawning loop, and reset to `false` in the else branch if nothing was spawned
-- A `USTRUCT` with a raw pointer to a `UObject` subclass must use `UPROPERTY()` on that pointer — without it the GC can't track the reference. A forward declaration of the pointed-to class before the struct is sufficient for the header to compile when the full class is defined later in the same file
-- `ADiceSpawnVolume` must be placed in the level for dice to spawn — `UGameplayHUDComponent::BeginPlay` uses `GetActorOfClass` to find it and hand the reference to `UDiceSelectorManager`. If it's not in the level, `RollDice` will log a warning and do nothing. Only one instance is needed.
-- `UUserWidget` properties cannot be set by dragging level actors in the editor (widgets have no level context at edit time). Assign level actor references to widgets at runtime from a component that has access to both (e.g. `UGameplayHUDComponent::BeginPlay`)
-- `SwitchToChannel` (and any function used as an `AddDynamic` target) must be marked `UFUNCTION()` — without it, the binding silently fails and tab clicks do nothing
-- `UPlayerList::PopulateList` must be called on toggle open, not only in `NativeConstruct` — at construct time, `GameState->PlayerArray` may be empty because players haven't finished joining yet
-- Channel matching in `UChatBox::AddChatMessage` must check `Participants.Num()` equality before checking content — without the size guard, a channel with a subset of the target participants can incorrectly match
-- **`Participants` passed to `AddChatMessageOnOwningClient` must include the sender** — `SendChatMessageOnServer` receives only `Recipients` (the named addressees), but the sender must be added before passing to clients. Without `Participants.AddUnique(SenderName)`, channels created on recipients' clients will be missing the sender, causing a mismatch on future messages and a new duplicate channel being created each time
-- **Taskbar toggle logic must treat any non-Collapsed visibility as "visible"** — `UUserWidget` default visibility is `SelfHitTestInvisible`, not `Visible`. Checking strictly for `ESlateVisibility::Visible` silently fails to collapse those widgets. Use `if (Collapsed) → Visible; else → Collapsed` instead of two separate equality checks
-- **Always place Blueprint widget variants (e.g. `W_Taskbar`) in the gameplay screen, not the raw C++ class** — `GetWidgetFromName` will find the C++ class if placed directly, but its `BindWidget` members will be null since no Blueprint layout was set up, causing a crash on first access
-- **`NativeOnMouseButtonDown` on a `UUserWidget` does not fire for clicks handled by child widgets** — child widgets (Borders, Buttons, etc.) consume mouse events before they bubble to the parent. Geometry-based hit checking on the parent is unreliable. Give each interactive zone (drag handle, resize corner) its own widget subclass that captures the mouse and calls back into the parent
-- **`UDraggablePanel` must be placed inside a `UCanvasPanel`** — the panel caches `Cast<UCanvasPanelSlot>(Slot)` in `NativeConstruct`. If it's inside any other container (Overlay, VerticalBox, etc.), the cast returns null and all drag/resize calls do nothing silently
-- **`UDraggablePanel` canvas slots must be anchored to the top-left** — resize logic adds a delta to the size using the original panel position as the fixed corner. With any other anchor, resizing one edge also shifts the opposite edge unexpectedly
-- **Set `FInputModeGameAndUI` and `bShowMouseCursor = true` at HUD startup** — Unreal defaults to `GameOnly` input mode. Without this, mouse clicks never reach any UI widget. `UChatBox::ExitChat` must also restore `bShowMouseCursor = true` when restoring `GameAndUI` mode, or the cursor can be hidden and not come back
-- **`UDragHandle`/`UResizeHandle` `NativeOnMouseMove` fires on hover, not just on drag** — guard with a `bActive` flag (set on `MouseButtonDown`, cleared on `MouseButtonUp`) to avoid calling `UpdateDrag`/`UpdateResize` while the user is merely hovering
-- **`OnComponentHit` will not fire unless `SetNotifyRigidBodyCollision(true)` is called on the mesh** — binding the delegate in `BeginPlay` is not enough; hit notifications are off by default. Call `SetNotifyRigidBodyCollision(true)` after `RecreatePhysicsState()` for each mesh that needs it
-- **`ReopenChannel` (and any function bound via `AddDynamic` inside a loop) must be `UFUNCTION()`** — `RefreshChannelList` binds `ReopenChannel` via `AddDynamic` on each entry; without `UFUNCTION()` the binding silently fails and clicking closed channel entries does nothing
-- **`ExitChat` should not clear the input field** — players type `@Names` into the input before rolling to initiate a private roll; clearing on click-away destroys that before the Roll button can be clicked
-- **`NativeOnMouseButtonDown` should pass through to Super after focus-on-click logic** — returning `FReply::Handled()` after calling `FocusChat()` consumes the click entirely, so child widgets (tab buttons, etc.) never receive it. The first click focuses; subsequent clicks interact. Fix: call `FocusChat()` then `return Super::NativeOnMouseButtonDown(...)` so both happen on the same click
-- **Taskbar must toggle the `UDraggablePanel` wrapper, not the inner content widget** — registering `ChatBoxRef` directly with the Taskbar collapses the chat but leaves the drag/resize panel visible. Register the `UDraggablePanel` instances (`ChatPanel`, `DicePanel`, `PlayersPanel`) instead
-- **Private channel replies require auto-routing** — if the user types a reply on a private tab without prefixing `@Name`, `Recipients` will be empty and `SendChatMessageOnServer` treats it as a broadcast. Detect this in `OnTextCommitted`: if Recipients is empty and ActiveChannel has participants, use those participants minus the sender as Recipients
-- **Widgets inside `ContentSlot` only resize if their slots use Fill sizing** — changing the canvas slot size moves the panel boundary, but internal widgets sized with Auto will not reflow. Set container slots to Fill for elements that should grow with the panel; leave as Auto for elements that should stay fixed
-- **`UButton` internal content padding is baked into the Style asset, not the slot or widget property** — the padding visible around a button's label cannot be adjusted via the Details panel slot settings. To remove or change it, expand the **Style** section on the Button in the Details panel and edit **Content Padding** there
-- **`BindWidget` members must use `TObjectPtr<Type>`, not `TSubclassOf<Type>`** — `TSubclassOf` holds a class reference, not an instance; the binding silently produces null and any access in `NativeConstruct` will crash
-- **`USlider::SetValue` called from code fires `OnValueChanged` the same as a user drag** — when syncing slider↔text in `OnSliderValueChanged`, only call `Slider->SetValue(ClampedValue)` when `ClampedValue != Value`; otherwise the callback recurses infinitely. Always sync `ValueText` unconditionally — the guard only wraps the `SetValue` call
+- **Renaming a C++ class** requires a clean `Intermediate/` + `Binaries/` wipe or the new class may not appear in the editor. Blueprints parented to the old class will be orphaned and must be reparented manually.
+
+### Blueprint & UObject
+- **Blueprint CDO overrides C++ constructor defaults** — any `UPROPERTY` on a Blueprint subclass uses its saved CDO value. If a Blueprint was created with an old default, it keeps that value. Fix: set the value in the Blueprint details panel.
+- **`CreateDefaultSubobject` component properties must be set on the component instance inside the owning Blueprint** — values set on a standalone `BP_MyComponent` Blueprint are never read. Open `PC_MainScreen`, select the component, set the property there.
+- `NewObject` cannot create components in constructors — use `CreateDefaultSubobject` (handles registration automatically)
+- **Always place Blueprint widget variants in the screen**, not raw C++ classes — `GetWidgetFromName` on a raw C++ widget finds it but its `BindWidget` members are null, causing a crash
+
+### Input
+- `FInputModeUIOnly()` does **not** block Enhanced Input actions — swap the IMC in/out via `GetLocalPlayer()->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>()` to truly block game input
+- For `APlayerController`, Enhanced Input setup goes in `OnPossess`, not `BeginPlay`
+- `Cast<UEnhancedInputComponent>(InputComponent)` silently returns null if the Default Input Component Class in Project Settings is not set to `EnhancedInputComponent`
+- `ETextCommit::OnCleared` fires when Escape is pressed in a `UEditableText` — handle exit-on-Escape in `OnTextCommitted`, not via input action
+- `ETextCommit::OnUserMovedFocus` fires when the user clicks away — use this for click-outside-to-exit
+- When `UEditableText` commits on Enter, it also fires `OnUserMovedFocus` immediately — call `FocusChat()` at the end of the Enter handler to stay in chat
+
+### Widgets & UI
+- `BindWidget` members are null at member declaration time — always do setup work in `NativeConstruct`, not the header
+- **`BindWidget` members must use `TObjectPtr<Type>`, not `TSubclassOf<Type>`** — `TSubclassOf` holds a class reference; the binding produces null silently
+- `AddDynamic` targets must be `UFUNCTION()` — without it the binding silently fails
+- `NativeOnMouseButtonDown` on a parent `UUserWidget` does not fire for child widget clicks — use separate `UDragHandle`/`UResizeHandle` subclasses that capture the mouse and call back into the parent
+- `NativeOnMouseMove` fires on hover, not just drag — guard with a `bActive` flag
+- **`UDraggablePanel` must be inside a `UCanvasPanel` with top-left anchor** — other containers return null from `Cast<UCanvasPanelSlot>` and drag/resize silently does nothing; non-top-left anchors cause opposite edges to shift on resize
+- `UButton` content padding is in the Style asset, not the slot — expand Style → Content Padding in the Details panel to change it
+- **Taskbar toggle:** use `if (Collapsed) → Visible; else → Collapsed` — default widget visibility is `SelfHitTestInvisible`, not `Visible`; strict equality check silently fails
+- `UPlayerList::PopulateList` must be called on toggle open — `GameState->PlayerArray` may be empty at construct time
+- `UUserWidget` properties cannot be set by dragging level actors in the editor — assign at runtime from a component that has access to both
+
+### Physics & Dice
+- `OnComponentHit` will not fire unless `SetNotifyRigidBodyCollision(true)` is called on the mesh — binding the delegate alone is not enough
+- `OnComponentSleep` will not fire unless **Generate Wake Events** is checked on the mesh component in Blueprint
+- `ADiceSpawnVolume` must be placed in the level — `RollDice` logs a warning and does nothing if it's missing
+- **`bRollInProgress` must be set `true` before calling `ResetCount`** — `ResetCount` triggers `UpdateAdvantageButtonState`, which resets `RollMode` to Normal if `bRollInProgress` is still false
+
+### Networking & RPCs
+- **`Participants` passed to `AddChatMessageOnOwningClient` must include the sender** — add `SenderName` with `AddUnique` before passing to clients; without it, channels on recipients' clients are missing the sender
+- Channel matching must check `Participants.Num()` equality before content — a subset-participant channel can otherwise incorrectly match
+
+### C++ Patterns
+- Declaring `Type* MemberName = Cast<...>` in `BeginPlay` creates a local variable that shadows the member — use `MemberName = Cast<...>` (no type prefix)
+- `FRotator(Pitch, Yaw, Roll)` — constructor order is **not** (X, Y, Z); wrong order causes violent camera bouncing
+- `GetActorForwardVector()` has a Z component when pitched — zero out `Delta.Z` after computing movement to keep it flat
+- `FMath::Sign(float)` returns 1.f / -1.f / 0.f — good for collapsing scroll direction checks
+- `UEnum::GetValueAsString()` returns `"EnumClass::ValueName"` — strip the prefix with `RightChop(str.Find("::") + 2)`
+- `UPhysicalMaterial` requires the `PhysicsCore` module in `Build.cs`
+- A `USTRUCT` or `UCLASS` member that holds raw `UObject*` pointers (including `TArray<UObject*>`) must use `UPROPERTY()` — without it the GC can't track the references and they may be prematurely collected
+- `USlider::SetValue` fires `OnValueChanged` the same as a user drag — guard with `ClampedValue != Value` to prevent recursion
+- **C++ template functions cannot be `UFUNCTION()`** — templated methods are not compatible with Unreal's reflection system. Blueprint-accessible utilities need a non-template wrapper with a `UClass*` + manual cast, or just remain C++-only
 
 ---
 
 ## Roadmap
 
-> This roadmap is organized by phase. Phases are not strictly time-boxed — each phase should be stable and functional before moving to the next. Notes and ideas are included for future reference.
+> Phases are not strictly time-boxed — each phase should be stable and functional before moving to the next.
 
 ---
 
 ### Phase 1 — Dice System (In Progress)
-The foundation of the project. All dice logic, data, and UI.
 
 - [x] Base dice actor (`ABaseDiceActor`)
 - [x] Dice data asset (`UDiceData`)
 - [x] Dice selector widget (`UDiceSelector`)
 - [x] Dice selector manager (`UDiceSelectorManager`)
 - [x] Individual die blueprints (D4, D6, D8, D10, D12, D20)
-- [x] Dice meshes and materials (asset pack: *Dungeons of Dice* by NNJohn on Epic Fab)
+- [x] Dice meshes and materials (*Dungeons of Dice* by NNJohn)
 - [x] Physics-based roll simulation
-- [x] Roll result reading (face detection via normal dot product, verified working)
-- [x] Roll result display in UI — complete (results broadcast to chat via OnAllDiceRolled → GameplayHUDComponent)
-- [x] **Bug:** Rolling again before the previous roll despawns causes the second roll to vanish immediately and the first roll to remain permanently — fixed by cancelling the destroy timer and destroying existing dice at the start of `RollDice()`
-- [x] Advantage / disadvantage support — rolls two of the selected die type, takes the higher (advantage) or lower (disadvantage) result; applies to any die type, not just D20
-- [x] Private / hidden rolls — any user can initiate a private roll by typing `@Name` tokens in the chat input before rolling; result is routed only to that private channel's participants. **Note:** a "[rolled privately]" indicator visible to non-recipients is not yet implemented and may or may not be added.
-- [x] Sound effects for dice rolls — `OnComponentHit` bound on both meshes; plays `CollisionSoundSurface` or `CollisionSoundDice` based on `OtherActor`; volume scaled by impulse magnitude; throttled per `ThrottleInterval`. Sounds assigned in `A_BaseDiceActor` Blueprint. Physics tuning (including sound values) deferred.
+- [x] Roll result reading (face detection via normal dot product)
+- [x] Roll result display in chat
+- [x] Re-roll fix — cancels destroy timer and clears old dice at start of `RollDice`
+- [x] Advantage / disadvantage — any die type, not just D20
+- [x] Private / hidden rolls — `@Name` tokens in chat input before rolling
+- [x] Collision sound effects — surface vs. die sounds, volume scaled by impulse, throttled
 - [ ] Visual effects for dice rolls
 - [ ] Custom dice support (user-importable meshes and face values)
-- [ ] Tune dice physics settings (mass, damping, impulse values) so rolls look and feel realistic
-- [ ] Replace asset pack with original dice models (custom Blender meshes)
+- [ ] Physics tuning (mass, damping, impulse values)
+- [ ] Replace asset pack with original dice models
 
 ---
 
-### Phase 2 — Core Game Setup
-Establish the game framework and player interaction foundation.
+### Phase 2 — Core Game Setup (In Progress)
 
-- [x] Test Game Mode (`GM_Testing`)
-- [x] Test Player Controller (`PC_Testing`)
-- [x] Production Game Mode (`GM_Gameplay`)
-- [x] Production Player Controller (`PC_Gameplay`)
-- [x] HUD component (`BP_HUDComponent`) — complete, reparented to `UGameplayHUDComponent`
-- [x] Player controller C++ class (`AGameplayController`) — owns all input, HUD component, camera movement
-- [x] Camera pawn (`AGameplayPawn`) — top-down camera rig (Root → Sphere → SpringArm → Camera)
-- [x] Camera movement polish (panning, zoom, bounds) — pan rotates pawn (yaw unrestricted, pitch clamped), zoom adjusts spring arm length, sprint multiplier, pan reset, editor property validation via PostEditChangeProperty. Runtime settings save system pending.
-- [ ] Runtime camera settings menu (`USaveGame`-based) — exposes camera properties (speeds, zoom range, pan speed, pitch limits) to the player at runtime.
-  - [x] `UCameraSettingsSave` — save game class with all nine camera fields
-  - [x] `AGameplayController` save/load/validate — `ValidateCameraSettings()`, `ApplyCameraSettings()`, `SaveCameraSettings()`; `BeginPlay` loads and applies saved settings on startup
-  - [x] `USettingsSlider` — reusable slider+text widget with paired min/max clamping, configurable bounds, title, and default value
-  - [ ] `WE_SettingsSlider` Blueprint — widget layout (in progress; `SizeBox → VerticalBox → TitleText, HorizontalBox → ValueSlider(Fill), ValueText(fixed width)`)
-  - [ ] `S_Settings` — settings screen with 9 slider instances grouped under Movement, Rotation, Zoom headers; paired sliders wired in Blueprint; Apply, Reset, Back buttons
-  - [ ] `UHomeScreenHUDComponent` additions — show/hide settings screen; Apply reads slider values → `ApplyCameraSettings` + `SaveCameraSettings`; Reset calls `ResetToDefault()` on each slider; Back hides settings and shows home screen
-- [x] Basic camera system (top-down / isometric view) — functional; may need revisiting as more systems are added
-- [x] Scene/controller management — `AHomeScreenController` + `UHomeScreenHUDComponent` for home screen; `AGameplayController` + `UGameplayHUDComponent` for gameplay. Scene navigation via `UGameplayStatics::OpenLevel`. `L_HomeScreen` uses `GM_HomeScreen`; `L_Gameplay` uses `GM_Gameplay`.
-- [x] Home screen — `L_HomeScreen` + `GM_HomeScreen` + `PC_HomeScreen` + `S_HomeScreen`; UI-only input; Play navigates to `L_Gameplay`; Join/Library/Settings are stubs; Quit calls `QuitGame`
+- [x] Test and production game modes / player controllers
+- [x] `AGameplayController` — all input, HUD component, camera movement
+- [x] `AGameplayPawn` — top-down camera rig
+- [x] Camera movement — pan, zoom, sprint, pan reset, editor property validation
+- [x] `AMainScreenController` + `UMainScreenHUDComponent` — main screen flow
+- [x] `S_MainScreen` — `WidgetSwitcher` root; `S_HomeScreen` index 0, `S_SettingsScreen` index 1
+- [ ] **Runtime camera settings menu** (`USaveGame`-based)
+  - [x] `UCameraSettingsSave` — save class with all 9 camera fields
+  - [x] `AGameplayController` save/load/validate — `ValidateCameraSettings`, `ApplyCameraSettings`, `SaveCameraSettings`; loads on `BeginPlay`
+  - [x] `USettingsSlider` — reusable slider+text widget with paired min/max clamping
+  - [x] `WE_SettingsSlider` — Blueprint widget layout
+  - [x] `S_SettingsScreen` — 9 sliders wired and grouped; Apply, Reset, Back buttons added
+  - [ ] `UMainScreenHUDComponent` settings wiring — `OnApplyClicked` (read sliders → save `UCameraSettingsSave`) and slider init from saved values still pending; all other handlers wired
+- [x] Private messaging — `@Name` syntax, per-conversation tabs, server-side routing
+- [x] Panel layout persistence — `UPanelLayoutSave`; saved on drag/resize/toggle; restored on startup
+- [x] Taskbar minimize system — `UTaskbar` + `UTaskbarButton`
+- [x] Draggable and resizable panels — `UDraggablePanel`, `UDragHandle`, `UResizeHandle`
+- [x] Close and reopen private chat tabs
 - [ ] Session management (start, load, save)
-- [ ] GM permissions system — GM can grant/revoke specific permissions to individual players at any time; permissions are enforced in code; specific permission types TBD when built
-- [ ] Session player cap — default max 8 users (GM included); cap is enforced by default but can be removed; no hard engine limit
-- [x] Private messaging — `@Name` syntax in chat input routes messages to specific recipients; server-side routing sends only to sender + named recipients; each private conversation gets its own tab (auto-created on first send); sender auto-switches to new tab; recipients see a notification indicator; tabs labeled `@P1 +N`; non-participants receive nothing
-- [ ] Tab renaming — each user can rename any chat tab independently; the rename is client-local and does not affect other players. Channel identity is determined entirely by the `Participants` array, not `DisplayName`, so per-user names are safe and cause no routing issues
-- [ ] Chat log persistence — full message and roll result history saved with session and restored on reload
-- [ ] Shared notes — per-user notes documents, private by default; owner can share with specific users or all players with read or edit access; multiple users can edit simultaneously in real time; notes persist with session. **Note:** real-time collaborative editing requires careful networking design (OT or CRDT) — scope carefully when building
+- [ ] GM permissions system
+- [ ] Session player cap (default 8, removable)
+- [ ] Tab renaming (client-local)
+- [ ] Chat log persistence
+- [ ] Shared notes
 
 ---
 
 ### Phase 3 — Maps
-Virtual tabletop map system.
 
-Two map formats are supported and can be used simultaneously:
-- **Flat image** — user-imported image (PNG, JPG, etc.) used as map background; good for pre-drawn battle maps and scene art
-- **Tile-based** — grid of placeable tiles assembled in-session; good for procedural dungeon building
-
-- [ ] Flat image map support (import and display)
+- [ ] Flat image map support
 - [ ] Tile-based map system
-- [ ] Grid overlay (square and hex, GM-toggled)
-- [ ] User-importable map images and tile sets
-- [ ] Fog of war (GM toggles revealed areas per-tile or per-region)
+- [ ] Grid overlay (square and hex)
+- [ ] User-importable maps and tile sets
+- [ ] Fog of war
 - [ ] Lighting and atmosphere controls
-- [ ] Entity-based vision system — what a user sees is determined by what their controlled characters can perceive, not their role. The GM sees the full map but is still subject to vision-blocking effects (e.g., Sphere of Darkness) unless a controlled NPC can perceive through it. **Design note (future):** players and GMs need a way to see characters they control inside vision-blocking effects — likely via a character outline rendered through occluding geometry
+- [ ] Entity-based vision system
 
 ---
 
 ### Phase 4 — Miniatures
-Character and creature representation on the map.
 
-**Scale:** Combat maps follow the active game system's movement rules (e.g., 1 tile = 5 feet in D&D 5e). Non-combat maps (world/region maps, scene art) have no enforced scale — the GM and players define distance in context.
-
-- [ ] Base miniature actor/pawn (TBD — Actor vs Pawn)
-- [ ] Miniature placement and movement on grid
-- [ ] Scale system tied to active game system for combat maps; free scale for non-combat maps
-- [ ] Default miniature options — game ships with built-in defaults; players can replace with custom assets (TBD: exact default design)
-- [ ] Rigging system for miniature animations
-- [ ] User-importable miniature meshes (format TBD when import pipeline is built)
-- [ ] Mini labels (name, HP, status conditions)
+- [ ] Base miniature actor/pawn
+- [ ] Grid placement and movement
+- [ ] Scale system (combat vs. non-combat maps)
+- [ ] Default miniature options
+- [ ] Mini labels (name, HP, conditions)
+- [ ] User-importable meshes (format TBD)
 
 ---
 
 ### Phase 5 — D&D 5e / 2024 Game System
-First full game system implementation.
 
-- [ ] Character sheet — STR/DEX/CON/INT/WIS/CHA, proficiency bonus, saving throws, skill modifiers, HP (current/max/temp), hit dice, spell slots, conditions, inventory. Visible to owner, GM, and anyone the owner chooses to share with. GM can edit to some extent — specific limits TBD when built
-- [ ] Initiative tracker — public turn order visible to all players; GM has a private staging list of combatants not yet in combat (hidden NPCs, reinforcements, ambushes) that can be inserted into the tracker at any time
-- [ ] Initiative rolling — both manual (player rolls via dice UI) and automatic (pulled from character stats) supported
-- [ ] Spell management — choosing spells, tracking slots by level, concentration, components, and spell effects; goal is to reduce player confusion
-- [ ] Condition tracking — auto-applied when a triggering game event occurs; auto-apply is toggleable per table preference
-- [ ] Attack rolls, saving throws, skill checks tied to character sheet stats
+- [ ] Character sheet (stats, HP, spell slots, conditions, inventory)
+- [ ] Initiative tracker + GM staging list
+- [ ] Initiative rolling (manual and automatic)
+- [ ] Spell management
+- [ ] Condition tracking (auto-apply, toggleable)
+- [ ] Attack rolls, saving throws, skill checks tied to stats
 - [ ] Monster/NPC stat blocks
-- [ ] Basic combat flow (action economy: action, bonus action, reaction, movement)
+- [ ] Basic combat flow (action economy)
 
 ---
 
 ### Phase 6 — UI & Polish
-Presentation layer, UI system, and immersive audio/visual.
 
-- [ ] UI theming system — theme is decoupled from game system; each player can set their own theme; switching game systems can suggest a matching default theme but never forces it
-- [ ] Draggable, resizable, toggleable UI panels — players have full control over HUD layout; layout persists per user across sessions
-  - [x] Taskbar minimize system — `UTaskbar` + `UTaskbarButton` built; `UGameplayHUDComponent` registers Chat, Dice, and Players widgets; each button toggles its tracked widget between Visible and Collapsed
-  - [x] Draggable and resizable panels — `UDraggablePanel`, `UDragHandle`, `UResizeHandle` built; Chat, Dice, and Players panels are all wrapped and independently moveable/resizable; single-corner resize (bottom-right); upgrade to 8-direction resize deferred
-  - [x] Close and reopen private chat tabs — closing hides the tab (does not destroy it); closed channels accessible via `ChannelListButton` dropdown (`ClosedChannelContainer`); incoming message on a closed channel auto-reopens it
-  - [x] Panel layout persistence — `UPanelLayoutSave` (`USaveGame`) stores position, size, and visibility per panel ID in a `TMap`; saved on drag stop, resize stop, and taskbar toggle; loaded and applied in `UGameplayHUDComponent::BeginPlay` after panels are registered; save slot `"PanelLayout"`, index 0; one save per machine/client
-- [ ] Panel notification system — when activity occurs in a collapsed or hidden panel (new message, dice result, initiative change), a visible indicator appears so players don't miss events
-- [ ] Replace default Unreal UI assets with custom art (buttons, panels, screens)
-- [ ] Sound effects system (dice, movement, ambience)
-- [ ] Visual effects system (spells, hits, status effects)
-- [ ] User-importable sounds and VFX
+- [ ] UI theming system — decoupled from game system; per-player customization
+- [ ] Panel notification system
+- [ ] Replace default Unreal UI assets with custom art
+- [ ] Sound effects system
+- [ ] Visual effects system
 - [ ] Music / ambience support
-- [ ] User-uploadable music (players can load and play their own audio tracks during a session)
+- [ ] User-uploadable music
 
 ---
 
 ### Phase 7 — Custom Content & Extensibility
-Allow users to bring their own assets and game rules.
 
-**Asset library:** Imported assets belong to the user, not the session. Stored locally on the owner's machine (cloud storage is a future option). Assets persist across all sessions, campaigns, and game systems.
-
-**Import system architecture:**
-- `UAssetImporter` — generic C++ class (or component) configured with: accepted file extensions (`TArray<FString>`) and destination folder path (`FString`). Exposes `OpenFileDialog()` (Windows `GetOpenFileName`, wrapped in `#if PLATFORM_WINDOWS`) and `ImportFile(const FString& SourcePath)` (validates extension, copies to destination, broadcasts `OnImportComplete` delegate with the final path). One instance per asset type — each instance only differs in its extensions and destination.
-- Asset Library screen — file-explorer-style UI (part of home screen flow); organized by folder (Sounds, Maps, etc.); each folder is a drop target. Import button opens type selector panel → configures the appropriate `UAssetImporter` → opens file dialog. Drag-and-drop onto a folder bypasses the type selector — destination is implicit, extension is still validated.
-- Drag-and-drop: Slate widget `OnDrop` override receives dropped file paths; passes to `ImportFile` on the folder's associated importer.
-- Supported formats: PNG/JPG (images — loaded at runtime via `FImageUtils` → `UTexture2D::CreateTransient`), WAV (audio — loaded at runtime); mesh import deferred pending runtime loader plugin research.
-
-- [ ] `UAssetImporter` — generic importer class (extensions + destination + dialog + copy + delegate)
-- [ ] Asset Library screen — file explorer UI on home screen; folder-based organization; import button + drag-and-drop per folder
-- [ ] Image import (PNG/JPG → Maps folder) — runtime loading via `FImageUtils`
-- [ ] Audio import (WAV → Sounds folder) — runtime loading
-- [ ] Mesh import (dice, minis) — deferred; requires runtime mesh loader plugin; format TBD
-- [ ] Custom dice import — depends on mesh import
-- [ ] Plugin/mod support (TBD)
-- [ ] Support for additional TTRPG systems beyond D&D 5e
-- [ ] Player-to-player asset sharing (asset owners can optionally share custom files — minis, maps, sounds — with other players in a session)
-- [ ] Cloud asset storage (optional, future)
+- [ ] `UAssetImporter` — generic importer (extensions, destination, dialog, copy, delegate)
+- [ ] Asset Library screen — file explorer UI; folder-based; import button + drag-and-drop
+- [ ] Image import (PNG/JPG → Maps)
+- [ ] Audio import (WAV → Sounds)
+- [ ] Mesh import — deferred; requires runtime loader plugin
+- [ ] Custom dice import
+- [ ] Additional TTRPG systems beyond D&D 5e
+- [ ] Player-to-player asset sharing
+- [ ] Cloud asset storage (future)
 
 ---
 
 ### Multiplayer Architecture (Pending Research)
-Networking decisions that require research before implementation.
 
-**Known decisions:**
-- GM role and session host role are separate — the GM does not need to be the machine hosting the server
-- Default player cap: 8 users per session (GM included); cap can be removed; no hard engine limit
-- When no GM is present (disconnect or absence), certain actions are locked (moving NPCs, editing stats); full disconnect policy TBD
+**Decided:**
+- GM role and host role are separate
+- Default player cap: 8 (GM included); removable; no hard engine limit
+- When no GM is present, certain actions lock (moving NPCs, editing stats); full policy TBD
 
-**Open (needs research):**
-- Listen server vs dedicated server
+**Needs research:**
+- Listen server vs. dedicated server
 - Session discovery / join flow (direct IP, lobby, friend invite)
 
 ---
 
-### Future / Backlog (Unscheduled)
-Ideas to revisit later.
-
-- Campaign management (sessions, notes, loot)
-- Integrated rulebook reference
-- AI game master assistant
-- Mobile or web companion app
-
----
-
-*Last updated: 2026-04-01* — Camera settings system partially implemented: `UCameraSettingsSave`, `AGameplayController` save/load/validate, `USettingsSlider` widget class. `S_Settings` Blueprint and `UHomeScreenHUDComponent` settings integration are next. Two new gotchas added (`BindWidget` type and slider recursion guard).
+*Last updated: 2026-04-02* — `UFunctionLibrary::GetTypedWidgetFromName<T>` added (replaces all `Cast<T>(Widget->GetWidgetFromName(...))` calls). `UMainScreenHUDComponent` settings wiring mostly complete: all refs cached, `OnSettingsClicked`/`OnBackClicked`/`OnResetClicked` wired, `SettingsSliders` TArray added. `OnApplyClicked` and slider init from saved values still pending.
 
 ---
 
 Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
-
