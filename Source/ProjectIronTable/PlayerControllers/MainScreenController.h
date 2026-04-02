@@ -2,27 +2,27 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
-#include "HomeScreenController.generated.h"
+#include "MainScreenController.generated.h"
 
-class UHomeScreenHUDComponent;
+class UMainScreenHUDComponent;
 
-/** Player controller for the home screen. Sets UI-only input mode and owns the home screen HUD component. */
+/** Player controller for the main screen. Sets UI-only input mode and owns the main screen HUD component. */
 UCLASS()
-class PROJECTIRONTABLE_API AHomeScreenController : public APlayerController
+class PROJECTIRONTABLE_API AMainScreenController : public APlayerController
 {
 	GENERATED_BODY()
 
 public:
-	AHomeScreenController();
+	AMainScreenController();
 
 protected:
 	virtual void BeginPlay() override;
-	
+
 protected:
 
 	// -- Runtime References --
 
 	/** The HUD component owned by this controller, responsible for all UI widgets. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TObjectPtr<UHomeScreenHUDComponent> HUDComponent;
+	TObjectPtr<UMainScreenHUDComponent> HUDComponent;
 };

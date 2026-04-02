@@ -2,18 +2,18 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "HomeScreenHUDComponent.generated.h"
+#include "MainScreenHUDComponent.generated.h"
 
 class UButton;
 
-/** Actor component attached to AHomeScreenController that owns and manages all home screen UI. */
+/** Actor component attached to AMainScreenController that owns and manages all main screen UI. */
 UCLASS(Blueprintable, ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
-class PROJECTIRONTABLE_API UHomeScreenHUDComponent : public UActorComponent
+class PROJECTIRONTABLE_API UMainScreenHUDComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-public:	
-	UHomeScreenHUDComponent();
+public:
+	UMainScreenHUDComponent();
 
 protected:
 	virtual void BeginPlay() override;
@@ -22,17 +22,17 @@ public:
 
 	// -- Config --
 
-	/** The root gameplay screen widget class to instantiate and add to the viewport. */
+	/** The root main screen widget class to instantiate and add to the viewport. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UUserWidget> HomeScreenClass;
+	TSubclassOf<UUserWidget> MainScreenClass;
 
 private:
 
 	// -- Runtime References --
 
-	/** The instantiated root home screen screen widget. */
+	/** The instantiated root main screen widget. */
 	UPROPERTY()
-	TObjectPtr<UUserWidget> HomeScreenRef;
+	TObjectPtr<UUserWidget> MainScreenRef;
 
 	/** Cached reference to the owning player controller. */
 	UPROPERTY()
@@ -50,7 +50,7 @@ private:
 	UPROPERTY()
 	TObjectPtr<UButton> LibraryButtonRef;
 
-	/** Button that opens the settings panel (not yet implemented). */
+	/** Button that opens the settings panel. */
 	UPROPERTY()
 	TObjectPtr<UButton> SettingsButtonRef;
 

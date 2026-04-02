@@ -328,7 +328,7 @@ A consolidated list of unresolved design decisions:
 
 ---
 
-*Last updated: 2026-04-01* — Camera settings system in progress. Settings slider widget implemented; full settings screen and wiring pending. No GDD design decisions changed this session.
+*Last updated: 2026-04-02* — No design decisions changed this session. Implementation refactor only (class renames, folder restructure, Blueprint work for settings screen).
 
 ---
 

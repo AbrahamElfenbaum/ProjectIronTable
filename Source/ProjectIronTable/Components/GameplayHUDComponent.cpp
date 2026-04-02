@@ -118,14 +118,14 @@ UDraggablePanel* UGameplayHUDComponent::FindAndRegisterPanel(const FName& Widget
 		Panel->OnPanelStateChanged.AddDynamic(this, &UGameplayHUDComponent::SavePanelLayout);
 		Button->OnToggled.AddDynamic(this, &UGameplayHUDComponent::SavePanelLayout);
 
-		return Panel;		
+		return Panel;
 	}
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Taskbar not found, cannot register %s panel"), *Label);
 		return nullptr;
 	}
-	
+
 }
 
 // Collects layout data from all panels and writes it to the PanelLayout save slot.

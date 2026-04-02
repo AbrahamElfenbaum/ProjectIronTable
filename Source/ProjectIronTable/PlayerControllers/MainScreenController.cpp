@@ -1,15 +1,15 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
-#include "HomeScreenController.h"
-#include "HomeScreenHUDComponent.h"
+#include "MainScreenController.h"
+#include "MainScreenHUDComponent.h"
 
 // Creates the HUD component as a default subobject.
-AHomeScreenController::AHomeScreenController()
+AMainScreenController::AMainScreenController()
 {
-	HUDComponent = CreateDefaultSubobject<UHomeScreenHUDComponent>(TEXT("HUDComponent"));
+	HUDComponent = CreateDefaultSubobject<UMainScreenHUDComponent>(TEXT("HUDComponent"));
 }
 
 // Sets UI-only input mode and shows the mouse cursor.
-void AHomeScreenController::BeginPlay()
+void AMainScreenController::BeginPlay()
 {
 	Super::BeginPlay();
 	bShowMouseCursor = true;
