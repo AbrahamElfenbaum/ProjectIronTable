@@ -680,15 +680,45 @@ General-purpose helper functions accessible from C++ and Blueprint.
 
 ---
 
-### Phase 3 — Maps
+### Phase 3 — Map Builder
 
-- [ ] Flat image map support
-- [ ] Tile-based map system
-- [ ] Grid overlay (square and hex)
-- [ ] User-importable maps and tile sets
+**Planned C++ Classes:**
+- `ATileActor` — base tile actor; snaps to square grid; stores grid coordinate (X, Y, HeightLevel); supports variable sizes (FIntPoint footprint from `UTileData`)
+- `UTileData` — UPrimaryDataAsset; per-tile config: mesh, material, passable flag, elevation offset, size
+- `APropActor` — base prop actor; surface-snaps to tile beneath (arbitrary X/Y); free rotation and scale
+- `UPropData` — UPrimaryDataAsset; per-prop config: mesh, scale range, snap behavior
+- `AMapGrid` — defines playable area and tile size; handles world-space ↔ grid coordinate conversion; owns ghost/preview tile for placement
+- `AMapBuilderController` — manages build mode vs play mode, ghost preview, placement/rotate/delete logic
+- `UMapSave` — USaveGame; serializes all placed tile/prop data (UUID, grid position, rotation, scale); map metadata (name, type, thumbnail)
+- `UMapBuilderHUDComponent` — UActorComponent; manages builder UI lifecycle
+- `UTileBrowser` — UUserWidget; category tabs, thumbnail grid, selected item preview
+- `UMapLocationPin` — world map prop subtype; stores a combat map ID for drill-down linking
+
+**Build order within this phase:**
+1. Core flat tile/prop placement — grid, placement, save/load, built-in assets only
+2. Height system — 3D grid coordinates, ramps, multi-floor
+3. Scale modes — Combat Map vs World/Region Map as distinct types
+4. Session/Host integration — bring map into live session, Host-only gate
+
+**Checklist:**
+- [ ] `ATileActor` + `UTileData` — tile placement, grid snapping, variable sizes
+- [ ] `APropActor` + `UPropData` — free-floating prop placement, surface snapping
+- [ ] `AMapGrid` — grid definition, coordinate conversion, ghost preview
+- [ ] `AMapBuilderController` — build mode / play mode, placement input
+- [ ] `UMapSave` — map serialization and load
+- [ ] `UTileBrowser` — tile/prop browser UI
+- [ ] `UMapBuilderHUDComponent` — builder HUD lifecycle
+- [ ] Height system — 3D tile coordinates, elevation increments, ramps
+- [ ] Combat Map and World/Region Map scale modes
+- [ ] `UMapLocationPin` — location pins with combat map references
+- [ ] World → combat map drill-down via location pins
+- [ ] Grid overlay toggle (square; hex planned for later)
+- [ ] Undo/redo
+- [ ] Flat image map support (secondary to tile builder)
 - [ ] Fog of war
 - [ ] Lighting and atmosphere controls
 - [ ] Entity-based vision system
+- [ ] Hex grid (after square system is stable)
 
 ---
 
@@ -745,9 +775,12 @@ General-purpose helper functions accessible from C++ and Blueprint.
 ### Multiplayer Architecture (Pending Research)
 
 **Decided:**
-- GM role and host role are separate
-- Default player cap: 8 (GM included); removable; no hard engine limit
-- When no GM is present, certain actions lock (moving NPCs, editing stats); full policy TBD
+- **Server Owner** and **Host** are separate roles. Server Owner = technical admin (create/close session, kick, transfer ownership). Host = game facilitator (bring maps into play, manage game state, advance turns). Server Owner assigns the Host role to any player.
+- The Host role is system-level and game-agnostic — games with a traditional GM use it as GM; GM-less games assign it to whoever is facilitating.
+- Host can delegate specific powers to individual players (e.g., move enemy tokens, bring in a map). Specific permission types TBD when the permission system is built.
+- Default player cap: 8 (Host included); removable; no hard engine limit
+- When no Host is present, certain actions lock (moving NPCs, editing stats); full policy TBD
+- **Mesh distribution:** when Host brings a map into a session, assets missing from client machines auto-transfer from Host before the map renders. No placeholders — all clients see the map in full. Assets cached locally after first transfer.
 
 **Needs research:**
 - Listen server vs. dedicated server
@@ -755,7 +788,7 @@ General-purpose helper functions accessible from C++ and Blueprint.
 
 ---
 
-*Last updated: 2026-04-02* — `UMainScreenHUDComponent` settings fully complete: `OnApplyClicked` implemented, BeginPlay loads saved values and handles first-launch defaults. `UDraggablePanel` gained `DefaultPosition`/`DefaultSize` (EditAnywhere) and `ResetToDefaultLayout()`. `UTaskbar` gained `ResetButton` + `ResetLayout()` — resets all registered panels to their Blueprint-configured defaults without affecting visibility.
+*Last updated: 2026-04-03* — Phase 3 roadmap expanded: full map builder planned with 10 new C++ classes, height system, scale modes (Combat/World), location pin linking, and build order. Multiplayer architecture updated: Server Owner and Host are now distinct roles; mesh auto-distribution policy documented.
 
 ---
 

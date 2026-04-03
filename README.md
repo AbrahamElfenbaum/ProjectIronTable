@@ -10,13 +10,13 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - Physics-based dice rolling with full result history
 - Private and public chat with dice result integration
 - Collaborative shared notes
-- Grid-based maps (flat image and tile-based formats)
+- **3D map builder** — place tiles and props to build environments in real time; supports elevation, multi-floor layouts, and variable tile sizes; Combat Map and World/Region Map scale modes; world maps link to combat maps via location pins
 - 3D miniatures with fog of war and vision effects
-- Initiative tracker with GM staging list
+- Initiative tracker with Host staging list
 - D&D 5e character sheets, spell management, and condition tracking
 - Per-player customizable UI with draggable, resizable panels
-- Custom user-imported content (maps, minis, dice, sounds)
-- Multiplayer with separate GM and host roles
+- Custom user-imported 3D assets (tiles, props, minis, dice, sounds) via glTF; auto-distributed to all session clients on map load
+- Multiplayer with separate Server Owner and Host roles
 
 ## Credits
 - **Kenney Impact Sounds** — [kenney.nl](https://www.kenney.nl) (CC0)

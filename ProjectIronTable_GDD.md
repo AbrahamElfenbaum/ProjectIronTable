@@ -40,6 +40,27 @@ Between sessions, players may update their character sheets. The GM may prep map
 
 ## Player Roles
 
+### Server Owner
+
+- The player who created the session
+- Technical/administrative role: create or close the session, kick players, transfer server ownership
+- Does **not** automatically run the game — the Server Owner and Host are separate roles and can be different people
+
+### Host (Game Facilitator)
+
+- The designated game facilitator — equivalent to GM in traditional TTRPGs, but the role name is "Host" at the system level to support GM-less games
+- Can be any connected player, including the Server Owner; assigned by the Server Owner
+- Full control over the live game state: bring maps into the session, advance turns, manage game flow
+- Controls NPC/monster miniatures
+- Can hide or reveal sections of the map (fog of war)
+- Has access to Host-only information (monster HP, hidden notes)
+- Can override or adjudicate dice rolls
+- Manages session state (start, pause, save, end)
+- Can grant or revoke specific permissions to/from individual players
+- Can delegate specific powers to individual players (e.g., allow a player to move enemy tokens or bring in a map)
+
+> **Design Note:** "Host" is the system-level role name. Games that use a traditional GM (D&D, Pathfinder, etc.) can label it "GM" in their UI theme. GM-less games (Warhammer Fantasy, some PbtA games) use the same permission system with whoever is facilitating that session assigned as Host.
+
 ### Game Master (GM)
 
 - Hosts the session (listen server or dedicated — TBD)
@@ -106,15 +127,38 @@ In-session text chat. Dice roll results are automatically posted to chat, attrib
 
 ### Maps
 
-Maps support two formats, and both can be used simultaneously:
+The map builder is the primary feature that differentiates ProjectIronTable from other VTTs. Rather than uploading flat images, players build fully 3D environments using tiles and props in real time inside Unreal Engine.
 
-- **Flat image:** A user-imported image (PNG, JPG, etc.) used as the map background — good for pre-drawn battle maps and scene art
-- **Tile-based:** A grid of placeable tiles assembled in-session — good for procedural dungeon building and dynamic layouts
+**Map types:**
+- **Combat Map** — tactical scale (~5ft per tile); individual character/creature tokens; grid always shown; close overhead camera
+- **World/Region Map** — travel scale (miles per unit); party group tokens and named location pins; grid optional; wide survey camera
 
-- Grid overlay (square and hex) toggled by the GM
-- User-importable map images and tile sets
-- Fog of war (GM toggles revealed areas per-tile or per-region)
-- Lighting and atmosphere controls (time of day, ambient lighting)
+Combat maps and world maps are separate saved map files. A world map can have **location pins** that reference a saved combat map by ID — the Host can activate a pin during a session to transition to that combat map (e.g., party arrives at the dungeon entrance on the world map, Host clicks the pin, combat map loads).
+
+**Tile system:**
+- Tiles are 3D actors that snap to a square grid (hex support planned after square is stable)
+- Tile sizes are variable: 1×1, 1×2, 2×2, etc. — size is defined per tile type in its data asset
+- Full height/elevation support — tiles can be placed at height increments, enabling multi-floor dungeons, cliffs, raised platforms, and ramps
+- Tile categories: ground, water, elevated terrain, walls, roads, etc.
+
+**Prop system:**
+- Props (trees, rocks, barrels, furniture, etc.) are free-floating — they snap to the surface beneath them but their X/Y position is unconstrained
+- Props do not need to land at the center of a tile or stay within a single tile's footprint
+- Props support free rotation and scale
+- Suitable for decoration, scatter, and environmental storytelling
+
+**Map builder mode:**
+- Separate input mode from "play mode"
+- In builder mode: place, move, rotate, and delete tiles and props; undo/redo
+- In play mode: map is static; only tokens can be moved
+- Anyone can build and save maps independently. Only the Host can bring a map into a live session.
+- Collaborative real-time editing (multiple players building together) is planned for a later phase
+
+**Grid:** Square grid for initial release; hex grid planned after square system is stable. Grid display is toggleable by the Host.
+
+**Fog of war:** Host toggles revealed areas per-tile or per-region.
+
+**Lighting and atmosphere:** Time of day, ambient lighting, and atmosphere controls — planned for a later pass.
 
 ### Miniatures
 
@@ -171,17 +215,31 @@ Tracks the player's character stats, skills, HP, spell slots, conditions, and in
 
 ### Custom Content
 
-Players and GMs can import their own assets to use in a session.
+Players and GMs can import their own 3D assets to use in map building and as miniatures. This is the primary extensibility mechanism — groups are never locked to built-in assets.
 
-- Maps: image files (PNG, JPG) used as map backgrounds
-- Miniatures: custom meshes (format TBD)
+**Supported import types:**
+- Tiles: custom 3D tile meshes for map building
+- Props: trees, rocks, decorations, structures
+- Miniatures: character and creature models
 - Dice: custom mesh and face value definitions
 - Sounds: custom SFX or ambient tracks
-- Asset sharing: a player can optionally share their custom assets with others in the session
 
-> **Open Question (technical):** What 3D mesh formats will be supported for custom mini import? (FBX, OBJ, glTF, etc.) — to be decided when the import pipeline is built.
+**Import format:** glTF (with Draco compression) is the target format for 3D mesh imports. It is compact, widely supported by tools like Blender, and has runtime loading support in UE5. Specific implementation is deferred until the mesh import phase.
 
-**Asset library:** Imported assets belong to the user, not the session. They are stored on the owner's local machine (with cloud storage as a future option). Assets persist across sessions, campaigns, and game systems — a custom mini or map imported once is available in any future game the user plays.
+**Asset distribution in sessions:**
+- Assets are stored **locally** on each player's machine — there is no central server
+- When the Host brings a map into a live session, any assets that connected clients are missing are automatically transferred from the Host's machine to those clients before the map renders
+- All clients see the map in full — no placeholders for missing assets
+- Assets are cached locally after the first transfer; re-download is not needed in future sessions
+- A progress indicator shows what is syncing during map load
+
+**Manual asset sharing:**
+- Outside of sessions, players can share assets peer-to-peer for their own libraries (e.g., a player sees a tile someone else used and wants a copy for their own maps)
+- Sharing is opt-in — the asset owner approves before transfer
+
+**Future store:** Asset metadata includes a `bShareable` flag and a license field to support a future paid asset store without reworking the sharing system.
+
+**Asset library:** Imported assets belong to the user, not the session. They are stored on the owner's local machine (with cloud storage as a future option). Assets persist across sessions, campaigns, and game systems — a custom mesh imported once is available in any future game the user plays.
 
 ---
 
@@ -251,9 +309,9 @@ The session runs as a networked game. Chat and dice rolls are already replicated
 
 **Player count:** Default maximum of 8 users per session (GM included). This cap can be removed, but the option is off by default. No hard limit is enforced beyond what the host machine can handle — if the game grows and this becomes an issue it will be revisited.
 
-**GM vs host:** The GM role and the session host role are separate. The GM does not have to be the one hosting the server. This means a dedicated machine or another player can host while someone else runs the game as GM.
+**Server Owner vs Host:** The Server Owner and Host are separate roles. The Server Owner is whoever created/controls the server. The Host is the designated game facilitator and can be any player — the Server Owner assigns the Host role. The Host runs the game; the Server Owner manages the technical session. Both can be the same person or different people.
 
-**GM disconnect:** The GM should have control over what happens to the session if they disconnect — whether intentionally or accidentally. At minimum, certain actions should be locked when no GM is present (e.g., moving NPCs, editing stats). The full disconnect policy will be defined as the session management system is built.
+**Host disconnect:** The Host should have control over what happens to the session if they disconnect — whether intentionally or accidentally. At minimum, certain actions should be locked when no Host is present (e.g., moving NPCs, editing stats). The full disconnect policy will be defined as the session management system is built.
 
 > **Open Question (technical):** Listen server or dedicated server? Needs research — to be decided before multiplayer architecture is finalized.
 
@@ -308,27 +366,28 @@ A consolidated list of unresolved design decisions:
 4. ~~Should advantage/disadvantage be built into the dice UI?~~ — **Resolved:** Yes, and it applies to any die type, not just D20.
 5. ~~Does the GM need a private whisper channel in chat?~~ — **Resolved:** Any user can send private messages or private rolls to any other user(s). Not GM-exclusive.
 6. ~~Does the chat log persist across saves?~~ — **Resolved:** Yes. All messages and roll results are saved and restored on reload.
-7. ~~What is the base map format — flat image, tile-based, or both?~~ — **Resolved:** Both. Flat image and tile-based formats are each supported and can be used simultaneously.
+7. ~~What is the base map format — flat image, tile-based, or both?~~ — **Resolved:** 3D tile/prop map builder is the primary format and main differentiator. Flat image support is secondary. Maps come in two types: Combat Map (tactical scale) and World/Region Map (travel scale). World maps can link to combat maps via location pins.
 8. ~~How does miniature scale map to in-world units?~~ — **Resolved:** Combat maps follow game system rules (e.g., 1 tile = 5 feet in D&D 5e). Non-combat maps have no enforced scale.
 9. What is the default miniature when no custom mesh is provided? — **Deferred:** Game will ship with built-in defaults and customization options. Final design TBD as project matures.
 10. ~~Does initiative roll automatically from stats, or always manual?~~ — **Resolved:** Both. Manual and automatic rolling are supported depending on the situation.
 11. ~~Is the initiative tracker always visible or GM-toggled?~~ — **Resolved:** Always visible to all players. GM has a private staging list for combatants not yet in combat.
 12. ~~Is the character sheet visible only to the owner and GM, or all players?~~ — **Resolved:** Visible to owner, GM, and anyone the owner chooses to share it with.
 13. ~~Can the GM directly edit a player's character sheet?~~ — **Partially resolved:** Yes, to some extent, but with limits. Specific limits TBD when character sheet is built.
-14. What mesh formats are supported for custom mini import? — **Deferred (technical):** To be decided when the import pipeline is built.
+14. ~~What mesh formats are supported for custom mini import?~~ — **Resolved:** glTF with Draco compression is the target format. Compact, Blender-compatible, UE5 runtime support via plugin. Implementation deferred until mesh import phase.
 15. ~~Does imported asset library persist between sessions?~~ — **Resolved:** Assets are stored on the owner's local machine and persist across all sessions, campaigns, and games. Cloud storage is a future option.
 16. ~~Is spell management in scope for the D&D 5e first pass?~~ — **Resolved:** Yes. Full spell management (slots, concentration, components) is in scope.
 17. ~~Should conditions be auto-applied or always manual?~~ — **Resolved:** Auto-applied when a triggering event occurs. Auto-apply is toggleable per table preference.
 18. Listen server or dedicated server? — **Deferred (technical):** Needs research before multiplayer architecture is finalized.
 19. ~~Maximum player count per session?~~ — **Resolved:** Default max of 8 (GM included), removable cap, off by default. No hard engine limit.
-20. ~~What happens when the GM disconnects?~~ — **Partially resolved:** GM and host are separate roles. Certain actions lock when no GM is present. Full policy TBD.
+20. ~~What happens when the GM disconnects?~~ — **Partially resolved:** Server Owner and Host are separate roles. Certain actions lock when no Host is present. Full policy TBD.
+24. Should the Host be able to delegate specific powers to individual players? (e.g., allow a player to move enemy tokens, bring in a map) — **Tentatively resolved:** Yes. Delegation is supported as part of the Host permission system. Specific permission types TBD when the system is built.
 21. Lobby/matchmaking or direct IP? — **Deferred (technical):** To be decided alongside question 18.
 22. ~~Dark/neutral UI theme or fantasy/themed aesthetic?~~ — **Resolved:** No fixed default. Theme is decoupled from game system and fully customizable per player. Game system may suggest a matching default theme.
 23. ~~Are UI panels fixed layout or draggable/resizable?~~ — **Resolved:** Fully draggable, resizable, and toggleable. Player controls their own layout. Collapsed panels show notifications when activity occurs inside them.
 
 ---
 
-*Last updated: 2026-04-02* — Added panel layout reset button to UI/UX section. Settings screen fully implemented (save/load/defaults). Reset Layout button added to taskbar.
+*Last updated: 2026-04-03* — Map system redesigned as a 3D tile/prop builder (primary differentiator). Added Combat Map and World/Region Map scale modes with location pin linking. Host/Server Owner roles clarified and separated. Custom content section rewritten with auto-distribution model (no placeholders), glTF format decision, and manual peer-to-peer sharing. Host delegation added as a resolved design question. Player Roles section restructured with Server Owner and Host as distinct entries.
 
 ---
 
