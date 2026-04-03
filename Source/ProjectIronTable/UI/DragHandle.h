@@ -17,7 +17,12 @@ private:
 	/** True while the left mouse button is held down on this handle. */
 	bool bActive;
 
+	/** Activates drag mode, notifies the parent panel of the starting mouse position, and captures the mouse. */
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
+	/** Forwards the current mouse position to the parent panel while dragging; passes through otherwise. */
 	virtual FReply NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
+	/** Deactivates drag mode, notifies the parent panel, and releases mouse capture. */
 	virtual FReply NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 };

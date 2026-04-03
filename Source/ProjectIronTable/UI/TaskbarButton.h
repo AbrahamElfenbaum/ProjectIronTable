@@ -18,8 +18,7 @@ class PROJECTIRONTABLE_API UTaskbarButton : public UUserWidget
 
 private:
 
-	// -- Widget References --
-
+#pragma region Widget References
 	/** Button the player clicks to toggle the tracked widget. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> ToggleButton;
@@ -31,8 +30,10 @@ private:
 	/** The widget this button controls. */
 	UPROPERTY()
 	TObjectPtr<UUserWidget> TrackedWidget;
+#pragma endregion
 
 protected:
+	/** Binds the toggle button click event. */
 	virtual void NativeConstruct() override;
 
 public:

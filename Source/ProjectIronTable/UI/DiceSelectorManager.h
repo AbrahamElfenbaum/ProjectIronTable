@@ -34,12 +34,12 @@ class PROJECTIRONTABLE_API UDiceSelectorManager : public UUserWidget
 	GENERATED_BODY()
 
 protected:
+	/** Populates selector and button arrays, binds all button delegates, and refreshes initial button states. */
 	virtual void NativeConstruct() override;
 
 private:
 
-	// -- Widget References --
-
+#pragma region Widget References
 	/** Selector widget for D4 dice. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UDiceSelector> D4;
@@ -83,11 +83,11 @@ private:
 	/** Button that triggers the actual dice roll. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> RollButton;
+#pragma endregion
 
 public:
 
-	// -- Config --
-
+#pragma region Config
 	/** The spawn volume actor that defines where dice are placed in the world. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dice")
 	TObjectPtr<ADiceSpawnVolume> SpawnVolume;
@@ -111,12 +111,13 @@ public:
 	/** Seconds to wait after all dice settle before destroying them. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
 	float TimeBeforeDestroyingDice = 5.0f;
+#pragma endregion
 
-	// -- State --
-
+#pragma region State
 	/** The currently active roll mode; controls advantage/disadvantage behaviour. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dice")
 	EDiceRollMode RollMode = EDiceRollMode::Normal;
+#pragma endregion
 
 private:
 
@@ -143,14 +144,13 @@ private:
 
 public:
 
-	// -- Public Methods --
-
+#pragma region Public Methods
 	/** Spawns and launches all queued dice according to the current selectors and roll mode. */
 	UFUNCTION(BlueprintCallable)
 	void RollDice();
+#pragma endregion
 
-	// -- Events --
-
+#pragma region Events
 	/** Fired once every spawned die has settled and results are available. */
 	UPROPERTY(BlueprintAssignable, Category = "Dice")
 	FOnAllDiceRolled OnAllDiceRolled;
@@ -162,6 +162,7 @@ public:
 	/** Fired when a roll is initiated, before any dice are spawned. Used to send a private roll message if recipients are in the chat input. */
 	UPROPERTY(BlueprintAssignable, Category = "Dice")
 	FOnRollInitiated OnRollInitiated;
+#pragma endregion
 
 private:
 

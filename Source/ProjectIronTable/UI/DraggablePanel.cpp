@@ -19,6 +19,7 @@ void UDraggablePanel::SetPanelID(const FString& ID)
 	PanelID = ID;
 }
 
+// Returns the panel ID used to key into the layout save game.
 FString UDraggablePanel::GetPanelID() const
 {
 	return PanelID;

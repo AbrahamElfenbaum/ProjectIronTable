@@ -23,8 +23,7 @@ class PROJECTIRONTABLE_API UChatBox : public UUserWidget
 
 public:
 
-	// -- Config --
-
+#pragma region Config
 	/** Widget class used when creating new chat channel widgets. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UChatChannel> ChannelClass;
@@ -40,8 +39,10 @@ public:
 	/** Widget class used when creating entries in the closed channel list. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UChatChannelListEntry> ChannelListEntryClass;
+#pragma endregion
 
 protected:
+	/** Caches the HUD component reference, binds delegates, and creates the default server channel. */
 	virtual void NativeConstruct() override;
 
 	/** Focuses the chat box when clicked while unfocused. */
@@ -49,14 +50,13 @@ protected:
 
 private:
 
-	// -- Runtime References --
-
+#pragma region Runtime References
 	/** Reference to the owning HUD component, used to send chat messages to the server. */
 	UPROPERTY()
 	TObjectPtr<UGameplayHUDComponent> HUDComponentRef;
+#pragma endregion
 
-	// -- Widget References --
-
+#pragma region Widget References
 	/** Horizontal box that holds all channel tab widgets. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UHorizontalBox> TabBar;
@@ -76,9 +76,9 @@ private:
 	/** Button that toggles the closed channel list panel. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> ChannelListButton;
+#pragma endregion
 
-	// -- State --
-
+#pragma region State
 	/** All channels that have been created, including the default server channel. */
 	UPROPERTY()
 	TArray<UChatChannel*> Channels;
@@ -97,11 +97,11 @@ private:
 	/** Set of channels that have been closed and hidden from the tab bar. */
 	UPROPERTY()
 	TSet<UChatChannel*> ClosedChannels;
+#pragma endregion
 
 public:
 
-	// -- Public Methods --
-
+#pragma region Public Methods
 	/** Scrolls the active channel up or down. */
 	void Scroll(bool bUp);
 
@@ -129,6 +129,7 @@ public:
 
 	/** If the current input starts with a private message command, sends it and clears the input. */
 	void TrySendPrivateRollMessage();
+#pragma endregion
 
 private:
 
@@ -144,8 +145,8 @@ private:
 	UFUNCTION()
 	void CloseChannel(UChatChannel* Channel);
 
-	UFUNCTION()
 	/** Removes the given channel from the closed set, restores its tab, and switches to it. */
+	UFUNCTION()
 	void ReopenChannel(UChatChannel* Channel);
 
 	/** Clears and repopulates the closed channel list panel from the current ClosedChannels set. */

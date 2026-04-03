@@ -11,22 +11,23 @@ class PROJECTIRONTABLE_API UChatEntry : public UUserWidget
 {
 	GENERATED_BODY()
 protected:
+	/** Populates the text block with the message string. */
 	virtual void NativeConstruct() override;
 
 private:
 
-	// -- Widget References --
-
+#pragma region Widget References
 	/** Text block that displays the chat message. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> TextBlock;
+#pragma endregion
 
 public:
 
-	// -- Config --
-
+#pragma region Config
 	/** The message string to display; should be set before adding this widget to the viewport. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ExposeOnSpawn = true))
 	FString Message;
+#pragma endregion
 
 };

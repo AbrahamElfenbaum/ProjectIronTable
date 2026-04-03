@@ -22,23 +22,24 @@ class PROJECTIRONTABLE_API UGameplayHUDComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
+	/** Disables tick and enables replication so server RPCs function correctly. */
 	UGameplayHUDComponent();
 
 protected:
+	/** Creates and adds the gameplay screen widget, then caches widget references and wires up delegates. */
 	virtual void BeginPlay() override;
 
 public:
 
-	// -- Config --
-
+#pragma region Config
 	/** The root gameplay screen widget class to instantiate and add to the viewport. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UUserWidget> GameplayScreenClass;
+#pragma endregion
 
 private:
 
-	// -- Runtime References --
-
+#pragma region Runtime References
 	/** The instantiated root gameplay screen widget. */
 	UPROPERTY()
 	TObjectPtr<UUserWidget> GameplayScreenRef;
@@ -74,11 +75,11 @@ private:
 	/** Reference to the DraggablePanel wrapping the PlayerList, registered with the Taskbar for toggling. */
 	UPROPERTY()
 	TObjectPtr<UDraggablePanel> PlayersPanel;
+#pragma endregion
 
 public:
 
-	// -- Replicated Chat Methods --
-
+#pragma region Replicated Chat Methods
 	/** Server RPC: validates and routes a chat message to all relevant clients. */
 	UFUNCTION(Reliable, Server)
 	void SendChatMessageOnServer(const FString& Message, const TArray<FString>& Recipients);
@@ -86,9 +87,9 @@ public:
 	/** Client RPC: delivers a chat message to this client's chat box. */
 	UFUNCTION(Reliable, Client)
 	void AddChatMessageOnOwningClient(const FString& Message, const TArray<FString>& Recipients, bool bIsSender);
+#pragma endregion
 
-	// -- Event Handlers --
-
+#pragma region Event Handlers
 	/** Converts dice roll results into a formatted chat message and sends it to the server. */
 	UFUNCTION()
 	void AddRollResultToChat(TArray<FRollResult> Results, EDiceRollMode RollMode);
@@ -100,9 +101,9 @@ public:
 	/** Appends the clicked player's name as an @mention in the chat input field. */
 	UFUNCTION()
 	void OnPlayerAddressClicked(const FString& PlayerName);
+#pragma endregion
 
-	// -- Chat Passthrough Methods --
-
+#pragma region Chat Passthrough Methods
 	/** Focuses the chat input box and switches to UI-only input mode. */
 	void FocusChat();
 
@@ -111,6 +112,7 @@ public:
 
 	/** Scrolls the active chat channel up or down. */
 	void ScrollChat(bool bUp);
+#pragma endregion
 
 private:
 	/** Finds a DraggablePanel by widget name, registers it with the Taskbar, and returns it. Logs a warning if not found. */

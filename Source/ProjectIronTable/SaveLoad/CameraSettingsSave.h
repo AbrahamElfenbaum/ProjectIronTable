@@ -12,8 +12,7 @@ class PROJECTIRONTABLE_API UCameraSettingsSave : public USaveGame
 
 public:
 
-	// -- Movement --
-
+#pragma region Movement
 	/** Minimum camera translation speed at full zoom-in. */
 	UPROPERTY()
 	float MinCameraMovementSpeed = 5.f;
@@ -25,9 +24,9 @@ public:
 	/** Speed multiplier applied while the sprint input is held. */
 	UPROPERTY()
 	float CameraSpeedMultiplier = 2.f;
+#pragma endregion
 
-	// -- Rotation --
-
+#pragma region Rotation
 	/** Minimum pitch angle (degrees) for camera rotation. */
 	UPROPERTY()
 	float MinCameraPitch = -15.f;
@@ -39,9 +38,9 @@ public:
 	/** Mouse delta multiplier applied during camera pan rotation. */
 	UPROPERTY()
 	float CameraPanSpeedMultiplier = 5.f;
+#pragma endregion
 
-	// -- Zoom --
-
+#pragma region Zoom
 	/** Minimum spring arm length (closest zoom). */
 	UPROPERTY()
 	float MinZoomLength = 100.f;
@@ -53,4 +52,5 @@ public:
 	/** Amount the spring arm changes per scroll tick. */
 	UPROPERTY()
 	float ZoomSpeed = 50.f;
+#pragma endregion
 };

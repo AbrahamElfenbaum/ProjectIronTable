@@ -19,8 +19,7 @@ class PROJECTIRONTABLE_API UChatChannelListEntry : public UUserWidget
 	
 private:
 
-	// -- Widget References --
-
+#pragma region Widget References
 	/** Button the player clicks to switch to this channel. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> EntryButton;
@@ -32,24 +31,28 @@ private:
 	/** The channel this entry represents. */
 	UPROPERTY()
 	TObjectPtr<UChatChannel> Channel;
+#pragma endregion
 
 protected:
+	/** Binds the entry button click delegate. */
 	virtual void NativeConstruct() override;
 
 private:
 
+	/** Broadcasts OnEntryClicked with the stored channel pointer. */
 	UFUNCTION()
 	void OnEntryButtonClicked();
 
 public:
 
-	// -- Events --
-
+#pragma region Events
 	/** Fired when the tab button is clicked. */
 	UPROPERTY(BlueprintAssignable)
 	FOnEntryClicked OnEntryClicked;
+#pragma endregion
 
-	// -- Public Methods --
+#pragma region Public Methods
 	/** Sets the channel this entry represents and updates the displayed label. */
 	void SetChannel(UChatChannel* InChannel);
+#pragma endregion
 };

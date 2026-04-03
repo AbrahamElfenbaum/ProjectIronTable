@@ -56,8 +56,7 @@ class PROJECTIRONTABLE_API ABaseDiceActor : public AActor
 
 public:
 
-	// -- Components --
-
+#pragma region Components
 	/** Primary die mesh; always present. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Components)
 	TObjectPtr<UStaticMeshComponent> Mesh1;
@@ -65,9 +64,9 @@ public:
 	/** Secondary die mesh; used for percentile dice (D100). Null for all other dice. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Components)
 	TObjectPtr<UStaticMeshComponent> Mesh2;
+#pragma endregion
 
-	// -- Config --
-
+#pragma region Config
 	/** Face data asset for the primary mesh. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
 	TObjectPtr<UDiceData> DiceFaces1;
@@ -119,9 +118,9 @@ public:
 	/** Divisor applied to the collision impulse magnitude to derive the volume multiplier (0.1–1.0). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
 	float ImpulseVolumeScale = 1000.f;
+#pragma endregion
 
-	// -- State --
-
+#pragma region State
 	/** True once Mesh1 has entered sleep and physics have been disabled for it. */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Dice")
 	bool bMesh1Asleep = false;
@@ -133,17 +132,19 @@ public:
 	/** False if this die was discarded during an advantage/disadvantage roll. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dice")
 	bool bWasKept = true;
+#pragma endregion
 
 public:
+	/** Creates root and both mesh subobjects, and applies physics properties to each. */
 	ABaseDiceActor();
 
 protected:
+	/** Detaches meshes for independent physics simulation and binds sleep and hit delegates. */
 	virtual void BeginPlay() override;
 
 public:
 
-	// -- Events --
-
+#pragma region Events
 	/** Fired when all meshes have settled and a result is ready. */
 	UPROPERTY(BlueprintAssignable, Category = "Dice")
 	FOnDiceRolled OnDiceRolled;
@@ -151,9 +152,9 @@ public:
 	/** Fired when the failsafe timer expires before the die finishes settling. */
 	UPROPERTY(BlueprintAssignable, Category = "Dice")
 	FOnFailsafeDestroy OnFailsafeDestroy;
+#pragma endregion
 
-	// -- Public Methods --
-
+#pragma region Public Methods
 	/** Determines the face value by finding the mesh face whose normal is most aligned with world up. */
 	UFUNCTION(BlueprintCallable)
 	FRollResult GetRolledValue();
@@ -161,6 +162,7 @@ public:
 	/** Applies the given impulse and angular impulse to the mesh(es) and starts the failsafe timer. */
 	UFUNCTION(BlueprintCallable)
 	void Roll(FVector Impulse, FVector AngularImpulse);
+#pragma endregion
 
 private:
 

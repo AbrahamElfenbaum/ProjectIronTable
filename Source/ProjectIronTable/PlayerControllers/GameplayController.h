@@ -18,21 +18,24 @@ class PROJECTIRONTABLE_API AGameplayController : public APlayerController
 	GENERATED_BODY()
 
 public:
+	/** Creates and attaches the HUD component subobject. */
 	AGameplayController();
 
 protected:
+	/** Caches the pawn reference, registers the gameplay input context, and binds all input actions. */
 	virtual void OnPossess(APawn* InPawn) override;
 
+	/** Sets input mode, shows cursor, and loads saved camera settings. */
 	virtual void BeginPlay() override;
 
 #if WITH_EDITOR
+	/** Delegates to ValidateCameraSettings so editor validation uses the same rules as runtime. */
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
 protected:
 
-	// -- Runtime References --
-
+#pragma region Runtime References
 	/** The HUD component owned by this controller, responsible for all UI widgets. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UGameplayHUDComponent> HUDComponent;
@@ -44,16 +47,16 @@ protected:
 	/** Reference to the Enhanced Input subsystem for managing mapping contexts. */
 	UPROPERTY()
 	TObjectPtr<UEnhancedInputLocalPlayerSubsystem> InputSubsystemRef;
+#pragma endregion
 
 public:
 
-	// -- Camera State --
-
+#pragma region Camera State
 	/** When false, panning input is active and WASD movement is suppressed. */
 	bool bCanCameraMove = true;
+#pragma endregion
 
-	// -- Camera Config --
-
+#pragma region Camera Config
 	/** Minimum camera translation speed at full zoom-in. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
 	float MinCameraMovementSpeed = 5.f;
@@ -89,6 +92,7 @@ public:
 	/** Amount the spring arm changes per scroll tick. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
 	float ZoomSpeed = 50.f;
+#pragma endregion
 
 private:
 

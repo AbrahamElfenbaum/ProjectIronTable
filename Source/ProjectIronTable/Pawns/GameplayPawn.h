@@ -11,20 +11,23 @@ class PROJECTIRONTABLE_API AGameplayPawn : public APawn
 	GENERATED_BODY()
 
 public:
+	/** Sets up component hierarchy with root, sphere, spring arm, and camera. */
 	AGameplayPawn();
 
 protected:
+	/** Called when the game starts or when spawned. */
 	virtual void BeginPlay() override;
 
 public:
+	/** Called every frame. */
 	virtual void Tick(float DeltaTime) override;
 
+	/** Called to bind functionality to input. */
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 public:
 
-	// -- Components --
-
+#pragma region Components
 	/** Invisible sphere mesh used as the pawn root for movement. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Components)
 	TObjectPtr<UStaticMeshComponent> Sphere;
@@ -36,4 +39,5 @@ public:
 	/** The gameplay camera attached to the spring arm. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Components)
 	TObjectPtr<class UCameraComponent> Camera;
+#pragma endregion
 };

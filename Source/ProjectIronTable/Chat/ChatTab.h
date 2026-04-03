@@ -22,8 +22,7 @@ class PROJECTIRONTABLE_API UChatTab : public UUserWidget
 
 private:
 
-	// -- Widget References --
-
+#pragma region Widget References
 	/** Button the player clicks to switch to this channel. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> TabButton;
@@ -39,20 +38,21 @@ private:
 	/** Small indicator widget shown when there are unread messages. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidget> NotificationIndicator;
+#pragma endregion
 
-	// -- State --
-
+#pragma region State
 	/** The channel this tab controls. */
 	UPROPERTY()
 	TObjectPtr<UChatChannel> Channel;
+#pragma endregion
 
 protected:
+	/** Binds the tab and close button click delegates. */
 	virtual void NativeConstruct() override;
 
 public:
 
-	// -- Events --
-
+#pragma region Events
 	/** Fired when the tab button is clicked. */
 	UPROPERTY(BlueprintAssignable)
 	FOnTabClicked OnTabClicked;
@@ -60,9 +60,9 @@ public:
 	/** Fired when the close button is clicked. */
 	UPROPERTY(BlueprintAssignable)
 	FOnTabClosed OnTabClosed;
+#pragma endregion
 
-	// -- Public Methods --
-
+#pragma region Public Methods
 	/** Assigns the channel this tab represents. */
 	void SetChannel(UChatChannel* InChannel);
 
@@ -74,6 +74,7 @@ public:
 
 	/** Hides the notification indicator. */
 	void ClearNotification();
+#pragma endregion
 
 private:
 

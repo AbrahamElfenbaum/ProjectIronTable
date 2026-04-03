@@ -15,8 +15,7 @@ class PROJECTIRONTABLE_API USettingsSlider : public UUserWidget
 
 public:
 
-	// -- Config --
-
+#pragma region Config
 	/** Display name shown in the title label. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FText Title;
@@ -44,14 +43,15 @@ public:
 	/** If true, this slider is the minimum of the pair and will be capped below the paired slider's value. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bIsMin;
+#pragma endregion
 
 protected:
+	/** Applies config to widgets and binds slider and text delegates. */
 	virtual void NativeConstruct() override;
 
 private:
 
-	// -- Runtime References --
-
+#pragma region Widget References
 	/** Displays the title label. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> TitleText;
@@ -63,6 +63,7 @@ private:
 	/** Editable text field that mirrors the slider value. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UEditableText> ValueText;
+#pragma endregion
 
 public:
 

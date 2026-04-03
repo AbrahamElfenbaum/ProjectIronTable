@@ -13,16 +13,18 @@ class PROJECTIRONTABLE_API AMainScreenController : public APlayerController
 	GENERATED_BODY()
 
 public:
+	/** Creates the HUD component as a default subobject. */
 	AMainScreenController();
 
 protected:
+	/** Sets UI-only input mode and shows the mouse cursor. */
 	virtual void BeginPlay() override;
 
 protected:
 
-	// -- Runtime References --
-
+#pragma region Runtime References
 	/** The HUD component owned by this controller, responsible for all UI widgets. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UMainScreenHUDComponent> HUDComponent;
+#pragma endregion
 };

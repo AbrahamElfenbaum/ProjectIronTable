@@ -17,8 +17,7 @@ class PROJECTIRONTABLE_API UPlayerRow : public UUserWidget
 
 private:
 
-	// -- Widget References --
-
+#pragma region Widget References
 	/** Displays the player's name. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> NameLabel;
@@ -26,31 +25,33 @@ private:
 	/** Button that initiates a private message to this player. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> AddressButton;
+#pragma endregion
 
 public:
 
-	// -- Events --
-
+#pragma region Events
 	/** Fired when the address button is clicked. */
 	UPROPERTY(BlueprintAssignable)
 	FOnAddressClicked OnAddressClicked;
+#pragma endregion
 
 private:
 
-	// -- State --
-
+#pragma region State
 	/** The player name stored for broadcast when the address button is clicked. */
 	FString PlayerName;
+#pragma endregion
 
 protected:
+	/** Binds the address button click delegate. */
 	virtual void NativeConstruct() override;
 
 public:
 
-	// -- Public Methods --
-
+#pragma region Public Methods
 	/** Sets the player name and updates the name label text. */
 	void SetPlayerName(const FString& Name);
+#pragma endregion
 
 private:
 

@@ -24,8 +24,7 @@ class PROJECTIRONTABLE_API UDraggablePanel : public UUserWidget
 
 public:
 
-	// -- Config --
-
+#pragma region Config
 	/** Height in pixels of the drag zone at the top of the panel. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float TitleBarHeight;
@@ -37,11 +36,11 @@ public:
 	/** Default title displayed in the panel header. Set at runtime via SetPanelTitle. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FText PanelTitle;
+#pragma endregion
 
 private:
 
-	// -- Runtime State --
-
+#pragma region Runtime State
 	/** Unique identifier for this panel, used for saving and loading layout. Should be set in the editor or constructor. */
 	FString PanelID;
 
@@ -57,9 +56,9 @@ private:
 	/** Cached canvas panel slot used to read and write position and size each frame. */
 	UPROPERTY()
 	TObjectPtr<UCanvasPanelSlot> CanvasSlot;
+#pragma endregion
 
-	// -- Widget References --
-
+#pragma region Widget References
 	/** Visual widget representing the drag handle area at the top of the panel. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidget> DragHandle;
@@ -75,8 +74,10 @@ private:
 	/** Text block displaying the panel title in the header. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> TitleText;
+#pragma endregion
 
 protected:
+	/** Caches the canvas slot and applies the default panel title. */
 	virtual void NativeConstruct() override;
 
 public:

@@ -11,6 +11,7 @@
 #include "DraggablePanel.h"
 #include "TaskbarButton.h"
 #include "PanelLayoutSave.h"
+#include "FunctionLibrary.h"
 
 // Disables tick and enables replication so server RPCs function correctly.
 UGameplayHUDComponent::UGameplayHUDComponent()
@@ -33,10 +34,10 @@ void UGameplayHUDComponent::BeginPlay()
 		GameplayScreenRef = CreateWidget<UUserWidget>(GetWorld(), GameplayScreenClass);
 		GameplayScreenRef->AddToViewport();
 
-		DiceSelectorManagerRef = Cast<UDiceSelectorManager>(GameplayScreenRef->GetWidgetFromName(TEXT("DiceSelectorManager")));
-		ChatBoxRef = Cast<UChatBox>(GameplayScreenRef->GetWidgetFromName(TEXT("ChatBox")));
-		PlayerListRef = Cast<UPlayerList>(GameplayScreenRef->GetWidgetFromName(TEXT("PlayerList")));
-		TaskbarRef = Cast<UTaskbar>(GameplayScreenRef->GetWidgetFromName(TEXT("Taskbar")));
+		DiceSelectorManagerRef = UFunctionLibrary::GetTypedWidgetFromName<UDiceSelectorManager>(GameplayScreenRef, TEXT("DiceSelectorManager"));
+		ChatBoxRef = UFunctionLibrary::GetTypedWidgetFromName<UChatBox>(GameplayScreenRef, TEXT("ChatBox"));
+		PlayerListRef = UFunctionLibrary::GetTypedWidgetFromName<UPlayerList>(GameplayScreenRef, TEXT("PlayerList"));
+		TaskbarRef = UFunctionLibrary::GetTypedWidgetFromName<UTaskbar>(GameplayScreenRef, TEXT("Taskbar"));
 
 		if (DiceSelectorManagerRef)
 		{
@@ -110,7 +111,7 @@ void UGameplayHUDComponent::ScrollChat(bool bUp)
 // Finds a DraggablePanel by widget name, registers it with the Taskbar, assigns its PanelID, and binds save delegates.
 UDraggablePanel* UGameplayHUDComponent::FindAndRegisterPanel(const FName& WidgetName, const FString& Label)
 {
-	UDraggablePanel* Panel = Cast<UDraggablePanel>(GameplayScreenRef->GetWidgetFromName(WidgetName));
+	UDraggablePanel* Panel = UFunctionLibrary::GetTypedWidgetFromName<UDraggablePanel>(GameplayScreenRef, WidgetName);
 	if (Panel)
 	{
 		UTaskbarButton* Button = TaskbarRef->RegisterWidget(Panel, Label);

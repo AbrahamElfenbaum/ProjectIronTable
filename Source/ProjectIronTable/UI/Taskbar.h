@@ -17,22 +17,22 @@ class PROJECTIRONTABLE_API UTaskbar : public UUserWidget
 
 public:
 
-	// -- Config --
-
+#pragma region Config
 	/** The TaskbarButton class to instantiate for each registered widget. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UTaskbarButton> TaskbarButtonClass;
+#pragma endregion
 
 private:
 
-	// -- Widget References --
-
+#pragma region Widget References
 	/** Horizontal container holding all taskbar buttons. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UHorizontalBox> ButtonContainer;
+#pragma endregion
 
 public:
 	/** Creates a TaskbarButton for the given widget and adds it to the taskbar. */
 	UTaskbarButton* RegisterWidget(UUserWidget* Widget, FString Label);
-	
+
 };

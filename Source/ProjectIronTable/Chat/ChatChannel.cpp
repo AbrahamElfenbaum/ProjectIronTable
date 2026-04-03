@@ -2,6 +2,7 @@
 #include "ChatChannel.h"
 #include "ChatEntry.h"
 
+// Called when the channel widget is constructed.
 void UChatChannel::NativeConstruct()
 {
 	Super::NativeConstruct();

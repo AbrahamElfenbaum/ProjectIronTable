@@ -15,22 +15,22 @@ class PROJECTIRONTABLE_API UMainScreenHUDComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
+	/** Disables tick. */
 	UMainScreenHUDComponent();
 
 protected:
+	/** Creates and adds the main screen widget, then caches widget references and binds click handlers. */
 	virtual void BeginPlay() override;
 
 public:
 
-	// -- Config --
-
+#pragma region Config
 	/** The root main screen widget class to instantiate and add to the viewport. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UUserWidget> MainScreenClass;
+#pragma endregion
 
 private:
-
-	// -- Runtime References --
 
 #pragma region Main Screen
 			/** The instantiated root main screen widget. */
@@ -133,11 +133,11 @@ private:
 
 private:
 
-	// -- Event Handlers --
-
-	/** Opens the home screen*/
+#pragma region Event Handlers
+	/** Switches the screen switcher back to the home screen. */
 	UFUNCTION()
 	void OnBackClicked();
+#pragma endregion
 
 #pragma region Main Screen
 	/** Opens the gameplay level. */

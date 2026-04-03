@@ -15,8 +15,7 @@ class PROJECTIRONTABLE_API UPlayerList : public UUserWidget
 
 private:
 
-	// -- Widget References --
-
+#pragma region Widget References
 	/** Scroll box that holds all player row widgets. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UScrollBox> ScrollBox;
@@ -24,37 +23,39 @@ private:
 	/** Button that expands or collapses the player list. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> ToggleButton;
+#pragma endregion
 
 public:
 
-	// -- Config --
-
+#pragma region Config
 	/** The widget class instantiated for each player row. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UPlayerRow> PlayerRowClass;
+#pragma endregion
 
-	// -- Events --
-
+#pragma region Events
 	/** Forwarded from any player row's OnAddressClicked; passes the target player's name. */
 	UPROPERTY(BlueprintAssignable)
 	FOnAddressClicked OnAddressClicked;
+#pragma endregion
 
 private:
 
-	// -- State --
-
+#pragma region State
 	/** Tracks whether the scroll box is currently visible. */
 	bool bIsExpanded = false;
+#pragma endregion
 
 protected:
+	/** Binds the toggle button, populates the list, and collapses the scroll box initially. */
 	virtual void NativeConstruct() override;
 
 public:
 
-	// -- Public Methods --
-
+#pragma region Public Methods
 	/** Clears and repopulates the list from the current game state's player array. */
 	void PopulateList();
+#pragma endregion
 
 private:
 

@@ -16,12 +16,12 @@ class PROJECTIRONTABLE_API UDiceSelector : public UUserWidget
 {
 	GENERATED_BODY()
 protected:
+	/** Initializes the type label, count label, and button delegates. */
 	virtual void NativeConstruct() override;
 
 private:
 
-	// -- Widget References --
-
+#pragma region Widget References
 	/** Displays the die type label (e.g. "D20"). */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> TypeText;
@@ -45,11 +45,11 @@ private:
 	/** Decrements DiceCount if above zero and broadcasts OnCountChanged. */
 	UFUNCTION()
 	void DecreaseDiceCount();
+#pragma endregion
 
 public:
 
-	// -- Config --
-
+#pragma region Config
 	/** The actor class to spawn when this die type is rolled. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
 	TSubclassOf<ABaseDiceActor> DiceClass;
@@ -57,21 +57,22 @@ public:
 	/** The die type this selector represents. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dice")
 	EDiceType DiceType;
+#pragma endregion
 
-	// -- State --
-
+#pragma region State
 	/** The current number of dice of this type queued to roll. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dice")
 	int32 DiceCount = 0;
+#pragma endregion
 
-	// -- Events --
-
+#pragma region Events
 	/** Fired whenever the count changes, including on reset. */
 	UPROPERTY(BlueprintAssignable, Category = "Dice")
 	FOnDiceCountChanged OnCountChanged;
+#pragma endregion
 
-	// -- Public Methods --
-
+#pragma region Public Methods
 	/** Resets DiceCount to zero and broadcasts OnCountChanged. */
 	void ResetCount();
+#pragma endregion
 };
