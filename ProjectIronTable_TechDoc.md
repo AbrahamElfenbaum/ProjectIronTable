@@ -671,16 +671,39 @@ General-purpose helper functions accessible from C++ and Blueprint.
 - [x] Taskbar minimize system — `UTaskbar` + `UTaskbarButton`
 - [x] Draggable and resizable panels — `UDraggablePanel`, `UDragHandle`, `UResizeHandle`
 - [x] Close and reopen private chat tabs
+- [ ] Home screen → Campaign Manager navigation (Play button)
 - [ ] Session management (start, load, save)
+- [ ] Session save/load — full snapshot (map, tokens, fog of war, initiative, chat, sheets, notes, inventory); one rolling save slot per campaign; manual save + autosave (configurable interval); auto-save on session close
 - [ ] GM permissions system
 - [ ] Session player cap (default 8, removable)
 - [ ] Tab renaming (client-local)
 - [ ] Chat log persistence
-- [ ] Shared notes
+- [ ] Shared notes (rich-text: headers, bullets, bold, italic; real-time collaborative editing; persists across sessions; accessible outside active session via Campaign Manager)
+- [ ] Pre-session lobby (waiting room; pre-game chat; character sheet accessible while waiting; Host sees connection status and launches when ready)
+- [ ] Session discovery and join flow
+  - [ ] Invite code — immediate join, no approval
+  - [ ] Public browser — sends join request; requester gets temporary chat access to introduce themselves; Host approves or declines
+- [ ] Host disconnect handling (lock policy for actions when no Host is present; full policy TBD)
 
 ---
 
-### Phase 3 — Map Builder
+### Phase 3 — Campaign Manager
+
+The Campaign Manager is the primary hub between the home screen and an active session. Accessed via the Play button on the home screen.
+
+- [ ] Campaign Manager screen — lists all campaigns the player is part of
+- [ ] Campaign creation — any player can create; private (invite-only) or public (discoverable)
+- [ ] Public campaign browser — filterable by name, game system, tags, one-shot vs. multi-session, meeting days/frequency/session length
+- [ ] Direct invite link / invite code support
+- [ ] Campaign card — per-game-system content (D&D 5e: character sheet, notes, party list, character art, next session)
+- [ ] Player Profiles — username (required), bio (optional), games played (auto from campaign history + self-reported); shown alongside join requests
+- [ ] Campaign locking to a single game system at creation
+- [ ] Scheduling — meeting days, frequency, typical session length; surfaces on campaign card and public browser filter
+- [ ] Notes accessible outside active session (read and edit via Campaign Manager)
+
+---
+
+### Phase 4 — Map Builder
 
 **Planned C++ Classes:**
 - `ATileActor` — base tile actor; snaps to square grid; stores grid coordinate (X, Y, HeightLevel); supports variable sizes (FIntPoint footprint from `UTileData`)
@@ -715,50 +738,67 @@ General-purpose helper functions accessible from C++ and Blueprint.
 - [ ] Grid overlay toggle (square; hex planned for later)
 - [ ] Undo/redo
 - [ ] Flat image map support (secondary to tile builder)
-- [ ] Fog of war
+- [ ] Fog of war (brush and region/tile selection tools; re-fog at any time; GM-controlled opacity: opaque/pitch black/semi-transparent)
+- [ ] Auto-reveal — map reveals within player token line of sight as tokens move; GM toggle per session
+- [ ] Camera boundary — fog of war and GM-defined barriers act as hard camera limits for players
 - [ ] Lighting and atmosphere controls
 - [ ] Entity-based vision system
 - [ ] Hex grid (after square system is stable)
 
 ---
 
-### Phase 4 — Miniatures
+### Phase 5 — Miniatures
 
 - [ ] Base miniature actor/pawn
-- [ ] Grid placement and movement
-- [ ] Scale system (combat vs. non-combat maps)
-- [ ] Default miniature options
+- [ ] Grid placement and snap
+- [ ] Freeform movement within movement radius (range enforced; range shrinks as movement is spent)
+- [ ] Difficult terrain (double movement cost; GM toggle per session — enforced or honor system)
+- [ ] Diagonal movement setting (GM-controlled: D&D 5e style / Pathfinder style / others TBD)
+- [ ] Scale system (combat vs. non-combat maps; combat maps follow game system unit rules)
+- [ ] Default miniature — wooden artist's mannequin, natural wood tone, animated (walk cycle + idle)
 - [ ] Mini labels (name, HP, conditions)
-- [ ] User-importable meshes (format TBD)
+- [ ] Entity Management Panel — centralized GM panel for NPCs, player-summoned creatures, and controllable items; tracks HP, conditions, and turn order across multiple entities; players access it for their own summoned creatures
+- [ ] Vision system — player vision vs. character vision separation; outline rendering for characters inside vision-blocking effects
+- [ ] User-importable meshes (glTF with Draco compression; deferred until mesh import phase)
 
 ---
 
-### Phase 5 — D&D 5e / 2024 Game System
+### Phase 6 — D&D 5e / 2024 Game System
 
-- [ ] Character sheet (stats, HP, spell slots, conditions, inventory)
-- [ ] Initiative tracker + GM staging list
-- [ ] Initiative rolling (manual and automatic)
-- [ ] Spell management
-- [ ] Condition tracking (auto-apply, toggleable)
+- [ ] Game system plugin architecture (core layer + game system plugin; adding a new ruleset = new plugin, no core changes)
+- [ ] Character creation — root layer (name, appearance, bio, portrait) + game system layer (stats, class, race, skills, etc.); supports custom races/classes/backgrounds
+- [ ] Character sheet (STR/DEX/CON/INT/WIS/CHA, proficiency bonus, saving throws, skill modifiers, HP, hit dice, spell slots, conditions, inventory)
+- [ ] Character sheet visibility (owner + GM always; owner can share with other players)
+- [ ] Initiative tracker — public turn order; GM staging list (hidden NPCs/reinforcements); round tracking; manual turn advancement; skip/delay; remove combatants
+- [ ] Initiative rolling (manual via dice UI and automatic from character stats)
+- [ ] Combat flow — GM-driven start and end; action economy (action, bonus action, reaction, movement)
+- [ ] Spell management (choose spells, track slots, concentration, components, spell effects)
+- [ ] Condition tracking (auto-apply from game events; GM toggle for full manual control per table)
 - [ ] Attack rolls, saving throws, skill checks tied to stats
 - [ ] Monster/NPC stat blocks
-- [ ] Basic combat flow (action economy)
+- [ ] Inventory and loot — item transfer ("Send to Player" with quantity prompt for stacks); GM master item list; custom item creation (root layer + game system layer)
+- [ ] XP award (GM grants XP) and level-up signaling (GM signals; player handles leveling flow: features, spells, HP)
+- [ ] Measurement tools — ruler and AoE templates (cone, sphere, line, cube); universal core tools, first implemented here
+- [ ] Rule variants per campaign (diagonal movement ruling, optional rules, house rules)
 
 ---
 
-### Phase 6 — UI & Polish
+### Phase 7 — UI & Polish
 
 - [ ] UI theming system — decoupled from game system; per-player customization
-- [ ] Panel notification system
+- [ ] Panel notification system (badge count, flash, or icon on collapsed/hidden panels with new activity)
 - [ ] Replace default Unreal UI assets with custom art
-- [ ] Sound effects system
+- [ ] Sound system
+  - [ ] Music — background tracks heard by all players simultaneously
+  - [ ] Ambient audio — environmental loops heard by all players simultaneously
+  - [ ] Sound effects — proximity-based one-shot/looping SFX; player hears only if their mini is close enough to the source
+  - [ ] Map-baked audio — default music/ambient tracks assigned during map build; play on map load; GM can toggle
+  - [ ] User-uploadable audio (WAV)
 - [ ] Visual effects system
-- [ ] Music / ambience support
-- [ ] User-uploadable music
 
 ---
 
-### Phase 7 — Custom Content & Extensibility
+### Phase 8 — Custom Content & Extensibility
 
 - [ ] `UAssetImporter` — generic importer (extensions, destination, dialog, copy, delegate)
 - [ ] Asset Library screen — file explorer UI; folder-based; import button + drag-and-drop
@@ -767,7 +807,7 @@ General-purpose helper functions accessible from C++ and Blueprint.
 - [ ] Mesh import — deferred; requires runtime loader plugin
 - [ ] Custom dice import
 - [ ] Additional TTRPG systems beyond D&D 5e
-- [ ] Player-to-player asset sharing
+- [ ] Player-to-player asset sharing (opt-in; asset owner approves before transfer)
 - [ ] Cloud asset storage (future)
 
 ---
@@ -777,18 +817,21 @@ General-purpose helper functions accessible from C++ and Blueprint.
 **Decided:**
 - **Server Owner** and **Host** are separate roles. Server Owner = technical admin (create/close session, kick, transfer ownership). Host = game facilitator (bring maps into play, manage game state, advance turns). Server Owner assigns the Host role to any player.
 - The Host role is system-level and game-agnostic — games with a traditional GM use it as GM; GM-less games assign it to whoever is facilitating.
-- Host can delegate specific powers to individual players (e.g., move enemy tokens, bring in a map). Specific permission types TBD when the permission system is built.
+- Host can delegate specific powers to individual players (e.g., move enemy tokens, bring in a map). Specific delegatable actions TBD when built.
 - Default player cap: 8 (Host included); removable; no hard engine limit
-- When no Host is present, certain actions lock (moving NPCs, editing stats); full policy TBD
+- When no Host is present, certain actions lock (moving NPCs, editing stats); full lock policy TBD when session management is built
 - **Mesh distribution:** when Host brings a map into a session, assets missing from client machines auto-transfer from Host before the map renders. No placeholders — all clients see the map in full. Assets cached locally after first transfer.
+- **Server model:** Leaning listen server — Server Owner hosts the session from their own machine. Acceptable tradeoff at this scale (2–8 players, non-persistent sessions). Pending technical validation in UE5.
+- **Session discovery:** Public browser (filterable by name, game system, tags, schedule, etc.) + direct invite link/code.
+- **Join flow:** Invite code = immediate join, no approval. Public browser = join request; requester gets temporary chat access to introduce themselves; Host approves or declines.
+- **Pre-session lobby:** Waiting room before session starts. Shows who is connected, has pre-game chat, lets players access character sheets. Host sees connection status and launches when ready.
 
 **Needs research:**
-- Listen server vs. dedicated server
-- Session discovery / join flow (direct IP, lobby, friend invite)
+- Listen server vs. dedicated server — technical validation in UE5
 
 ---
 
-*Last updated: 2026-04-03* — Phase 3 roadmap expanded: full map builder planned with 10 new C++ classes, height system, scale modes (Combat/World), location pin linking, and build order. Multiplayer architecture updated: Server Owner and Host are now distinct roles; mesh auto-distribution policy documented.
+*Last updated: 2026-04-03* — Roadmap expanded to 8 phases to reflect full GDD scope. New Phase 3 (Campaign Manager) added: campaign creation, public browser, player profiles, scheduling, campaign cards. Phase 2 expanded: session save/load, shared notes, pre-session lobby, join flow, host disconnect handling. Phase 4 (Map Builder, was Phase 3): fog of war, auto-reveal, and camera boundary details added. Phase 5 (Miniatures, was Phase 4): freeform movement with range enforcement, difficult terrain, diagonal movement setting, entity management panel, and vision system added. Phase 6 (D&D 5e, was Phase 5): character creation, inventory/loot, XP/level-up, measurement tools, rule variants, and plugin architecture added. Phase 7 (UI & Polish, was Phase 6): sound system fully broken out (proximity SFX, map-baked audio, user audio). Multiplayer Architecture updated: server model, join flow, and pre-session lobby moved from "needs research" to "decided."
 
 ---
 
