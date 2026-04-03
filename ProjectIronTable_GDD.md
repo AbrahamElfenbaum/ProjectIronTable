@@ -63,7 +63,6 @@ Between sessions, players may update their character sheets. The GM may prep map
 
 ### Game Master (GM)
 
-- Hosts the session (listen server or dedicated — TBD)
 - Full control over the map: place, move, and remove tiles, minis, and objects
 - Controls NPC/monster miniatures
 - Can hide or reveal sections of the map (fog of war)
@@ -74,7 +73,11 @@ Between sessions, players may update their character sheets. The GM may prep map
 
 **GM Camera:** The GM has a separate God-view camera with all the functions of the player camera, plus the ability to see the full map including areas behind fog of war. However, the GM's vision is still subject to vision-blocking effects — if a Sphere of Darkness is placed on the map, the GM cannot see inside it unless one of their controlled NPCs has a way to perceive through it. Vision is entity-based, not role-based: what you see is determined by what your controlled characters can perceive.
 
-> **Design Note (future):** Both players and the GM need a way to track characters they control when those characters are inside a vision-blocking effect. A likely solution is rendering an outline of controlled characters that remains visible through occluding effects. This needs to be addressed when the vision system is built.
+> **Design Note:** Player vision and character vision are separate systems. The player can always see any part of the map that has been revealed to them — they are not restricted to their character's perspective. Line of sight and vision-blocking effects only affect what the character *mechanically* can do: attack, target spells, perceive hidden enemies, etc. A character with blocked line of sight may have disadvantage on attacks or be unable to target certain spells, but the player can still see the map.
+>
+> **Tracking through vision-blocking effects:** When a character is inside a vision-blocking effect (e.g. magical Darkness), the player can no longer see their mini clearly. The solution is to render a persistent outline of any controlled character that remains visible through occluding effects, so the player always knows where their character is.
+>
+> **Vision types** (darkvision, blindsight, tremorsense, truesight, etc.) pierce different effects and are defined per game system. Full implementation is deferred until the vision system is built.
 
 ### Player
 
@@ -156,9 +159,28 @@ Combat maps and world maps are separate saved map files. A world map can have **
 
 **Grid:** Square grid for initial release; hex grid planned after square system is stable. Grid display is toggleable by the Host.
 
-**Fog of war:** Host toggles revealed areas per-tile or per-region.
+**Fog of war:** The map starts fully hidden. The GM reveals and re-hides areas at their discretion throughout the session. Reveal tools: brush (paint areas freehand) and region/tile selection (flip whole areas at once) — both available, GM chooses what fits the moment. The GM can re-fog any previously revealed area at any time.
+
+**Fog aesthetic:** Default is an opaque fog texture. The GM can switch to pitch black or semi-transparent per session preference.
+
+**Auto-reveal:** When enabled, the map automatically reveals areas within player token line of sight as they move. On by default; the GM can disable it per session. When disabled, all revealing is manual.
+
+**Camera boundary:** Fog of war acts as a hard camera boundary for players — they cannot pan or fly their camera into unrevealed areas. This extends to other impassable barriers the GM defines: locked doors, walls, and any other boundary the GM does not want players to see past. Players are limited to viewing only what has been revealed to them, regardless of where they move their camera. Exact boundary types and GM controls to be expanded and refined when the system is built.
 
 **Lighting and atmosphere:** Time of day, ambient lighting, and atmosphere controls — planned for a later pass.
+
+### Sound and Music
+
+Audio is GM-controlled during a session. All sound types are supported with no restrictions on content.
+
+**Sound types:**
+- **Music** — background tracks, heard by all players simultaneously
+- **Ambient audio** — environmental loops (wind, rain, tavern noise, etc.), heard by all players simultaneously
+- **Sound effects** — one-shot or looping SFX (doors, explosions, footsteps, etc.), proximity-based: a player only hears a sound effect if their miniature is close enough to its source on the map
+
+**Map-baked audio:** When building a map, the creator can assign default music and ambient tracks to it. These play automatically when the map loads in a session. The GM can toggle them on or off at any time.
+
+**Built-in library:** The game ships with a built-in asset library covering all categories — tiles, props, miniatures, sounds, and music — so all players have a usable starting point without importing anything. The exact contents depend on what can be sourced, but at minimum every category will have something. Players and GMs can expand on this with their own imported assets.
 
 ### Miniatures
 
@@ -169,24 +191,88 @@ Combat maps and world maps are separate saved map files. A world map can have **
 - Labels display name, HP, and status conditions
 - User-importable meshes for custom minis
 
+**Movement:**
+- Movement is freeform within a radius — the player drags their mini anywhere within their remaining movement range; the system enforces the limit and prevents moving beyond it
+- Base range is the character's movement speed (e.g. 30ft = 6 tiles on a standard combat map)
+- Range shrinks as movement is spent; modifiers from climbing, jumping, difficult terrain, etc. are layered on top as those systems are built
+- **Difficult terrain:** Costs double movement to enter. Whether this is enforced automatically or left to player honor is a GM setting per session.
+- **Diagonal movement:** GM-controlled setting. Options include: every diagonal costs 5ft (D&D 5e standard), alternating 5ft/10ft (Pathfinder style), or others TBD.
+
 **Scale:** Depends on map purpose. Combat maps follow the measurement rules of the active game system (e.g., 1 tile = 5 feet in D&D 5e). Non-combat maps — world maps, region maps, scene art — have no enforced scale; the GM and players define what distances mean in context.
 
-**Default miniature:** Not yet decided. The game will ship with a set of built-in default options, and players can customize or replace the default with their own asset. Final default design will be determined as the project matures.
+**Default miniature:** A wooden artist's mannequin (the jointed human analog used for figure drawing reference). Natural wood tone. Animated if suitable animations can be sourced — at minimum a walk cycle and idle. Used as the default for all entity types (humanoid, creature, monster) regardless of size or type; the same model is scaled to fit. Easy to swap out if a better fit is found later.
 
 ### Shared Notes
 
 Any user can create a notes document within the session. By default a note is private (visible only to its creator). The creator can share it with specific users or with the entire group, and can grant read-only or edit access.
 
 - Multiple users can edit a shared document simultaneously, with changes visible in real time (collaborative editing, similar to Google Docs)
+- Notes support basic rich-text formatting: headers, bullet points, bold, italic
 - Notes are saved as part of the session and persist across reloads
+- Notes are also accessible outside of an active session via the Campaign Manager — players can read and edit their notes between sessions without launching a game
 - Typical uses: session recap, lore the party has discovered, quest tracking, GM prep notes shared selectively with players
 - A user can have multiple notes documents open at once
 
-> **Open Question:** Is there a text-only format, or should notes support basic formatting (headers, bullet points, bold/italic)?
-
-> **Open Question:** Should notes be accessible outside of an active session (e.g., between sessions in a campaign view)?
-
 > **Design Note:** Real-time collaborative editing requires an operational transform or CRDT-style conflict resolution strategy for simultaneous edits. This is a non-trivial networking problem — scope carefully when this feature is built.
+
+### Character Creation
+
+Players build their characters through a character creator before or between sessions.
+
+**Structure:** The creator has two layers:
+- **Root layer** — fields common to all characters regardless of game system (name, appearance, bio, portrait/artwork, etc.)
+- **Game system layer** — fields specific to the active game system (stats, class, race, skills, etc.). What appears here is defined by the game system plugin.
+
+Characters are created outside of an active session and stored in the player's campaign profile. A player can have multiple characters across different campaigns.
+
+**Custom characters:** The same principle applies to custom character options — a player or GM can create custom races, classes, backgrounds, or other game-system-specific entries using the same layered structure.
+
+### Inventory and Loot
+
+Both players and the GM have an inventory. Items can be transferred between them during a session.
+
+**Sending items:** Any user can click an item in their inventory and choose "Send to Player." If the item is stackable (quantity > 1), they are prompted for how many to send. The recipient receives the item in their inventory.
+
+**GM item list:** In addition to their personal inventory, the GM has access to a master item list — a full catalog of items they can grant to players without needing to hold the item in their own inventory first. This covers cases like rewarding loot that the GM hasn't pre-stocked.
+
+**Custom items:** Any user can create a custom item. The creation flow follows the same layered structure as character creation — a root layer for universal item properties (name, description, icon, quantity) and a game system layer for system-specific fields (weight, value, damage, rarity, etc.).
+
+### Measurement Tools
+
+In scope and universal across all game systems. Many of the same measurement tools appear in different TTRPGs, so these are part of the core layer rather than any specific game system plugin.
+
+Specific tools (ruler, AoE templates — cone, sphere, line, cube, etc.) and their exact behavior to be designed when this system is built.
+
+### Session Save and Load
+
+**What is saved:** The full session state — map layout, token positions, fog of war, initiative tracker, chat log, character sheets, notes, and inventory. Everything is saved together as a single snapshot.
+
+**Save slot:** Each campaign has one rolling save slot. There are no multiple save states — each save overwrites the previous.
+
+**Manual save:** The GM can save at any time. The GM can grant save permission to other players.
+
+**Autosave:** Autosave runs on a configurable interval. Can be toggled on or off by the GM. Default state (on or off) TBD.
+
+**Save on session close:** The session automatically saves when it ends. The GM can disable this if needed.
+
+**Storage:** Save data should be stored efficiently — exact format and compression strategy to be determined during implementation.
+
+### Entity Management Panel
+
+The GM has a dedicated panel for managing all entities under their control. This includes:
+- **NPCs and monsters** — creatures the GM controls directly
+- **Player-summoned creatures** — familiars, animal companions, summoned monsters, or any creature a player's character controls
+- **Controllable items** — animated objects or other items that act as independent entities on the map
+
+Players with summoned creatures or companions also have access to this panel for their own controlled entities, separate from their character sheet.
+
+The panel provides a centralized view for tracking HP, conditions, and turn order across multiple controlled entities without hunting for them on the map.
+
+### Combat
+
+**Starting and ending combat:** The GM starts and ends combat manually. There is no automatic detection of combat state — too many variables (ambushes, social encounters that turn violent, partial retreats) make automation impractical. Combat is a narrative state that the GM controls. In GM-less games or PvP scenarios, whoever holds the Host role takes this responsibility.
+
+**During combat:** The map is static — only tokens can be moved. The initiative tracker becomes active. The GM retains full map control.
 
 ### Initiative Tracker
 
@@ -197,6 +283,14 @@ Turn order panel visible to all players during combat. Tracks whose turn it is a
 **Public tracker:** Shows the active turn order for all combatants currently in combat. Visible to all users at all times during a combat encounter.
 
 **GM staging list:** The GM has a private list of combatants not yet in combat — hidden NPCs, reinforcements, ambush units, or any creature that may or may not enter the encounter. The GM can move a combatant from the staging list into the public tracker at any time, inserting them into the turn order at the appropriate position. Players do not see the staging list.
+
+**Round tracking:** The tracker counts rounds automatically. This is primarily useful for duration-based effects (e.g. "lasts 2 rounds", concentration spells, condition timers).
+
+**Turn advancement:** Turns do not end automatically — the active player or GM manually clicks "End Turn." No timers.
+
+**Skipping and delaying:** A combatant can request to skip or delay their turn. The GM approves the request. Once approved, the combatant's slot moves or is passed as appropriate.
+
+**Removing combatants:** The GM can remove any combatant from the tracker at any time ("Remove from Combat"). This is separate from removing the miniature from the map — the GM decides independently whether the mini stays on the map or is removed. A creature that fled, surrendered, or died may still have its mini present for narrative purposes.
 
 ### Character Sheet
 
@@ -209,13 +303,28 @@ Tracks the player's character stats, skills, HP, spell slots, conditions, and in
 - Active conditions (Poisoned, Stunned, etc.)
 - Attack rolls, saving throws, and skill checks pull from character sheet stats
 
-**Visibility:** A character sheet is visible to its owner, the GM, and any other players the owner chooses to share it with. Sharing is controlled by the owning player.
+**Visibility:** A character sheet is visible to its owner, the GM, and any other players the owner chooses to share it with. Sharing is controlled by the owning player. The GM can always view the full sheet of any player in their session.
 
-**GM editing:** The GM can edit a player's character sheet to some extent, but with limits. What those limits are is not yet decided — this will be defined when the character sheet system is built.
+**GM editing:** The GM does not directly edit player character sheets. Stats, HP, spell slots, inventory, proficiencies, and all identity/build fields are the player's domain. Changes to those values come through game events — conditions applied via the game system, items granted through a loot flow, etc. — not direct GM sheet edits.
+
+The GM can:
+- Award XP (if the campaign uses XP)
+- Signal a level-up — notify a player that they have leveled up or set their target level directly. The player then handles the leveling flow themselves (choosing new features, spells, HP, etc.). What that flow looks like is game-system-specific.
+
+### Player Profiles
+
+Every user has a profile visible to others when they send a join request or interact in the public browser.
+
+**Profile fields:**
+- **Username** — required, always visible
+- **Bio** — optional short description the player writes themselves (e.g. playstyle, availability, what they're looking for in a game)
+- **Games played** — a list of game systems the player has experience with. Populated automatically from their campaign history in the app, and manually self-reportable for real-life experience outside the app. Both sources appear on the profile.
+
+When a join request is sent, the GM and current players see the requester's profile alongside their chat introduction. No formal application form — the profile provides context and the chat does the rest.
 
 ### Custom Content
 
-Players and GMs can import their own 3D assets to use in map building and as miniatures. This is the primary extensibility mechanism — groups are never locked to built-in assets.
+The game ships with a built-in library of assets across all categories (tiles, props, miniatures, sounds, music) so players have a usable starting point immediately. Players and GMs can import their own assets to expand on this — groups are never locked to built-in content.
 
 **Supported import types:**
 - Tiles: custom 3D tile meshes for map building
@@ -248,13 +357,63 @@ Players and GMs can import their own 3D assets to use in map building and as min
 The home screen is the first scene the player sees when launching the game. It is separate from the gameplay scene and has its own game mode, player controller, and HUD component.
 
 **Options (rough):**
-- Play / Host session
-- Join session
+- Play — opens the Campaign Manager
 - Library
 - Settings
 - Quit
 
 The home screen controller handles UI-only input — no camera pawn or game input is needed here.
+
+---
+
+## Campaign Manager
+
+The Campaign Manager is the primary hub between the home screen and an active session. It lists all campaigns and games the player is a part of, and serves as the out-of-session home for character sheets, notes, scheduling, and campaign info.
+
+**Access:** Reached via the Play button on the home screen.
+
+**Layout (TBD — two candidates):**
+- **Grid:** Columns represent game systems (D&D, Pathfinder, Warhammer, etc.); rows are campaigns within each system. Columns are collapsible.
+- **Tab list:** A sidebar (left or right) with one tab per game system, displayed 3 per row (count subject to change). Clicking a tab shows a scrollable list of campaigns for that system.
+
+Final layout to be decided during UI design pass.
+
+**Campaign creation:**
+- Any player can create a campaign at any time and invite whoever they want
+- **Private:** Invite-only. Players must be invited to join.
+- **Public:** Discoverable via the public browser. Players can apply; the Host approves and space must be available.
+
+**Campaign browser (public games):**
+A dedicated browsing screen for finding public campaigns. Filterable by:
+- Name
+- Game system
+- Tags (player-defined labels describing tone, theme, style — e.g., "horror", "beginner-friendly", "roleplay-heavy")
+- One-shot vs. multi-session
+- Meeting days / frequency / estimated session length
+- Additional filters TBD
+
+Direct links and invite codes are also supported as an alternative to browsing.
+
+**Campaign card content (varies by game system):**
+
+For D&D 5e, a campaign card includes:
+- Player's character sheet
+- Notes the player has created or has been given access to
+- Party member list — each entry shows character name (primary), player screen name or real name (subtitle), class(es) and level
+- Character artwork (optional — displayed if the player has provided it)
+- Next scheduled session (if scheduling is set up for this campaign)
+
+Other game systems will define their own card contents appropriate to their ruleset.
+
+---
+
+## Scheduling
+
+Sessions can have a schedule attached to them. Scheduling is in scope; the full feature set is TBD.
+
+At minimum, a campaign can record when it meets (days of the week, frequency, typical session length). This data surfaces on the campaign card in the Campaign Manager and is used as a filter in the public campaign browser.
+
+A more extensive scheduling system (calendar integration, session reminders, RSVP/attendance tracking) may be added — scope to be determined.
 
 ---
 
@@ -313,9 +472,15 @@ The session runs as a networked game. Chat and dice rolls are already replicated
 
 **Host disconnect:** The Host should have control over what happens to the session if they disconnect — whether intentionally or accidentally. At minimum, certain actions should be locked when no Host is present (e.g., moving NPCs, editing stats). The full disconnect policy will be defined as the session management system is built.
 
-> **Open Question (technical):** Listen server or dedicated server? Needs research — to be decided before multiplayer architecture is finalized.
+**Server model:** Leaning listen server — the Server Owner hosts the session from their own machine. Acceptable tradeoff at this scale (2–8 players, non-persistent sessions). Pending technical validation in UE5.
 
-> **Open Question (technical):** How do players find and join a session? Direct IP, lobby system, friend invite? Needs research — to be decided alongside the server question.
+**Session discovery:** Players find sessions via the Campaign Manager public browser (filterable) or via direct invite link/code.
+
+**Joining a session:**
+- **Invite code** — bypasses approval entirely. Player joins immediately.
+- **Public browser** — sends a join request to the session. A notification appears in chat for all current players and the GM: *"[Username] wants to join."* The requesting player gets temporary chat access so they can introduce themselves and the group can talk to them before a decision is made. The GM approves or declines — no formal application process is imposed. Groups handle their own vetting however they see fit.
+
+**Pre-session lobby:** When a player joins a session before the GM has started it, they land in a waiting room. The lobby shows who is connected and who hasn't joined yet, has chat available before the game starts, and lets players access their character sheet while waiting. The GM (Host) sees everyone's connection status and launches the session when ready.
 
 ---
 
@@ -341,6 +506,20 @@ The first fully implemented ruleset. Covers:
 
 The game system layer should be architected to support other TTRPGs beyond D&D 5e. Specific systems are TBD but the design goal is that adding a new ruleset does not require core engine changes.
 
+### System Architecture (High Level)
+
+The codebase is divided into two layers:
+
+**Core layer** — game-agnostic. Handles the map, tiles, props, miniatures, dice physics, chat, session management, the Campaign Manager, asset library, and notes. This layer has no knowledge of any specific ruleset.
+
+**Game system plugin layer** — sits on top of the core. Defines everything ruleset-specific: character sheet fields and layout, stat calculations, conditions and their effects, action economy, spell/ability systems, XP and leveling, campaign card content, and leveling flow. Each supported TTRPG is implemented as a separate plugin. Adding a new system means building a new plugin, not changing the core.
+
+**Campaign locking:** A campaign is locked to one game system at creation. Mixing systems within a single campaign is not supported.
+
+**Rule variants:** Within a known system, the GM can configure which rule variants the campaign follows — alternate diagonal movement rulings, optional rules, common house rules, etc. These are configuration knobs on top of a system plugin, not a separate system.
+
+**Custom rulesets:** Full user-created game systems are a potential future addition but are explicitly out of scope for now. The plugin architecture does not need to account for this yet — it is noted only so the design is not closed off entirely.
+
 ---
 
 ## Out of Scope
@@ -348,7 +527,6 @@ The game system layer should be architected to support other TTRPGs beyond D&D 5
 The following are explicitly not planned for the current development arc:
 
 - A built-in video/voice chat system — players are expected to use a separate tool (Discord, etc.)
-- A campaign management tool or session notes system (may be revisited)
 - An AI game master or procedural content generation
 - Mobile or web platforms (PC-first)
 - A marketplace or community asset library
@@ -358,36 +536,53 @@ The following are explicitly not planned for the current development arc:
 
 ## Open Questions (Master List)
 
-A consolidated list of unresolved design decisions:
+Resolved questions are struck through and kept for reference. Genuinely open items are listed at the top.
 
-1. ~~Does the GM share the player camera view, or have a separate God-view camera?~~ — **Resolved:** GM has a separate God-view camera with full map visibility, but vision-blocking effects (e.g., Sphere of Darkness) still apply based on what controlled NPCs can perceive.
-2. ~~Are GM permissions enforced in code, or trust-based initially?~~ — **Resolved:** Enforced in code. GM can grant/revoke per-player permissions. Specific permission types TBD.
-3. ~~Can the GM roll dice for NPCs with results hidden from players?~~ — **Resolved:** Yes. Any user can make a roll private, visible only to chosen recipients. The GM can reveal hidden rolls at any time.
-4. ~~Should advantage/disadvantage be built into the dice UI?~~ — **Resolved:** Yes, and it applies to any die type, not just D20.
-5. ~~Does the GM need a private whisper channel in chat?~~ — **Resolved:** Any user can send private messages or private rolls to any other user(s). Not GM-exclusive.
-6. ~~Does the chat log persist across saves?~~ — **Resolved:** Yes. All messages and roll results are saved and restored on reload.
-7. ~~What is the base map format — flat image, tile-based, or both?~~ — **Resolved:** 3D tile/prop map builder is the primary format and main differentiator. Flat image support is secondary. Maps come in two types: Combat Map (tactical scale) and World/Region Map (travel scale). World maps can link to combat maps via location pins.
-8. ~~How does miniature scale map to in-world units?~~ — **Resolved:** Combat maps follow game system rules (e.g., 1 tile = 5 feet in D&D 5e). Non-combat maps have no enforced scale.
-9. What is the default miniature when no custom mesh is provided? — **Deferred:** Game will ship with built-in defaults and customization options. Final design TBD as project matures.
-10. ~~Does initiative roll automatically from stats, or always manual?~~ — **Resolved:** Both. Manual and automatic rolling are supported depending on the situation.
-11. ~~Is the initiative tracker always visible or GM-toggled?~~ — **Resolved:** Always visible to all players. GM has a private staging list for combatants not yet in combat.
-12. ~~Is the character sheet visible only to the owner and GM, or all players?~~ — **Resolved:** Visible to owner, GM, and anyone the owner chooses to share it with.
-13. ~~Can the GM directly edit a player's character sheet?~~ — **Partially resolved:** Yes, to some extent, but with limits. Specific limits TBD when character sheet is built.
-14. ~~What mesh formats are supported for custom mini import?~~ — **Resolved:** glTF with Draco compression is the target format. Compact, Blender-compatible, UE5 runtime support via plugin. Implementation deferred until mesh import phase.
-15. ~~Does imported asset library persist between sessions?~~ — **Resolved:** Assets are stored on the owner's local machine and persist across all sessions, campaigns, and games. Cloud storage is a future option.
-16. ~~Is spell management in scope for the D&D 5e first pass?~~ — **Resolved:** Yes. Full spell management (slots, concentration, components) is in scope.
-17. ~~Should conditions be auto-applied or always manual?~~ — **Resolved:** Auto-applied when a triggering event occurs. Auto-apply is toggleable per table preference.
-18. Listen server or dedicated server? — **Deferred (technical):** Needs research before multiplayer architecture is finalized.
-19. ~~Maximum player count per session?~~ — **Resolved:** Default max of 8 (GM included), removable cap, off by default. No hard engine limit.
-20. ~~What happens when the GM disconnects?~~ — **Partially resolved:** Server Owner and Host are separate roles. Certain actions lock when no Host is present. Full policy TBD.
-24. Should the Host be able to delegate specific powers to individual players? (e.g., allow a player to move enemy tokens, bring in a map) — **Tentatively resolved:** Yes. Delegation is supported as part of the Host permission system. Specific permission types TBD when the system is built.
-21. Lobby/matchmaking or direct IP? — **Deferred (technical):** To be decided alongside question 18.
-22. ~~Dark/neutral UI theme or fantasy/themed aesthetic?~~ — **Resolved:** No fixed default. Theme is decoupled from game system and fully customizable per player. Game system may suggest a matching default theme.
-23. ~~Are UI panels fixed layout or draggable/resizable?~~ — **Resolved:** Fully draggable, resizable, and toggleable. Player controls their own layout. Collapsed panels show notifications when activity occurs inside them.
+### Still Open
+
+1. **Server model** — Leaning listen server; pending technical validation in UE5.
+2. **Host disconnect policy** — Certain actions lock when no Host is present. Full policy TBD when session management is built.
+3. **GM/Host permission types** — Fine-grained per-player permissions are enforced in code. Specific permission list TBD when the system is built.
+4. **Host delegation permission types** — Delegation is supported. Specific delegatable actions TBD when built.
+5. **Scheduling extensiveness** — Minimum: meeting days/frequency/session length. Calendar integration, reminders, RSVP tracking possible. Scope TBD.
+6. **Campaign Manager layout** — Two candidates (collapsible grid vs. tab sidebar). TBD during UI design pass.
+7. **Notification style** — Badge count, flash, icon, or other. TBD during UI design pass.
+
+### Resolved
+
+1. ~~Does the GM share the player camera view, or have a separate God-view camera?~~ — **Resolved:** GM has a separate God-view camera with full map visibility, but vision-blocking effects still apply based on what controlled NPCs can perceive.
+2. ~~Are GM permissions enforced in code, or trust-based initially?~~ — **Resolved:** Enforced in code.
+3. ~~Can the GM roll dice for NPCs with results hidden from players?~~ — **Resolved:** Yes. Any user can make a roll private. The GM can reveal hidden rolls at any time.
+4. ~~Should advantage/disadvantage be built into the dice UI?~~ — **Resolved:** Yes, applies to any die type.
+5. ~~Does the GM need a private whisper channel in chat?~~ — **Resolved:** Any user can send private messages or rolls. Not GM-exclusive.
+6. ~~Does the chat log persist across saves?~~ — **Resolved:** Yes.
+7. ~~What is the base map format?~~ — **Resolved:** 3D tile/prop builder (primary). Two map types: Combat Map and World/Region Map. World maps link to combat maps via location pins.
+8. ~~How does miniature scale map to in-world units?~~ — **Resolved:** Combat maps follow game system rules (1 tile = 5ft in D&D 5e). Non-combat maps have no enforced scale.
+9. ~~What is the default miniature?~~ — **Resolved:** Wooden artist's mannequin, natural wood tone, animated if possible. Used for all entity types, scaled as needed.
+10. ~~Does initiative roll automatically or always manual?~~ — **Resolved:** Both supported.
+11. ~~Is the initiative tracker always visible or GM-toggled?~~ — **Resolved:** Always visible. GM has a private staging list for combatants not yet in combat.
+12. ~~Is the character sheet visible only to the owner and GM?~~ — **Resolved:** Visible to owner, GM, and anyone the owner shares it with.
+13. ~~Can the GM directly edit a player's character sheet?~~ — **Resolved:** No direct edits to stats, HP, or build fields. GM can award XP and signal a level-up. All other changes come through game events.
+14. ~~What mesh formats are supported for custom imports?~~ — **Resolved:** glTF with Draco compression. Implementation deferred until mesh import phase.
+15. ~~Does the asset library persist between sessions?~~ — **Resolved:** Yes, stored locally on the owner's machine.
+16. ~~Is spell management in scope for D&D 5e first pass?~~ — **Resolved:** Yes.
+17. ~~Should conditions be auto-applied or always manual?~~ — **Resolved:** Auto-applied, with a GM toggle per table preference.
+18. ~~Maximum player count per session?~~ — **Resolved:** Default max 8, removable cap, off by default.
+19. ~~What happens when the GM disconnects?~~ — **Partially resolved:** Certain actions lock when no Host is present. Full policy TBD when session management is built. (See open question 2.)
+20. ~~Lobby/matchmaking or direct IP?~~ — **Resolved:** Public browser with filters + direct invite link/code. No separate lobby needed.
+21. ~~Should notes support rich-text formatting?~~ — **Resolved:** Yes. Headers, bullets, bold, italic.
+22. ~~Should notes be accessible outside of an active session?~~ — **Resolved:** Yes, via Campaign Manager.
+23. ~~Dark/neutral UI theme or fantasy/themed aesthetic?~~ — **Resolved:** No fixed default. Theme is decoupled from game system and customizable per player.
+24. ~~Are UI panels fixed layout or draggable/resizable?~~ — **Resolved:** Fully draggable, resizable, and toggleable. Layout persists per user.
+25. ~~Should the Host be able to delegate specific powers to players?~~ — **Resolved:** Yes. Specific delegatable actions TBD when built. (See open question 4.)
 
 ---
 
 *Last updated: 2026-04-03* — Map system redesigned as a 3D tile/prop builder (primary differentiator). Added Combat Map and World/Region Map scale modes with location pin linking. Host/Server Owner roles clarified and separated. Custom content section rewritten with auto-distribution model (no placeholders), glTF format decision, and manual peer-to-peer sharing. Host delegation added as a resolved design question. Player Roles section restructured with Server Owner and Host as distinct entries.
+
+*2026-04-03 (continued)* — Shared Notes updated: rich-text formatting confirmed, out-of-session access confirmed via Campaign Manager. Home Screen Play button now leads to Campaign Manager. Campaign Manager section added: layout TBD (grid with collapsible columns or tab sidebar), campaign creation with private/public modes, public browser with filters, campaign card contents defined for D&D 5e. Scheduling added as in-scope with extensiveness TBD.
+
+*2026-04-03 (continued)* — Character Sheet GM edit limits fully resolved. Miniatures: default mini (wooden artist's mannequin), movement rules, difficult terrain, diagonal ruling all added. Multiplayer: server model (leaning listen), session discovery, join flow (invite code vs. public request with temporary chat), pre-session lobby all documented. Game Systems architecture defined: core layer + game system plugin layer, rule variants, campaign locking, custom rulesets deferred. Combat section added: GM-driven start/end. Initiative Tracker expanded: round tracking, manual turn advancement, skip/delay, removing combatants. Fog of War fully designed including camera boundary. Sound and Music added: all types, proximity-based SFX, map-baked audio, built-in library. Player Profiles added. Character Creation added: root + game system layer. Inventory and Loot added: send flow, GM item list, custom items. Measurement Tools noted as in scope. Entity Management Panel added. Session Save/Load fully designed. Vision system documented: player vs. character vision separation, outline tracking for vision-blocking effects. Out of Scope updated: campaign management and notes removed (now in scope).
 
 ---
 

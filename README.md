@@ -9,14 +9,24 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 ### Features (planned)
 - Physics-based dice rolling with full result history
 - Private and public chat with dice result integration
-- Collaborative shared notes
+- Collaborative shared notes with rich-text formatting, accessible between sessions
 - **3D map builder** — place tiles and props to build environments in real time; supports elevation, multi-floor layouts, and variable tile sizes; Combat Map and World/Region Map scale modes; world maps link to combat maps via location pins
-- 3D miniatures with fog of war and vision effects
-- Initiative tracker with Host staging list
-- D&D 5e character sheets, spell management, and condition tracking
+- Fog of war with GM-controlled reveal, camera boundary enforcement, and optional auto-reveal by token line of sight
+- 3D miniatures with movement range enforcement, difficult terrain, and diagonal ruling options
+- Initiative tracker with round tracking, staging list, skip/delay, and manual turn advancement
+- Combat flow managed by GM: start, end, and entity management panel for NPCs, summoned creatures, and companions
+- D&D 5e character sheets, spell management, and condition tracking; game system plugin architecture supports additional TTRPGs
+- Character creation with root layer (universal) and game system layer (ruleset-specific)
+- Inventory and loot system with GM item list, send-to-player flow, and custom item creation
+- Campaign Manager — browse, create, and manage campaigns; public browser with filters; private/public campaigns; invite codes; pre-session lobby
+- Player profiles with username, bio, and games played (app history + self-reported)
+- Scheduling system for session frequency, meeting days, and session length
+- Session save/load with autosave, configurable intervals, and on-close save
+- Measurement tools (ruler, AoE templates) universal across game systems
+- Sound and music — ambient, music, and proximity-based SFX; map-baked audio; built-in asset library
 - Per-player customizable UI with draggable, resizable panels
-- Custom user-imported 3D assets (tiles, props, minis, dice, sounds) via glTF; auto-distributed to all session clients on map load
-- Multiplayer with separate Server Owner and Host roles
+- Custom user-imported 3D assets (tiles, props, minis, dice, sounds) via glTF; auto-distributed to all session clients on map load; built-in library included
+- Multiplayer with separate Server Owner and Host roles; listen server model
 
 ## Credits
 - **Kenney Impact Sounds** — [kenney.nl](https://www.kenney.nl) (CC0)
