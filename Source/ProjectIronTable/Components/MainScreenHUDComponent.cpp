@@ -7,6 +7,7 @@
 #include "Components/WidgetSwitcher.h"
 #include "SettingsSlider.h"
 #include "FunctionLibrary.h"
+#include "CameraSettingsSave.h"
 
 // Disables tick.
 UMainScreenHUDComponent::UMainScreenHUDComponent()
@@ -25,6 +26,7 @@ void UMainScreenHUDComponent::BeginPlay()
 		PlayerControllerRef->IsLocalPlayerController() &&
 		MainScreenClass)
 	{
+
 		MainScreenRef = CreateWidget<UUserWidget>(GetWorld(), MainScreenClass);
 		MainScreenRef->AddToViewport();
 
@@ -108,6 +110,31 @@ void UMainScreenHUDComponent::BeginPlay()
 			{
 				SettingsResetButtonRef->OnClicked.AddDynamic(this, &UMainScreenHUDComponent::OnResetClicked);
 			}
+
+			if (UGameplayStatics::DoesSaveGameExist(TEXT("CameraSettings"), 0))
+			{
+				USaveGame* LoadedSave = UGameplayStatics::LoadGameFromSlot(TEXT("CameraSettings"), 0);
+				if (UCameraSettingsSave* CameraSettingsSave = Cast<UCameraSettingsSave>(LoadedSave))
+				{
+					MaxCamSpeedSliderRef->SetValue(CameraSettingsSave->MaxCameraMovementSpeed);
+					MinCamSpeedSliderRef->SetValue(CameraSettingsSave->MinCameraMovementSpeed);
+					CamSpeedMultiplierSliderRef->SetValue(CameraSettingsSave->CameraSpeedMultiplier);
+					MaxPitchSliderRef->SetValue(CameraSettingsSave->MaxCameraPitch);
+					MinPitchSliderRef->SetValue(CameraSettingsSave->MinCameraPitch);
+					PanMultiplierSliderRef->SetValue(CameraSettingsSave->CameraPanSpeedMultiplier);
+					MaxZoomSliderRef->SetValue(CameraSettingsSave->MaxZoomLength);
+					MinZoomSliderRef->SetValue(CameraSettingsSave->MinZoomLength);
+					ZoomSpeedSliderRef->SetValue(CameraSettingsSave->ZoomSpeed);
+				}
+				else
+				{
+					UE_LOG(LogTemp, Warning, TEXT("Failed to cast loaded save to UCameraSettingsSave"));
+				}
+			}
+			else
+			{
+				OnResetClicked();
+			}
 		}
 	}
 }
@@ -152,7 +179,22 @@ void UMainScreenHUDComponent::OnQuitClicked()
 // Reads all slider values, populates a UCameraSettingsSave, and saves to slot "CameraSettings".
 void UMainScreenHUDComponent::OnApplyClicked()
 {
-	
+	UCameraSettingsSave* SaveObject = Cast<UCameraSettingsSave>(UGameplayStatics::CreateSaveGameObject(UCameraSettingsSave::StaticClass()));
+
+	if (SaveObject)
+	{
+		SaveObject->MaxCameraMovementSpeed = MaxCamSpeedSliderRef->GetValue();
+		SaveObject->MinCameraMovementSpeed = MinCamSpeedSliderRef->GetValue();
+		SaveObject->CameraSpeedMultiplier = CamSpeedMultiplierSliderRef->GetValue();
+		SaveObject->MaxCameraPitch = MaxPitchSliderRef->GetValue();
+		SaveObject->MinCameraPitch = MinPitchSliderRef->GetValue();
+		SaveObject->CameraPanSpeedMultiplier = PanMultiplierSliderRef->GetValue();
+		SaveObject->MaxZoomLength = MaxZoomSliderRef->GetValue();
+		SaveObject->MinZoomLength = MinZoomSliderRef->GetValue();
+		SaveObject->ZoomSpeed = ZoomSpeedSliderRef->GetValue();
+
+		UGameplayStatics::SaveGameToSlot(SaveObject, TEXT("CameraSettings"), 0);
+	}
 }
 
 // Resets all sliders to their default values then applies and saves the defaults.

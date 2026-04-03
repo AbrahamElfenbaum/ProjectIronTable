@@ -6,6 +6,7 @@
 #include "Taskbar.generated.h"
 
 class UTaskbarButton;
+class UButton;
 
 /**
  * Taskbar widget displayed at the bottom of the screen. Holds toggle buttons for all registered HUD widgets.
@@ -29,10 +30,21 @@ private:
 	/** Horizontal container holding all taskbar buttons. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UHorizontalBox> ButtonContainer;
+
+	/** Button the player clicks to reset all panels to their default sizes and positions. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> ResetButton;
 #pragma endregion
+
+protected:
+	virtual void NativeConstruct() override;
 
 public:
 	/** Creates a TaskbarButton for the given widget and adds it to the taskbar. */
 	UTaskbarButton* RegisterWidget(UUserWidget* Widget, FString Label);
+
+	/** Resets all panels to their default sizes and positions */
+	UFUNCTION()
+	void ResetLayout();
 
 };

@@ -40,6 +40,9 @@ public:
 	/** Assigns the widget to track and sets the button label. */
 	void SetTrackedWidget(UUserWidget*, FString Label);
 
+	/** Returns the widget being tracked by this button. */
+	UUserWidget* GetTrackedWidget() const;
+
 	/** Toggles the tracked widget between Visible and Collapsed. */
 	UFUNCTION()
 	void OnToggleClicked();

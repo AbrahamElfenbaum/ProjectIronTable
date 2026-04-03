@@ -89,3 +89,12 @@ void UDraggablePanel::ApplyPanelLayoutData(const FPanelLayoutData& LayoutData)
 	CanvasSlot->SetSize(LayoutData.Size);
 	SetVisibility(LayoutData.bVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 }
+
+// Resets the panel to its default position and size. Does not affect visibility.
+void UDraggablePanel::ResetToDefaultLayout()
+{
+	CanvasSlot->SetPosition(DefaultPosition);
+	CanvasSlot->SetSize(DefaultSize);
+
+	OnPanelStateChanged.Broadcast();
+}

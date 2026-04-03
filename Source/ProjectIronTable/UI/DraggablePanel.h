@@ -36,6 +36,14 @@ public:
 	/** Default title displayed in the panel header. Set at runtime via SetPanelTitle. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FText PanelTitle;
+
+	/** Default position to reset to. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FVector2D DefaultPosition;
+
+	/** Default size to reset to. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FVector2D DefaultSize;
 #pragma endregion
 
 private:
@@ -113,6 +121,9 @@ public:
 
 	/** Applies the given panel layout data to restore position, size, and visibility. */
 	void ApplyPanelLayoutData(const FPanelLayoutData& LayoutData);
+
+	/** Resets the panel to its default position and size. Does not affect visibility. */
+	void ResetToDefaultLayout();
 
 	/** Broadcast when the panel finishes being dragged or resized, signaling that the layout should be saved. */
 	FOnPanelStateChanged OnPanelStateChanged;

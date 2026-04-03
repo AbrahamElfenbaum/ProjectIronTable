@@ -19,6 +19,11 @@ void UTaskbarButton::SetTrackedWidget(UUserWidget* Widget, FString Label)
 	WidgetLabel->SetText(FText::FromString(Label));
 }
 
+UUserWidget* UTaskbarButton::GetTrackedWidget() const
+{
+	return TrackedWidget;
+}
+
 // Collapses the tracked widget if visible, or restores it if collapsed.
 void UTaskbarButton::OnToggleClicked()
 {

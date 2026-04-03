@@ -239,7 +239,7 @@ Accessible from the home screen via a Library button. A file explorer-style view
 
 **Theming:** There is no single fixed default theme. The UI theme can change based on the game being played, and individual players can customize their own theme to suit their preferences. This implies a theming/skin system that is decoupled from game system — switching from D&D 5e to another system could offer a matching default theme, but players are never locked into it.
 
-**Panel layout:** All UI panels are draggable, resizable, and toggleable (collapsible/hideable). Players have complete control over how their HUD is arranged. Panel layout persists per user across sessions — position, size, and collapsed state are all saved locally and restored on next launch.
+**Panel layout:** All UI panels are draggable, resizable, and toggleable (collapsible/hideable). Players have complete control over how their HUD is arranged. Panel layout persists per user across sessions — position, size, and collapsed state are all saved locally and restored on next launch. A Reset Layout button on the far right of the taskbar restores all panels to their default positions and sizes without affecting visibility.
 
 **Notifications:** When something occurs in a collapsed or hidden panel — a new chat message, a dice result, an initiative change — the player receives a visible notification on or near that panel so nothing is missed. The specific notification style (badge count, flash, icon) is TBD.
 
@@ -328,7 +328,7 @@ A consolidated list of unresolved design decisions:
 
 ---
 
-*Last updated: 2026-04-02* — No design decisions changed this session. Implementation refactor only (class renames, folder restructure, Blueprint work for settings screen).
+*Last updated: 2026-04-02* — Added panel layout reset button to UI/UX section. Settings screen fully implemented (save/load/defaults). Reset Layout button added to taskbar.
 
 ---
 

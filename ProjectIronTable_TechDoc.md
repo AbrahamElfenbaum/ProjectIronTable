@@ -310,12 +310,12 @@ Manages the main screen UI — creates the widget, caches all refs, and handles 
 - `OnSettingsClicked` → `ScreenSwitcherRef->SetActiveWidgetIndex(1)`
 - `OnBackClicked` → `ScreenSwitcherRef->SetActiveWidgetIndex(0)` — shared handler, not region-specific; reused by all future screens with a Back button
 - `OnResetClicked` → iterates `SettingsSliders` TArray, calls `ResetToDefault()` on each, then calls `OnApplyClicked()`
-- `OnApplyClicked` → stub (reads sliders → saves `UCameraSettingsSave` to slot `"CameraSettings"` — not yet implemented)
+- `OnApplyClicked` → creates `UCameraSettingsSave`, reads all 9 slider values into fields, calls `SaveGameToSlot("CameraSettings", 0)`
 - `OnJoinClicked`, `OnLibraryClicked` → stubs (not yet implemented)
 
 **Runtime:** `SettingsSliders` (`TArray<USettingsSlider*>`, `UPROPERTY()`) — all 9 slider refs in order for batch reset operations.
 
-> **Note:** `OnApplyClicked` and slider initialization from saved values are the remaining tasks.
+**BeginPlay save init:** After caching slider refs, checks `DoesSaveGameExist("CameraSettings", 0)`. If yes — loads and casts to `UCameraSettingsSave`, calls `SetValue` on each slider. If no — calls `OnResetClicked()` to apply defaults and create the save file on first launch.
 
 ---
 
@@ -361,14 +361,17 @@ Makes any content widget draggable and resizable at runtime. **Must be inside a 
 
 **Bound Widgets:** `DragHandle` (`UWidget`), `ContentSlot` (`UNamedSlot`), `ResizeCorner` (`UWidget`), `TitleText` (`UTextBlock`)
 
-**Config (EditAnywhere):** `TitleBarHeight`, `MinSize` (`FVector2D`), `PanelTitle` (`FText`)
+**Config (EditAnywhere):** `TitleBarHeight`, `MinSize` (`FVector2D`), `PanelTitle` (`FText`), `DefaultPosition` (`FVector2D`), `DefaultSize` (`FVector2D`)
 
 **Key Methods:**
 - `SetPanelID(FString)` / `GetPanelID()` — ID used as save key
 - `GetPanelLayoutData()` — returns current position, size, visibility as `FPanelLayoutData`
 - `ApplyPanelLayoutData(const FPanelLayoutData&)` — restores position, size, visibility
+- `ResetToDefaultLayout()` — sets position and size to `DefaultPosition`/`DefaultSize`, broadcasts `OnPanelStateChanged` to trigger save
 
-**Delegate:** `OnPanelStateChanged` (zero-param) — broadcast on drag/resize stop; triggers `SavePanelLayout`
+**Delegate:** `OnPanelStateChanged` (zero-param) — broadcast on drag/resize/reset stop; triggers `SavePanelLayout`
+
+> **Note:** `DefaultPosition` and `DefaultSize` must be set as `EditAnywhere` properties in the Blueprint — canvas slot values are 0,0 at `NativeConstruct` time and cannot be cached there reliably.
 
 ---
 
@@ -409,12 +412,16 @@ Manages all dice selectors and initiates rolls.
 
 Taskbar at the bottom of the screen. Each button toggles a tracked `UUserWidget` between visible and collapsed.
 
+**UTaskbar — Bound Widgets:** `ButtonContainer` (`UHorizontalBox`), `ResetButton` (`UButton`)
+
 **UTaskbar — Key Methods:**
 - `RegisterWidget(UUserWidget*, FString Label)` → `UTaskbarButton*` — creates button, adds to container, returns it for delegate binding
+- `ResetLayout()` — iterates `ButtonContainer` children, casts each to `UTaskbarButton`, casts `TrackedWidget` to `UDraggablePanel`, calls `ResetToDefaultLayout()` on each. Bound to `ResetButton` in `NativeConstruct`.
 
 **UTaskbarButton — Delegate:** `OnToggled` (zero-param) — broadcast after each toggle
 
 > **Note:** Toggle logic must use `if (Collapsed) → Visible; else → Collapsed` — default widget visibility is `SelfHitTestInvisible`, not `Visible`.
+> **Note:** `ResetLayout` casts `TrackedWidget` to `UDraggablePanel` — non-panel tracked widgets are silently skipped via null check.
 
 ---
 
@@ -611,6 +618,7 @@ General-purpose helper functions accessible from C++ and Blueprint.
 - `UPhysicalMaterial` requires the `PhysicsCore` module in `Build.cs`
 - A `USTRUCT` or `UCLASS` member that holds raw `UObject*` pointers (including `TArray<UObject*>`) must use `UPROPERTY()` — without it the GC can't track the references and they may be prematurely collected
 - `USlider::SetValue` fires `OnValueChanged` the same as a user drag — guard with `ClampedValue != Value` to prevent recursion
+- **Canvas slot position/size are 0,0 at `NativeConstruct` time** — do not cache `CanvasSlot->GetPosition()/GetSize()` there for use as defaults. Use `EditAnywhere UPROPERTY` fields instead and set them manually in the Blueprint.
 - **C++ template functions cannot be `UFUNCTION()`** — templated methods are not compatible with Unreal's reflection system. Blueprint-accessible utilities need a non-template wrapper with a `UClass*` + manual cast, or just remain C++-only
 
 ---
@@ -657,7 +665,7 @@ General-purpose helper functions accessible from C++ and Blueprint.
   - [x] `USettingsSlider` — reusable slider+text widget with paired min/max clamping
   - [x] `WE_SettingsSlider` — Blueprint widget layout
   - [x] `S_SettingsScreen` — 9 sliders wired and grouped; Apply, Reset, Back buttons added
-  - [ ] `UMainScreenHUDComponent` settings wiring — `OnApplyClicked` (read sliders → save `UCameraSettingsSave`) and slider init from saved values still pending; all other handlers wired
+  - [x] `UMainScreenHUDComponent` settings wiring — all handlers wired; save/load on BeginPlay; first-launch defaults handled
 - [x] Private messaging — `@Name` syntax, per-conversation tabs, server-side routing
 - [x] Panel layout persistence — `UPanelLayoutSave`; saved on drag/resize/toggle; restored on startup
 - [x] Taskbar minimize system — `UTaskbar` + `UTaskbarButton`
@@ -747,7 +755,7 @@ General-purpose helper functions accessible from C++ and Blueprint.
 
 ---
 
-*Last updated: 2026-04-02* — `UFunctionLibrary::GetTypedWidgetFromName<T>` added (replaces all `Cast<T>(Widget->GetWidgetFromName(...))` calls). `UMainScreenHUDComponent` settings wiring mostly complete: all refs cached, `OnSettingsClicked`/`OnBackClicked`/`OnResetClicked` wired, `SettingsSliders` TArray added. `OnApplyClicked` and slider init from saved values still pending.
+*Last updated: 2026-04-02* — `UMainScreenHUDComponent` settings fully complete: `OnApplyClicked` implemented, BeginPlay loads saved values and handles first-launch defaults. `UDraggablePanel` gained `DefaultPosition`/`DefaultSize` (EditAnywhere) and `ResetToDefaultLayout()`. `UTaskbar` gained `ResetButton` + `ResetLayout()` — resets all registered panels to their Blueprint-configured defaults without affecting visibility.
 
 ---
 
