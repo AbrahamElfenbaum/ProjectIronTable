@@ -61,7 +61,8 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - `PlayerControllers/` — Player controllers (`AGameplayController`, `AMainScreenController`)
 - `PlayerList/` — Player list widget classes (`UPlayerList`, `UPlayerRow`)
 - `SaveLoad/` — Save game classes (`UPanelLayoutSave`, `UCameraSettingsSave`)
-- `UI/` — Non-chat widget classes (`UDiceSelector`, `UDiceSelectorManager`, `UTaskbar`, `UTaskbarButton`, `UDraggablePanel`, `UDragHandle`, `UResizeHandle`, `USettingsSlider`)
+- `Settings/` — Settings widget classes (`UCameraSettingsPanel`, `USettingsScreen`)
+- `UI/` — Non-chat widget classes (`UDiceSelector`, `UDiceSelectorManager`, `UTaskbar`, `UTaskbarButton`, `UDraggablePanel`, `UDragHandle`, `UResizeHandle`, `USettingsSlider`, `UHomeScreen`)
 - `Physics/Materials/` — Physical material assets (friction, restitution for dice)
 - `Utility/` — Blueprint function libraries (`UFunctionLibrary`)
 
@@ -90,4 +91,5 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - `UI/Utility/` — Reusable utility widgets (`W_DraggablePanel`, `WBP_DragHandle`, `WBP_ResizeHandle`)
 - `UI/Screens/` — Full screen widgets (`S_GameplayScreen`, `S_HomeScreen`, `S_MainScreen`, `S_SettingsScreen`)
 - `UI/Settings/` — Settings widget elements (`WE_SettingsSlider`)
+- `UI/Settings/Panels/` — Settings panel widgets (`WE_CameraSettingsPanel`)
 - `UI/Testing/` — Debug/test widgets (`WE_DebugDisplay`)

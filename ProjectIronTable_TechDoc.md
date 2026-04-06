@@ -25,7 +25,8 @@ Source/ProjectIronTable/
 ├── PlayerControllers/ — Player controller classes
 ├── PlayerList/        — Player list widget classes (PlayerList, PlayerRow)
 ├── SaveLoad/          — Save game classes (PanelLayoutSave, CameraSettingsSave)
-├── UI/                — Non-chat widget classes (no HUD components)
+├── Settings/          — Settings widget classes (CameraSettingsPanel, SettingsScreen)
+├── UI/                — Non-chat widget classes (no HUD components; HomeScreen lives here)
 └── Utility/           — Function libraries and general-purpose helpers
 ```
 
@@ -52,6 +53,7 @@ Content/
 │   ├── PlayerList/             — W_PlayerList, WE_PlayerRow
 │   ├── Screens/                — S_GameplayScreen, S_HomeScreen, S_MainScreen, S_SettingsScreen
 │   ├── Settings/               — WE_SettingsSlider
+│   │   └── Panels/             — WE_CameraSettingsPanel
 │   ├── HUD/                    — W_Taskbar, WE_TaskbarButton
 │   ├── Utility/                — W_DraggablePanel, WE_DragHandle, WE_ResizeHandle
 │   └── Testing/                — WE_DebugDisplay
@@ -294,28 +296,21 @@ Persists all nine camera config properties across sessions.
 **Type:** `UActorComponent` | **Blueprint:** `BP_HomeScreenHUDComponent` (rename pending)
 **Owner:** `AMainScreenController`
 
-Manages the main screen UI — creates the widget, caches all refs, and handles screen navigation and settings.
+Handles screen-level navigation only. Creates the root `S_MainScreen` widget, gets refs to `UHomeScreen` and `USettingsScreen`, calls `Init()` on each, and wires their navigation delegates to the `ScreenSwitcher`.
 
 **Config:**
 - `MainScreenClass` (`TSubclassOf<UUserWidget>`) — **must be set on the component instance inside `PC_MainScreen`**, not on a standalone component Blueprint
 
-**Widget names (must match exactly):**
-- Home screen: `PlayButton`, `JoinButton`, `LibraryButton`, `SettingsButton`, `QuitButton`
-- Settings screen: `MinCamSpeed`, `MaxCamSpeed`, `CamSpeedMultiplier`, `MinPitch`, `MaxPitch`, `PanMultiplier`, `MinZoom`, `MaxZoom`, `ZoomSpeed`, `ApplyButton`, `ResetButton`, `BackButton`
-- Root: `ScreenSwitcher` (`UWidgetSwitcher`), `HomeScreen`, `SettingsScreen`
+**Widget names it searches for (must match exactly):**
+- `ScreenSwitcher` (`UWidgetSwitcher`) — root switcher on `S_MainScreen`
+- `HomeScreen` (`UHomeScreen`) — index 0
+- `SettingsScreen` (`USettingsScreen`) — index 1
 
 **Handlers:**
-- `OnPlayClicked` → `OpenLevel("L_Gameplay")`
-- `OnQuitClicked` → `QuitGame`
-- `OnSettingsClicked` → `ScreenSwitcherRef->SetActiveWidgetIndex(1)`
-- `OnBackClicked` → `ScreenSwitcherRef->SetActiveWidgetIndex(0)` — shared handler, not region-specific; reused by all future screens with a Back button
-- `OnResetClicked` → iterates `SettingsSliders` TArray, calls `ResetToDefault()` on each, then calls `OnApplyClicked()`
-- `OnApplyClicked` → creates `UCameraSettingsSave`, reads all 9 slider values into fields, calls `SaveGameToSlot("CameraSettings", 0)`
-- `OnJoinClicked`, `OnLibraryClicked` → stubs (not yet implemented)
+- `OnSettingsClicked` → `ScreenSwitcherRef->SetActiveWidgetIndex(1)` — bound to `UHomeScreen::OnSettingsRequested`
+- `OnBackClicked` → `ScreenSwitcherRef->SetActiveWidgetIndex(0)` — bound to `USettingsScreen::OnBackRequested`
 
-**Runtime:** `SettingsSliders` (`TArray<USettingsSlider*>`, `UPROPERTY()`) — all 9 slider refs in order for batch reset operations.
-
-**BeginPlay save init:** After caching slider refs, checks `DoesSaveGameExist("CameraSettings", 0)`. If yes — loads and casts to `UCameraSettingsSave`, calls `SetValue` on each slider. If no — calls `OnResetClicked()` to apply defaults and create the save file on first launch.
+> Does **not** own any button refs, slider refs, or save/load logic — all of that lives in `UHomeScreen` and `UCameraSettingsPanel`.
 
 ---
 
@@ -345,7 +340,62 @@ Manages the gameplay HUD lifecycle and all chat networking.
 
 ---
 
+### Settings/
+
+#### UCameraSettingsPanel
+**Type:** `UUserWidget` | **Blueprint:** `WE_CameraSettingsPanel` (`Content/UI/Settings/Panels/`)
+
+Self-contained camera settings panel. Owns all 9 `USettingsSlider` refs, the Apply button, and the Reset button. Handles save/load of `UCameraSettingsSave` from the `"CameraSettings"` slot independently.
+
+**Bound Widgets:** `MinCamSpeed`, `MaxCamSpeed`, `CamSpeedMultiplier`, `MinPitch`, `MaxPitch`, `PanMultiplier`, `MinZoom`, `MaxZoom`, `ZoomSpeed` (`USettingsSlider`), `ApplyButton`, `ResetButton` (`UButton`)
+
+**Key Methods:**
+- `Init()` — populates the `SettingsSliders` TArray, binds Apply/Reset button delegates, loads `"CameraSettings"` save slot (or applies defaults on first launch)
+
+**Runtime:** `SettingsSliders` (`TArray<USettingsSlider*>`, `UPROPERTY()`) — all 9 refs in order for batch reset.
+
+**Handlers:**
+- `OnApplyClicked` — creates `UCameraSettingsSave`, reads all 9 slider values, calls `SaveGameToSlot("CameraSettings", 0)`
+- `OnResetClicked` — calls `ResetToDefault()` on all sliders, then `OnApplyClicked`
+
+---
+
+#### USettingsScreen
+**Type:** `UUserWidget` | **Blueprint:** `S_SettingsScreen`
+
+Root settings screen widget. Hosts a `UWidgetSwitcher` for future panel navigation and exposes a delegate that fires when the user clicks Back.
+
+**Bound Widgets:** `PanelSwitcher` (`UWidgetSwitcher`), `BackButton` (`UButton`), `CameraSettingsPanel` (`UCameraSettingsPanel`)
+
+**Delegates:**
+- `OnBackRequested` (`FOnBackRequested`, BlueprintAssignable) — broadcast on Back button click; bound by `UMainScreenHUDComponent` to navigate back to the home screen
+
+**NativeConstruct:** binds `BackButton` click → broadcasts `OnBackRequested`, calls `CameraSettingsPanel->Init()`
+
+---
+
 ### UI/
+
+#### UHomeScreen
+**Type:** `UUserWidget` | **Blueprint:** `S_HomeScreen`
+
+Home screen widget. Owns all five home screen buttons and exposes delegates for screen-level navigation.
+
+**Bound Widgets:** `PlayButton`, `JoinButton`, `LibraryButton`, `SettingsButton`, `QuitButton` (`UButton`)
+
+**Delegates:**
+- `OnSettingsRequested` (BlueprintAssignable) — bound by `UMainScreenHUDComponent` → switches to settings screen
+- `OnJoinRequested` (BlueprintAssignable) — stub; not yet implemented
+- `OnLibraryRequested` (BlueprintAssignable) — stub; not yet implemented
+
+**Key Methods:**
+- `Init()` — binds all button delegates
+
+**Direct handlers (no delegate):**
+- Play → `OpenLevel("L_Gameplay")` directly
+- Quit → `QuitGame` directly
+
+---
 
 #### UDragHandle / UResizeHandle
 **Type:** `UUserWidget` | **Blueprints:** `WE_DragHandle`, `WE_ResizeHandle`
@@ -559,7 +609,7 @@ General-purpose helper functions accessible from C++ and Blueprint.
 - All source subdirectories must be added to `PublicIncludePaths` in `ProjectIronTable.Build.cs`
 - Uses `Path.Combine(ModuleDirectory, "FolderName")` — requires `using System.IO;` at the top
 - This allows `#include "FileName.h"` with no path prefix from any folder in the module
-- **Current registered folders:** `Chat`, `Components`, `Dice`, `UI`, `Utility`, `Pawns`, `PlayerControllers`, `PlayerList`, `SaveLoad`
+- **Current registered folders:** `Chat`, `Components`, `Dice`, `Settings`, `UI`, `Utility`, `Pawns`, `PlayerControllers`, `PlayerList`, `SaveLoad`
 
 ---
 
@@ -665,7 +715,7 @@ General-purpose helper functions accessible from C++ and Blueprint.
   - [x] `USettingsSlider` — reusable slider+text widget with paired min/max clamping
   - [x] `WE_SettingsSlider` — Blueprint widget layout
   - [x] `S_SettingsScreen` — 9 sliders wired and grouped; Apply, Reset, Back buttons added
-  - [x] `UMainScreenHUDComponent` settings wiring — all handlers wired; save/load on BeginPlay; first-launch defaults handled
+  - [x] `UMainScreenHUDComponent` settings wiring — refactored; settings logic moved to `UCameraSettingsPanel`; home screen logic moved to `UHomeScreen`; component now handles screen-level navigation only
 - [x] Private messaging — `@Name` syntax, per-conversation tabs, server-side routing
 - [x] Panel layout persistence — `UPanelLayoutSave`; saved on drag/resize/toggle; restored on startup
 - [x] Taskbar minimize system — `UTaskbar` + `UTaskbarButton`
@@ -831,7 +881,7 @@ The Campaign Manager is the primary hub between the home screen and an active se
 
 ---
 
-*Last updated: 2026-04-03* — Roadmap expanded to 8 phases to reflect full GDD scope. New Phase 3 (Campaign Manager) added: campaign creation, public browser, player profiles, scheduling, campaign cards. Phase 2 expanded: session save/load, shared notes, pre-session lobby, join flow, host disconnect handling. Phase 4 (Map Builder, was Phase 3): fog of war, auto-reveal, and camera boundary details added. Phase 5 (Miniatures, was Phase 4): freeform movement with range enforcement, difficult terrain, diagonal movement setting, entity management panel, and vision system added. Phase 6 (D&D 5e, was Phase 5): character creation, inventory/loot, XP/level-up, measurement tools, rule variants, and plugin architecture added. Phase 7 (UI & Polish, was Phase 6): sound system fully broken out (proximity SFX, map-baked audio, user audio). Multiplayer Architecture updated: server model, join flow, and pre-session lobby moved from "needs research" to "decided."
+*Last updated: 2026-04-06* — Settings system refactored into `UCameraSettingsPanel`, `USettingsScreen`, `UHomeScreen`; `UMainScreenHUDComponent` now only handles screen-level navigation. `Settings/` source folder added.
 
 ---
 
