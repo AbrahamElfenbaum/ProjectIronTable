@@ -743,7 +743,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - [x] Camera movement — pan, zoom, sprint, pan reset, editor property validation
 - [x] `AMainScreenController` + `UMainScreenHUDComponent` — main screen flow
 - [x] `S_MainScreen` — `WidgetSwitcher` root; `S_HomeScreen` index 0, `S_SettingsScreen` index 1
-- [ ] **Runtime camera settings menu** (`USaveGame`-based)
+- [x] **Runtime camera settings menu** (`USaveGame`-based)
   - [x] `UCameraSettingsSave` — save class with all 9 camera fields
   - [x] `AGameplayController` save/load/validate — `ValidateCameraSettings`, `ApplyCameraSettings`, `SaveCameraSettings`; loads on `BeginPlay`
   - [x] `USettingsSlider` — reusable slider+text widget with paired min/max clamping
