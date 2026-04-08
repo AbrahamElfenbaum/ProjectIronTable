@@ -168,7 +168,9 @@ Tabbed chat container. Manages channels, routing, and input.
 - `TrySendPrivateRollMessage()` — if `@Name` tokens in input, sends them as a message and clears input; noop otherwise
 
 > **Note:** Channel matching checks `Participants.Num()` equality before content — required to avoid partial matches.
+>
 > **Note:** `SwitchToChannel` must be `UFUNCTION()` for `AddDynamic` to work.
+>
 > **Note:** `ExitChat` must not clear the input — players type `@Names` before clicking Roll.
 
 ---
@@ -453,6 +455,7 @@ Manages all dice selectors and initiates rolls.
 - `OnRollInitiated` (zero-param) — broadcast at the **very start** of `RollDice`, before spawning
 
 > **Note:** `bRollInProgress` must be set `true` before the spawning loop, not after — otherwise `ResetCount` resets `RollMode` mid-roll.
+>
 > **Note:** `ADiceSpawnVolume` must be placed in the level or `RollDice` will log a warning and do nothing.
 
 ---
@@ -471,6 +474,7 @@ Taskbar at the bottom of the screen. Each button toggles a tracked `UUserWidget`
 **UTaskbarButton — Delegate:** `OnToggled` (zero-param) — broadcast after each toggle
 
 > **Note:** Toggle logic must use `if (Collapsed) → Visible; else → Collapsed` — default widget visibility is `SelfHitTestInvisible`, not `Visible`.
+>
 > **Note:** `ResetLayout` casts `TrackedWidget` to `UDraggablePanel` — non-panel tracked widgets are silently skipped via null check.
 
 ---
@@ -568,6 +572,7 @@ Central hub for all player input and HUD management.
 - `BeginPlay` — loads and applies `"CameraSettings"` if it exists
 
 > **Note:** `bCanCameraMove` is a plain `bool` (no `UPROPERTY`) to avoid Blueprint CDO override.
+>
 > **Note:** `PostEditChangeProperty` is wrapped in `#if WITH_EDITOR` — for runtime validation use `ValidateCameraSettings()` directly.
 
 ---
@@ -755,12 +760,6 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - [x] Taskbar minimize system — `UTaskbar` + `UTaskbarButton`
 - [x] Draggable and resizable panels — `UDraggablePanel`, `UDragHandle`, `UResizeHandle`
 - [x] Close and reopen private chat tabs
-- [ ] **Environment system (Time of Day & Weather)** — being implemented next, before Phase 4
-  - [ ] `EWeatherType` enum (Environment/) — Clear, Overcast, Rain, HeavyRain, Snow, Blizzard, Wind, Sandstorm
-  - [ ] `AEnvironmentManager` — replicated level actor; controls `ADirectionalLight` (sun angle → Sky Atmosphere), `ASkyLight`, `AExponentialHeightFog`, `AWindDirectionalSourceComponent`, and `ANiagaraActor`s per weather type. Server RPCs: `Server_SetTimeOfDay(float)`, `Server_SetWeather(EWeatherType, float Intensity)`. Replicated properties with OnRep apply logic.
-  - [ ] `UEnvironmentControlPanel` — `UUserWidget`; time slider (0–24 + formatted label), weather type button row, intensity slider. Calls RPCs on `AEnvironmentManager`. Registered with `Taskbar` as a `UDraggablePanel` via `UGameplayHUDComponent`.
-  - [ ] Wire into `UGameplayHUDComponent` — find `AEnvironmentManager` at BeginPlay via `GetActorOfClass`; call `FindAndRegisterPanel` for EnvironmentPanel
-  - [ ] Blueprint side — place `AEnvironmentManager` in `L_Gameplay`, wire light/fog/Niagara refs in BP, build `WE_EnvironmentControlPanel`
 - [ ] Home screen → Campaign Manager navigation (Play button)
 - [ ] Session management (start, load, save)
 - [ ] Session save/load — full snapshot (map, tokens, fog of war, initiative, chat, sheets, notes, inventory); one rolling save slot per campaign; manual save + autosave (configurable interval); auto-save on session close
@@ -831,13 +830,22 @@ The Campaign Manager is the primary hub between the home screen and an active se
 - [ ] Fog of war (brush and region/tile selection tools; re-fog at any time; GM-controlled opacity: opaque/pitch black/semi-transparent)
 - [ ] Auto-reveal — map reveals within player token line of sight as tokens move; GM toggle per session
 - [ ] Camera boundary — fog of war and GM-defined barriers act as hard camera limits for players
-- [ ] Environment system (see Phase 2 for implementation items — being built before Phase 4)
 - [ ] Entity-based vision system
 - [ ] Hex grid (after square system is stable)
 
 ---
 
-### Phase 5 — Miniatures
+### Phase 5 — Environment System (Time of Day & Weather)
+
+- [ ] `EWeatherType` enum (Environment/) — Clear, Overcast, Rain, HeavyRain, Snow, Blizzard, Wind, Sandstorm
+- [ ] `AEnvironmentManager` — replicated level actor; controls `ADirectionalLight` (sun angle → Sky Atmosphere), `ASkyLight`, `AExponentialHeightFog`, `AWindDirectionalSourceComponent`, and `ANiagaraActor`s per weather type. Server RPCs: `Server_SetTimeOfDay(float)`, `Server_SetWeather(EWeatherType, float Intensity)`. Replicated properties with OnRep apply logic.
+- [ ] `UEnvironmentControlPanel` — `UUserWidget`; time slider (0–24 + formatted label), weather type button row, intensity slider. Calls RPCs on `AEnvironmentManager`. Registered with `Taskbar` as a `UDraggablePanel` via `UGameplayHUDComponent`.
+- [ ] Wire into `UGameplayHUDComponent` — find `AEnvironmentManager` at BeginPlay via `GetActorOfClass`; call `FindAndRegisterPanel` for EnvironmentPanel
+- [ ] Blueprint side — place `AEnvironmentManager` in `L_Gameplay`, wire light/fog/Niagara refs in BP, build `WE_EnvironmentControlPanel`
+
+---
+
+### Phase 6 — Miniatures
 
 - [ ] Base miniature actor/pawn
 - [ ] Grid placement and snap
@@ -853,7 +861,7 @@ The Campaign Manager is the primary hub between the home screen and an active se
 
 ---
 
-### Phase 6 — D&D 5e / 2024 Game System
+### Phase 7 — D&D 5e / 2024 Game System
 
 - [ ] Game system plugin architecture (core layer + game system plugin; adding a new ruleset = new plugin, no core changes)
 - [ ] Character creation — root layer (name, appearance, bio, portrait) + game system layer (stats, class, race, skills, etc.); supports custom races/classes/backgrounds
@@ -873,7 +881,7 @@ The Campaign Manager is the primary hub between the home screen and an active se
 
 ---
 
-### Phase 7 — UI & Polish
+### Phase 8 — UI & Polish
 
 - [ ] UI theming system — decoupled from game system; per-player customization
 - [ ] Panel notification system (badge count, flash, or icon on collapsed/hidden panels with new activity)
@@ -888,7 +896,7 @@ The Campaign Manager is the primary hub between the home screen and an active se
 
 ---
 
-### Phase 8 — Custom Content & Extensibility
+### Phase 9 — Custom Content & Extensibility
 
 - [ ] `UAssetImporter` — generic importer (extensions, destination, dialog, copy, delegate)
 - [ ] Asset Library screen — file explorer UI; folder-based; import button + drag-and-drop
