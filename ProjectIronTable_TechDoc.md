@@ -587,6 +587,39 @@ General-purpose helper functions accessible from C++ and Blueprint.
 
 ---
 
+### Environment/ *(planned — not yet implemented)*
+
+#### AEnvironmentManager
+**Type:** `AActor` (Replicated) | **Place in level:** yes (one instance)
+
+Controls time of day and weather. `UGameplayHUDComponent` finds it at BeginPlay via `GetActorOfClass`.
+
+**Replicated properties:** `CurrentTimeOfDay` (float, 0–24), `CurrentWeatherType` (`EWeatherType`), `WeatherIntensity` (float, 0–1) — each has an OnRep function that applies the change locally.
+
+**Server RPCs:** `Server_SetTimeOfDay(float)`, `Server_SetWeather(EWeatherType, float)`
+
+**Level refs (set in BP):** `ADirectionalLight` (sun), `ASkyLight`, `AExponentialHeightFog`, `AWindDirectionalSourceComponent`, `ANiagaraActor` per weather type
+
+**Time of day:** Maps 0–24 to sun pitch/yaw on the `ADirectionalLight`. `USkyAtmosphereComponent` responds automatically.
+
+**Weather:** Enables/disables the matching `ANiagaraActor`, adjusts `AExponentialHeightFog` density, and sets `AWindDirectionalSourceComponent` strength.
+
+---
+
+#### EWeatherType
+**Type:** `UENUM` | Values: `Clear`, `Overcast`, `Rain`, `HeavyRain`, `Snow`, `Blizzard`, `Wind`, `Sandstorm`
+
+---
+
+#### UEnvironmentControlPanel
+**Type:** `UUserWidget` | **Blueprint:** `WE_EnvironmentControlPanel`
+
+GM panel for setting time of day and weather. Registered with `UTaskbar` as a `UDraggablePanel` via `UGameplayHUDComponent`.
+
+**Controls:** Time slider (0–24, with formatted label e.g. `"14:30"`), weather type button row (one per `EWeatherType`), intensity slider (0–1, disabled when weather = Clear).
+
+---
+
 ## Build Workflow
 
 **Every session:**
@@ -610,6 +643,7 @@ General-purpose helper functions accessible from C++ and Blueprint.
 - Uses `Path.Combine(ModuleDirectory, "FolderName")` — requires `using System.IO;` at the top
 - This allows `#include "FileName.h"` with no path prefix from any folder in the module
 - **Current registered folders:** `Chat`, `Components`, `Dice`, `Settings`, `UI`, `Utility`, `Pawns`, `PlayerControllers`, `PlayerList`, `SaveLoad`
+- **Pending (Environment system):** Add `Environment` to `PublicIncludePaths` when the `Environment/` source folder is created
 
 ---
 
@@ -721,6 +755,12 @@ General-purpose helper functions accessible from C++ and Blueprint.
 - [x] Taskbar minimize system — `UTaskbar` + `UTaskbarButton`
 - [x] Draggable and resizable panels — `UDraggablePanel`, `UDragHandle`, `UResizeHandle`
 - [x] Close and reopen private chat tabs
+- [ ] **Environment system (Time of Day & Weather)** — being implemented next, before Phase 4
+  - [ ] `EWeatherType` enum (Environment/) — Clear, Overcast, Rain, HeavyRain, Snow, Blizzard, Wind, Sandstorm
+  - [ ] `AEnvironmentManager` — replicated level actor; controls `ADirectionalLight` (sun angle → Sky Atmosphere), `ASkyLight`, `AExponentialHeightFog`, `AWindDirectionalSourceComponent`, and `ANiagaraActor`s per weather type. Server RPCs: `Server_SetTimeOfDay(float)`, `Server_SetWeather(EWeatherType, float Intensity)`. Replicated properties with OnRep apply logic.
+  - [ ] `UEnvironmentControlPanel` — `UUserWidget`; time slider (0–24 + formatted label), weather type button row, intensity slider. Calls RPCs on `AEnvironmentManager`. Registered with `Taskbar` as a `UDraggablePanel` via `UGameplayHUDComponent`.
+  - [ ] Wire into `UGameplayHUDComponent` — find `AEnvironmentManager` at BeginPlay via `GetActorOfClass`; call `FindAndRegisterPanel` for EnvironmentPanel
+  - [ ] Blueprint side — place `AEnvironmentManager` in `L_Gameplay`, wire light/fog/Niagara refs in BP, build `WE_EnvironmentControlPanel`
 - [ ] Home screen → Campaign Manager navigation (Play button)
 - [ ] Session management (start, load, save)
 - [ ] Session save/load — full snapshot (map, tokens, fog of war, initiative, chat, sheets, notes, inventory); one rolling save slot per campaign; manual save + autosave (configurable interval); auto-save on session close
@@ -791,7 +831,7 @@ The Campaign Manager is the primary hub between the home screen and an active se
 - [ ] Fog of war (brush and region/tile selection tools; re-fog at any time; GM-controlled opacity: opaque/pitch black/semi-transparent)
 - [ ] Auto-reveal — map reveals within player token line of sight as tokens move; GM toggle per session
 - [ ] Camera boundary — fog of war and GM-defined barriers act as hard camera limits for players
-- [ ] Lighting and atmosphere controls
+- [ ] Environment system (see Phase 2 for implementation items — being built before Phase 4)
 - [ ] Entity-based vision system
 - [ ] Hex grid (after square system is stable)
 
@@ -881,7 +921,9 @@ The Campaign Manager is the primary hub between the home screen and an active se
 
 ---
 
-*Last updated: 2026-04-06* — Settings system refactored into `UCameraSettingsPanel`, `USettingsScreen`, `UHomeScreen`; `UMainScreenHUDComponent` now only handles screen-level navigation. `Settings/` source folder added.
+*Last updated: 2026-04-08* — Environment system designed (not yet implemented): `AEnvironmentManager`, `EWeatherType`, `UEnvironmentControlPanel` added as planned classes. Phase 2 roadmap updated with full environment system checklist. Phase 4 lighting item cross-references Phase 2. Build.cs note added for pending `Environment/` folder.
+
+*2026-04-06* — Settings system refactored into `UCameraSettingsPanel`, `USettingsScreen`, `UHomeScreen`; `UMainScreenHUDComponent` now only handles screen-level navigation. `Settings/` source folder added.
 
 ---
 

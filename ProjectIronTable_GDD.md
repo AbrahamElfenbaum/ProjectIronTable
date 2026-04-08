@@ -167,7 +167,21 @@ Combat maps and world maps are separate saved map files. A world map can have **
 
 **Camera boundary:** Fog of war acts as a hard camera boundary for players — they cannot pan or fly their camera into unrevealed areas. This extends to other impassable barriers the GM defines: locked doors, walls, and any other boundary the GM does not want players to see past. Players are limited to viewing only what has been revealed to them, regardless of where they move their camera. Exact boundary types and GM controls to be expanded and refined when the system is built.
 
-**Lighting and atmosphere:** Time of day, ambient lighting, and atmosphere controls — planned for a later pass.
+**Environment (Time of Day & Weather):** The GM can control the time of day and weather in the simulator at any time during a session. All changes replicate to all connected players.
+
+**Time of day:**
+- The GM sets the time of day via a slider (0–24 hour range). Changing the time rotates the sun, which adjusts sky color, shadow direction, and ambient light automatically via UE5's Sky Atmosphere system.
+- There is no automatic time progression — time only moves when the GM changes it.
+
+**Weather:**
+- The GM selects a weather type and adjusts its intensity (0–100%).
+- Weather types include: Clear, Overcast, Rain, Heavy Rain, Snow, Blizzard, Wind, Sandstorm, and others. Weather types are not locked to biomes — the GM can apply any weather type regardless of the map's setting.
+- Intensity controls particle density, fog thickness, and wind strength.
+- Weather is purely cosmetic — no mechanical effects are attached in the core system (game system plugins may add mechanics later).
+
+**UI:** The GM controls time and weather from a dedicated Environment panel in the gameplay HUD — a draggable, resizable panel registered with the taskbar like all other panels. Visible to all players in the initial implementation; GM-only access will be added when the permission system is built.
+
+**Implementation:** Driven by `AEnvironmentManager` (replicated level actor), `EWeatherType` (enum), and `UEnvironmentControlPanel` (widget). `AEnvironmentManager` controls a `ADirectionalLight` (sun), `ASkyLight`, `AExponentialHeightFog`, `AWindDirectionalSourceComponent`, and `ANiagaraActor` instances per weather type placed in the level.
 
 ### Sound and Music
 
@@ -526,7 +540,7 @@ The codebase is divided into two layers:
 
 The following are explicitly not planned for the current development arc:
 
-- A built-in video/voice chat system — players are expected to use a separate tool (Discord, etc.)
+- A built-in video/voice chat system — scope is undecided; see Open Questions
 - An AI game master or procedural content generation
 - Mobile or web platforms (PC-first)
 - A marketplace or community asset library
@@ -540,13 +554,14 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 
 ### Still Open
 
-1. **Server model** — Leaning listen server; pending technical validation in UE5.
-2. **Host disconnect policy** — Certain actions lock when no Host is present. Full policy TBD when session management is built.
-3. **GM/Host permission types** — Fine-grained per-player permissions are enforced in code. Specific permission list TBD when the system is built.
-4. **Host delegation permission types** — Delegation is supported. Specific delegatable actions TBD when built.
-5. **Scheduling extensiveness** — Minimum: meeting days/frequency/session length. Calendar integration, reminders, RSVP tracking possible. Scope TBD.
-6. **Campaign Manager layout** — Two candidates (collapsible grid vs. tab sidebar). TBD during UI design pass.
-7. **Notification style** — Badge count, flash, icon, or other. TBD during UI design pass.
+1. **Voice / video chat** — Undecided between three options: (a) built-in voice/video using a real-time comms SDK or UE plugin, (b) Discord integration (SDK or Rich Presence), (c) out of scope — players use a separate tool. All three are viable; scope and complexity differ significantly. To be decided before the UI/Polish phase at latest.
+2. **Server model** — Leaning listen server; pending technical validation in UE5.
+3. **Host disconnect policy** — Certain actions lock when no Host is present. Full policy TBD when session management is built.
+4. **GM/Host permission types** — Fine-grained per-player permissions are enforced in code. Specific permission list TBD when the system is built.
+5. **Host delegation permission types** — Delegation is supported. Specific delegatable actions TBD when built.
+6. **Scheduling extensiveness** — Minimum: meeting days/frequency/session length. Calendar integration, reminders, RSVP tracking possible. Scope TBD.
+7. **Campaign Manager layout** — Two candidates (collapsible grid vs. tab sidebar). TBD during UI design pass.
+8. **Notification style** — Badge count, flash, icon, or other. TBD during UI design pass.
 
 ### Resolved
 
@@ -578,7 +593,9 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 
 ---
 
-*Last updated: 2026-04-03* — Map system redesigned as a 3D tile/prop builder (primary differentiator). Added Combat Map and World/Region Map scale modes with location pin linking. Host/Server Owner roles clarified and separated. Custom content section rewritten with auto-distribution model (no placeholders), glTF format decision, and manual peer-to-peer sharing. Host delegation added as a resolved design question. Player Roles section restructured with Server Owner and Host as distinct entries.
+*Last updated: 2026-04-08* — Environment system (Time of Day & Weather) fully designed. Voice/video chat moved from Out of Scope to Open Questions (undecided between built-in, Discord integration, or out of scope). Open question list renumbered. Expanded the Maps "Lighting and atmosphere" stub into a complete feature section covering time of day, weather types, intensity, GM panel, replication model, and planned C++ classes.
+
+*2026-04-03* — Map system redesigned as a 3D tile/prop builder (primary differentiator). Added Combat Map and World/Region Map scale modes with location pin linking. Host/Server Owner roles clarified and separated. Custom content section rewritten with auto-distribution model (no placeholders), glTF format decision, and manual peer-to-peer sharing. Host delegation added as a resolved design question. Player Roles section restructured with Server Owner and Host as distinct entries.
 
 *2026-04-03 (continued)* — Shared Notes updated: rich-text formatting confirmed, out-of-session access confirmed via Campaign Manager. Home Screen Play button now leads to Campaign Manager. Campaign Manager section added: layout TBD (grid with collapsible columns or tab sidebar), campaign creation with private/public modes, public browser with filters, campaign card contents defined for D&D 5e. Scheduling added as in-scope with extensiveness TBD.
 
