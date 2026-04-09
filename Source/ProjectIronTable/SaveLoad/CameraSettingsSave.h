@@ -12,6 +12,8 @@ class PROJECTIRONTABLE_API UCameraSettingsSave : public USaveGame
 
 public:
 
+	static const FString SaveSlotName;
+
 #pragma region Movement
 	/** Minimum camera translation speed at full zoom-in. */
 	UPROPERTY()

@@ -3,10 +3,9 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 
-// Sets default values and creates the root, sphere, spring arm, and camera component hierarchy.
+// Sets up the component hierarchy: root scene, sphere mesh, spring arm, and camera.
 AGameplayPawn::AGameplayPawn()
 {
- 	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 
 	USceneComponent* Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
@@ -20,26 +19,5 @@ AGameplayPawn::AGameplayPawn()
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm);
-}
-
-// Called when the game starts or when spawned
-void AGameplayPawn::BeginPlay()
-{
-	Super::BeginPlay();
-
-}
-
-// Called every frame
-void AGameplayPawn::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-}
-
-// Called to bind functionality to input
-void AGameplayPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
 }
 

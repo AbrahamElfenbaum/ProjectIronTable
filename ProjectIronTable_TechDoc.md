@@ -18,13 +18,14 @@ ProjectIronTable is a TTRPG simulator built in Unreal Engine 5.7. It supports ma
 ### C++ Source (`Source/ProjectIronTable/`)
 ```
 Source/ProjectIronTable/
+├── CampaignManager/   — Campaign manager widget classes (GameTypeButton, CampaignCard, CampaignManagerScreen)
 ├── Chat/              — Chat widget classes (ChatBox, ChatEntry, ChatChannel, ChatTab, ChatChannelListEntry)
 ├── Components/        — Actor component classes (GameplayHUDComponent, MainScreenHUDComponent)
 ├── Dice/              — Dice actors and data assets
 ├── Pawns/             — Pawn classes
 ├── PlayerControllers/ — Player controller classes
 ├── PlayerList/        — Player list widget classes (PlayerList, PlayerRow)
-├── SaveLoad/          — Save game classes (PanelLayoutSave, CameraSettingsSave)
+├── SaveLoad/          — Save game classes (PanelLayoutSave, CameraSettingsSave, CampaignManagerSave)
 ├── Settings/          — Settings widget classes (CameraSettingsPanel, SettingsScreen)
 ├── UI/                — Non-chat widget classes (no HUD components; HomeScreen lives here)
 └── Utility/           — Function libraries and general-purpose helpers
@@ -255,6 +256,69 @@ Collapsible scrollable list of connected players.
 
 ---
 
+### CampaignManager/
+
+#### UGameTypeButton
+**Type:** `UUserWidget`
+
+Tab button representing a single game type in the Campaign Manager screen. Displays the game type name and is greyed out (non-interactable) when no campaigns exist for that type.
+
+**Bound Widgets:** `GameTypeTab` (`UButton`), `GameTypeLabel` (`UTextBlock`)
+
+**Delegates:**
+- `OnGameTypeSelected` (`FOnGameTypeSelected(const FString& GameType)`, BlueprintAssignable) — broadcast on click, passing the game type key
+
+**Key Methods:**
+- `SetLabel(const FString& Label)` — sets the button label text
+- `SetInteractable(bool bInteractable)` — enables or disables the button
+
+---
+
+#### UCampaignCard
+**Type:** `UUserWidget`
+
+Displays one campaign entry. Stores campaign ID and game type as private members; launched via button click.
+
+**Bound Widgets:** `LaunchCampaignButton` (`UButton`), `CampaignTitle`, `LastPlayedDate`, `NumberOfPlayers` (`UTextBlock`)
+
+**Private State:** `CampaignID` (`FGuid`), `GameType` (`FString`) — set via `SetCampaignData`
+
+**Delegates:**
+- `OnCampaignSelected` (`FOnCampaignSelected(const FGuid& CampaignID, const FString& GameType)`, BlueprintAssignable)
+
+**Key Methods:**
+- `SetCampaignTitle(const FString&)`, `SetLastPlayedDate(const FString&)`, `SetNumberOfPlayers(int32)`, `SetCampaignData(const FGuid&, const FString&)`
+
+---
+
+#### UCampaignManagerScreen
+**Type:** `UUserWidget` | **Blueprint:** `S_CampaignManagerScreen`
+
+Root widget for the Campaign Manager. Loads saved campaigns, builds game type tab buttons, and populates a campaign card grid filtered by the selected game type.
+
+**Config:**
+- `GameTypeButtonClass` (`TSubclassOf<UGameTypeButton>`)
+- `CampaignCardClass` (`TSubclassOf<UCampaignCard>`)
+
+**Bound Widgets:** `BackButton`, `NewCampaignButton` (`UButton`), `GameTypeTabBar` (`UScrollBox`), `CampaignGrid` (`UWrapBox`), `CampaignScroll` (`UScrollBox`)
+
+**Private State:** `SelectedGameType` (`FString`), `CampaignData` (`TObjectPtr<UCampaignManagerSave>`, `UPROPERTY()`)
+
+**Delegates:**
+- `OnCampaignBackRequested` (`FOnCampaignBackRequested`, BlueprintAssignable) — fired when Back is clicked
+
+**Key Methods:**
+- `Init()` — loads `UCampaignManagerSave`, creates a `UGameTypeButton` per game type, populates the grid with the first game type that has campaigns
+
+**Handlers:**
+- `OnGameTypeSelected(const FString&)` — refreshes the campaign grid via `PopulateCampaigns`
+- `OnCampaignSelected(const FGuid&, const FString&)` — placeholder; will launch the selected campaign
+- `OnBackClicked` — broadcasts `OnCampaignBackRequested`
+
+> **Note:** The campaign grid (`UWrapBox`) must be inside a `UScrollBox` to support vertical scrolling when cards overflow.
+
+---
+
 ### SaveLoad/
 
 #### FPanelLayoutData
@@ -270,6 +334,19 @@ Stores saved layout for one panel. Fields: `Position` (`FVector2D`), `Size` (`FV
 Stores panel layout for all registered panels.
 
 **Fields:** `PanelLayouts` (`TMap<FString, FPanelLayoutData>`) — keyed by `PanelID`
+
+---
+
+#### UCampaignManagerSave
+**Type:** `USaveGame` | **Slot:** `"CampaignManager"`, index 0
+
+Persists all campaigns grouped by game type.
+
+**Supporting types:**
+- `FCampaignRecord` (`USTRUCT`) — one campaign entry: `CampaignID` (`FGuid`), `CampaignName` (`FString`), `LastPlayed` (`FDateTime`), `NumberOfPlayers` (`int32`)
+- `FCampaignList` (`USTRUCT`) — wrapper struct holding `TArray<FCampaignRecord> Campaigns`; required because `TMap<K, TArray<V>>` cannot be a `UPROPERTY`
+
+**Fields:** `CampaignRecords` (`TMap<FString, FCampaignList>`) — keyed by game type string (e.g. `"DnD5e"`)
 
 ---
 
@@ -310,7 +387,7 @@ Handles screen-level navigation only. Creates the root `S_MainScreen` widget, ge
 
 **Handlers:**
 - `OnSettingsClicked` → `ScreenSwitcherRef->SetActiveWidgetIndex(1)` — bound to `UHomeScreen::OnSettingsRequested`
-- `OnBackClicked` → `ScreenSwitcherRef->SetActiveWidgetIndex(0)` — bound to `USettingsScreen::OnBackRequested`
+- `OnBackClicked` → `ScreenSwitcherRef->SetActiveWidgetIndex(0)` — bound to `USettingsScreen::OnSettingsBackRequested`
 
 > Does **not** own any button refs, slider refs, or save/load logic — all of that lives in `UHomeScreen` and `UCameraSettingsPanel`.
 
@@ -370,9 +447,9 @@ Root settings screen widget. Hosts a `UWidgetSwitcher` for future panel navigati
 **Bound Widgets:** `PanelSwitcher` (`UWidgetSwitcher`), `BackButton` (`UButton`), `CameraSettingsPanel` (`UCameraSettingsPanel`)
 
 **Delegates:**
-- `OnBackRequested` (`FOnBackRequested`, BlueprintAssignable) — broadcast on Back button click; bound by `UMainScreenHUDComponent` to navigate back to the home screen
+- `OnSettingsBackRequested` (`FOnSettingsBackRequested`, BlueprintAssignable) — broadcast on Back button click; bound by `UMainScreenHUDComponent` to navigate back to the home screen
 
-**NativeConstruct:** binds `BackButton` click → broadcasts `OnBackRequested`, calls `CameraSettingsPanel->Init()`
+**NativeConstruct:** binds `BackButton` click → broadcasts `OnSettingsBackRequested`, calls `CameraSettingsPanel->Init()`
 
 ---
 
@@ -647,7 +724,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - All source subdirectories must be added to `PublicIncludePaths` in `ProjectIronTable.Build.cs`
 - Uses `Path.Combine(ModuleDirectory, "FolderName")` — requires `using System.IO;` at the top
 - This allows `#include "FileName.h"` with no path prefix from any folder in the module
-- **Current registered folders:** `Chat`, `Components`, `Dice`, `Settings`, `UI`, `Utility`, `Pawns`, `PlayerControllers`, `PlayerList`, `SaveLoad`
+- **Current registered folders:** `CampaignManager`, `Chat`, `Components`, `Dice`, `Settings`, `UI`, `Utility`, `Pawns`, `PlayerControllers`, `PlayerList`, `SaveLoad`
 - **Pending (Environment system):** Add `Environment` to `PublicIncludePaths` when the `Environment/` source folder is created
 
 ---
@@ -697,6 +774,9 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 ### Networking & RPCs
 - **`Participants` passed to `AddChatMessageOnOwningClient` must include the sender** — add `SenderName` with `AddUnique` before passing to clients; without it, channels on recipients' clients are missing the sender
 - Channel matching must check `Participants.Num()` equality before content — a subset-participant channel can otherwise incorrectly match
+
+### Delegates
+- **`DECLARE_DYNAMIC_MULTICAST_DELEGATE` names are global** — two headers declaring the same delegate name cause a compile error. Use unique names per class (e.g. `FOnSettingsBackRequested`, `FOnCampaignBackRequested`) or consolidate shared delegates into a `CommonDelegates.h` header included wherever needed.
 
 ### C++ Patterns
 - Declaring `Type* MemberName = Cast<...>` in `BeginPlay` creates a local variable that shadows the member — use `MemberName = Cast<...>` (no type prefix)
@@ -780,7 +860,11 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 
 The Campaign Manager is the primary hub between the home screen and an active session. Accessed via the Play button on the home screen.
 
-- [ ] Campaign Manager screen — lists all campaigns the player is part of
+- [x] `UCampaignManagerSave` — save game; `TMap<FString, FCampaignList>` keyed by game type; slot `"CampaignManager"`
+- [x] `UGameTypeButton` — tab button per game type; greyed out if no campaigns exist
+- [x] `UCampaignCard` — campaign entry card; displays title, last played, player count; fires `OnCampaignSelected`
+- [~] `UCampaignManagerScreen` — in progress; loads save, populates tabs and grid; `OnCampaignSelected` handler is a placeholder
+- [ ] Campaign Manager screen — lists all campaigns the player is part of (full flow pending)
 - [ ] Campaign creation — any player can create; private (invite-only) or public (discoverable)
 - [ ] Public campaign browser — filterable by name, game system, tags, one-shot vs. multi-session, meeting days/frequency/session length
 - [ ] Direct invite link / invite code support
@@ -929,7 +1013,9 @@ The Campaign Manager is the primary hub between the home screen and an active se
 
 ---
 
-*Last updated: 2026-04-08* — Environment system designed (not yet implemented): `AEnvironmentManager`, `EWeatherType`, `UEnvironmentControlPanel` added as planned classes. Phase 2 roadmap updated with full environment system checklist. Phase 4 lighting item cross-references Phase 2. Build.cs note added for pending `Environment/` folder.
+*Last updated: 2026-04-08* — Campaign Manager classes added: `UCampaignManagerSave`, `UGameTypeButton`, `UCampaignCard`, `UCampaignManagerScreen` (in progress). `CampaignManager/` source folder added. `USettingsScreen::OnBackRequested` renamed to `OnSettingsBackRequested`. Coding standards expanded (include order, GC safety, no debug output in committed code). Delegate naming collision gotcha added. Phase 3 roadmap updated.
+
+*2026-04-08* — Environment system designed (not yet implemented): `AEnvironmentManager`, `EWeatherType`, `UEnvironmentControlPanel` added as planned classes. Phase 2 roadmap updated with full environment system checklist. Phase 4 lighting item cross-references Phase 2. Build.cs note added for pending `Environment/` folder.
 
 *2026-04-06* — Settings system refactored into `UCameraSettingsPanel`, `USettingsScreen`, `UHomeScreen`; `UMainScreenHUDComponent` now only handles screen-level navigation. `Settings/` source folder added.
 

@@ -2,9 +2,10 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Components/TextBlock.h"
-#include "Components/Button.h"
 #include "TaskbarButton.generated.h"
+
+class UTextBlock;
+class UButton;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnToggled);
 
@@ -38,7 +39,7 @@ protected:
 
 public:
 	/** Assigns the widget to track and sets the button label. */
-	void SetTrackedWidget(UUserWidget*, FString Label);
+	void SetTrackedWidget(UUserWidget* Widget, const FString& Label);
 
 	/** Returns the widget being tracked by this button. */
 	UUserWidget* GetTrackedWidget() const;

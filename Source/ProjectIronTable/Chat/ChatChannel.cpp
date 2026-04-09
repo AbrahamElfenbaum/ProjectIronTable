@@ -1,5 +1,8 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "ChatChannel.h"
+
+#include "Components/ScrollBox.h"
+
 #include "ChatEntry.h"
 
 // Called when the channel widget is constructed.

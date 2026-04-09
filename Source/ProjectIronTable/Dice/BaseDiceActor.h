@@ -3,11 +3,10 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "DiceData.h"
-#include "PhysicalMaterials/PhysicalMaterial.h"
-#include "Sound/SoundBase.h"
 #include "BaseDiceActor.generated.h"
 
-class ABaseDiceActor;
+class UPhysicalMaterial;
+class USoundBase;
 
 /** Stores the result of a single die roll, including the value, type, and a pointer to the actor that produced it. */
 USTRUCT(BlueprintType)

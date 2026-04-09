@@ -1,5 +1,6 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "DiceSpawnVolume.h"
+#include "Components/BoxComponent.h"
 
 // Creates the box component and sets it as the root.
 ADiceSpawnVolume::ADiceSpawnVolume()

@@ -2,9 +2,9 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Components/ScrollBox.h"
 #include "ChatChannel.generated.h"
 
+class UScrollBox;
 class UChatEntry;
 
 /** A scrollable list of chat messages belonging to a single conversation channel. */

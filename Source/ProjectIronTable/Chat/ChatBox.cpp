@@ -1,11 +1,17 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "ChatBox.h"
+
+#include "GameFramework/PlayerState.h"
+#include "Components/HorizontalBox.h"
+#include "Components/VerticalBox.h"
+#include "Components/WidgetSwitcher.h"
+#include "Components/Button.h"
+
 #include "ChatEntry.h"
 #include "ChatTab.h"
 #include "ChatChannel.h"
-#include "GameplayHUDComponent.h"
-#include "GameFramework/PlayerState.h"
 #include "ChatChannelListEntry.h"
+#include "GameplayHUDComponent.h"
 
 // Caches the HUD component reference, binds the text committed delegate, and creates the default server channel.
 void UChatBox::NativeConstruct()
@@ -13,10 +19,18 @@ void UChatBox::NativeConstruct()
 	Super::NativeConstruct();
 
 	APlayerController* PC = Cast<APlayerController>(GetOwningPlayer());
-	if (PC)
+	if (IsValid(PC))
 	{
 		HUDComponentRef = Cast<UGameplayHUDComponent>(
 			PC->GetComponentByClass(UGameplayHUDComponent::StaticClass()));
+		if (!IsValid(HUDComponentRef))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("UChatBox::NativeConstruct — Failed to find GameplayHUDComponent on PlayerController"));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UChatBox::NativeConstruct — GetOwningPlayer did not return a PlayerController"));
 	}
 
 	if (ChannelListButton)
@@ -79,7 +93,7 @@ void UChatBox::ExitChat()
 }
 
 // Creates and registers a new channel and its corresponding tab, returning the new channel.
-UChatChannel* UChatBox::CreateChannel(TArray<FString> Participants)
+UChatChannel* UChatBox::CreateChannel(const TArray<FString>& Participants)
 {
 	//Build the label based on the participants
 	FString Label;
@@ -99,6 +113,11 @@ UChatChannel* UChatBox::CreateChannel(TArray<FString> Participants)
 
 	//Channel widget creation and setup
 	UChatChannel* Channel = CreateWidget<UChatChannel>(GetOwningPlayer(), ChannelClass);
+	if (!IsValid(Channel))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UChatBox::CreateChannel — Failed to create ChatChannel widget"));
+		return nullptr;
+	}
 	Channel->ChatEntryClass = ChatEntryClass;
 	Channel->DisplayName = Label;
 	Channel->Participants = Participants;
@@ -108,6 +127,11 @@ UChatChannel* UChatBox::CreateChannel(TArray<FString> Participants)
 
 	//Tab widget creation and setup
 	UChatTab* Tab = CreateWidget<UChatTab>(GetOwningPlayer(), TabClass);
+	if (!IsValid(Tab))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UChatBox::CreateChannel — Failed to create ChatTab widget"));
+		return Channel;
+	}
 	Tab->SetChannel(Channel);
 	Tab->SetLabel(Label);
 	Tab->OnTabClicked.AddDynamic(this, &UChatBox::SwitchToChannel);
@@ -136,7 +160,7 @@ void UChatBox::SwitchToChannel(UChatChannel* Channel)
 }
 
 // Routes the message to the matching channel (creating one if needed), switching to it if the local player sent it.
-void UChatBox::AddChatMessage(const FString& Message, TArray<FString> Participants, bool bIsSender)
+void UChatBox::AddChatMessage(const FString& Message, const TArray<FString>& Participants, bool bIsSender)
 {
 	UChatChannel* CurrentChannel = nullptr;
 
@@ -145,7 +169,7 @@ void UChatBox::AddChatMessage(const FString& Message, TArray<FString> Participan
 		bool bChannelFound = true;
 		if (Channel->Participants.Num() == Participants.Num())
 		{
-			for (FString Participant : Participants)
+			for (const FString& Participant : Participants)
 			{
 				if (!Channel->Participants.Contains(Participant))
 				{
@@ -209,7 +233,7 @@ void UChatBox::TrySendPrivateRollMessage()
 	FString Message = EditableText->GetText().ToString();
 
 	APlayerController* PC = Cast<APlayerController>(GetOwningPlayer());
-	if (PC && PC->PlayerState)
+	if (IsValid(PC) && PC->PlayerState)
 	{
 		TArray<FString> Words;
 		Message.ParseIntoArray(Words, TEXT(" "), 1);
@@ -217,12 +241,12 @@ void UChatBox::TrySendPrivateRollMessage()
 		TArray<FString> Recipients;
 		TArray<FString> MessageArray;
 
-		for (FString Word : Words)
+		for (const FString& Word : Words)
 		{
 			if (Word.StartsWith(TEXT("@")))
 			{
-				Word.RemoveAt(0);
-				Recipients.Add(Word);
+				FString Name = Word.RightChop(1);
+				Recipients.Add(Name);
 			}
 			else
 			{
@@ -245,6 +269,12 @@ void UChatBox::TrySendPrivateRollMessage()
 		{
 			Recipients.Remove(PlayerName);
 
+			if (!IsValid(HUDComponentRef))
+			{
+				UE_LOG(LogTemp, Warning, TEXT("UChatBox::TrySendPrivateRollMessage — HUDComponentRef is null"));
+				return;
+			}
+
 			FString FullMessage = FString::Printf(TEXT("%s: %s"), *PlayerName, *Message);
 			HUDComponentRef->SendChatMessageOnServer(FullMessage, Recipients);
 			EditableText->SetText(FText::GetEmpty());
@@ -262,7 +292,7 @@ void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod
 		if (!Message.IsEmpty())
 		{
 			APlayerController* PC = Cast<APlayerController>(GetOwningPlayer());
-			if (PC && PC->PlayerState)
+			if (IsValid(PC) && PC->PlayerState)
 			{
 				TArray<FString> Words;
 				Message.ParseIntoArray(Words, TEXT(" "), 1);
@@ -270,12 +300,11 @@ void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod
 				TArray<FString> Recipients;
 				TArray<FString> MessageArray;
 
-				for (FString Word : Words)
+				for (const FString& Word : Words)
 				{
 					if (Word.StartsWith(TEXT("@")))
 					{
-						Word.RemoveAt(0);
-						Recipients.Add(Word);
+						Recipients.Add(Word.RightChop(1));
 					}
 					else
 					{
@@ -294,6 +323,12 @@ void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod
 				{
 					Recipients = ActiveChannel->Participants;
 					Recipients.Remove(PlayerName);
+				}
+
+				if (!IsValid(HUDComponentRef))
+				{
+					UE_LOG(LogTemp, Warning, TEXT("UChatBox::OnTextCommitted — HUDComponentRef is null"));
+					return;
 				}
 
 				FString FullMessage = FString::Printf(TEXT("%s: %s"), *PlayerName, *Message);

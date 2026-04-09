@@ -1,6 +1,8 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "BaseDiceActor.h"
 #include "Kismet/GameplayStatics.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
+#include "Sound/SoundBase.h"
 
 // Creates root and both mesh subobjects, and applies physics properties to each.
 ABaseDiceActor::ABaseDiceActor()

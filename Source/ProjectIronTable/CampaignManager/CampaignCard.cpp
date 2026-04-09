@@ -1,0 +1,45 @@
+// Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
+#include "CampaignCard.h"
+#include "Components/Button.h"
+#include "Components/TextBlock.h"
+
+// Binds the launch button click delegate.
+void UCampaignCard::NativeConstruct()
+{
+	Super::NativeConstruct();
+	if (LaunchCampaignButton)
+	{
+		LaunchCampaignButton->OnClicked.AddDynamic(this, &UCampaignCard::OnLaunchCampaignButtonClicked);
+	}
+}
+
+// Updates the campaign name label.
+void UCampaignCard::SetCampaignTitle(const FString& Title)
+{
+	CampaignTitle->SetText(FText::FromString(Title));
+}
+
+// Updates the last played date label.
+void UCampaignCard::SetLastPlayedDate(const FString& Date)
+{
+	LastPlayedDate->SetText(FText::FromString(Date));
+}
+
+// Updates the player count label.
+void UCampaignCard::SetNumberOfPlayers(int32 NumPlayers)
+{
+	NumberOfPlayers->SetText(FText::AsNumber(NumPlayers));
+}
+
+// Stores the campaign ID and game type for broadcast when the card is selected.
+void UCampaignCard::SetCampaignData(const FGuid& InCampaignID, const FString& InGameType)
+{
+	CampaignID = InCampaignID;
+	GameType = InGameType;
+}
+
+// Broadcasts OnCampaignSelected with the stored campaign ID and game type.
+void UCampaignCard::OnLaunchCampaignButtonClicked()
+{
+	OnCampaignSelected.Broadcast(CampaignID, GameType);
+}

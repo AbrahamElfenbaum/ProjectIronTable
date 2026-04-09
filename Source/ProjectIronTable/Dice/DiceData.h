@@ -55,11 +55,11 @@ class PROJECTIRONTABLE_API UDiceData : public UPrimaryDataAsset
 public:
 
 	/** Determines which type of die this data asset represents (e.g. D4, D6, D12). */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data", meta = (ToolTip = "Determines which type of die this is (e.g. D4, D6, D12)."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
 	EDiceType DiceType;
 
 	/** Array of face normals and values for every face on this die. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data", meta = (ToolTip = "Holds the Normal Vector and Value of each die face."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Data")
 	TArray<FFaceData> Faces;
 
 };

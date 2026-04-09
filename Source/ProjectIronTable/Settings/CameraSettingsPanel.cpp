@@ -1,11 +1,14 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "CameraSettingsPanel.h"
+
 #include "Kismet/GameplayStatics.h"
 #include "Components/Button.h"
+
 #include "SettingsSlider.h"
 #include "CameraSettingsSave.h"
 
 
+// Populates the sliders array, binds button delegates, and loads saved camera settings (or resets to defaults if no save exists).
 void UCameraSettingsPanel::Init()
 {
 	SettingsSliders =
@@ -31,9 +34,9 @@ void UCameraSettingsPanel::Init()
 		ResetButton->OnClicked.AddDynamic(this, &UCameraSettingsPanel::OnResetClicked);
 	}
 
-	if (UGameplayStatics::DoesSaveGameExist(TEXT("CameraSettings"), 0))
+	if (UGameplayStatics::DoesSaveGameExist(UCameraSettingsSave::SaveSlotName, 0))
 	{
-		USaveGame* LoadedSave = UGameplayStatics::LoadGameFromSlot(TEXT("CameraSettings"), 0);
+		USaveGame* LoadedSave = UGameplayStatics::LoadGameFromSlot(UCameraSettingsSave::SaveSlotName, 0);
 		if (UCameraSettingsSave* CameraSettingsSave = Cast<UCameraSettingsSave>(LoadedSave))
 		{
 			MaxCamSpeed->SetValue(CameraSettingsSave->MaxCameraMovementSpeed);
@@ -74,7 +77,7 @@ void UCameraSettingsPanel::OnApplyClicked()
 		SaveObject->MinZoomLength = MinZoom->GetValue();
 		SaveObject->ZoomSpeed = ZoomSpeed->GetValue();
 
-		UGameplayStatics::SaveGameToSlot(SaveObject, TEXT("CameraSettings"), 0);
+		UGameplayStatics::SaveGameToSlot(SaveObject, UCameraSettingsSave::SaveSlotName, 0);
 	}
 }
 

@@ -30,7 +30,9 @@ public:
 	TSubclassOf<UUserWidget> MainScreenClass;
 #pragma endregion
 
-#pragma region Main Screen
+private:
+
+#pragma region Runtime References
 	/** The instantiated root main screen widget. */
 	UPROPERTY()
 	TObjectPtr<UUserWidget> MainScreenRef;
@@ -38,31 +40,25 @@ public:
 	/** The instantiated screen switcher widget. */
 	UPROPERTY()
 	TObjectPtr<UWidgetSwitcher> ScreenSwitcherRef;
-#pragma endregion
 
-#pragma region Home Screen
 	/** The instantiated home screen widget. */
 	UPROPERTY()
 	TObjectPtr<UHomeScreen> HomeScreenRef;
+
+	/** The instantiated settings screen widget. */
+	UPROPERTY()
+	TObjectPtr<USettingsScreen> SettingsScreenRef;
 
 	/** Cached reference to the owning player controller. */
 	UPROPERTY()
 	TObjectPtr<APlayerController> PlayerControllerRef;
 #pragma endregion
 
-	/** The instantiated settings screen widget. */
-	UPROPERTY()
-	TObjectPtr<USettingsScreen> SettingsScreenRef;
-
-private:
-
 #pragma region Event Handlers
 	/** Switches the screen switcher back to the home screen. */
 	UFUNCTION()
 	void OnBackClicked();
-#pragma endregion
 
-#pragma region Main Screen
 	/** Switches the screen switcher to the settings screen. */
 	UFUNCTION()
 	void OnSettingsClicked();

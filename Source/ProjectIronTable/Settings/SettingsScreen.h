@@ -8,7 +8,7 @@ class UButton;
 class UWidgetSwitcher;
 class UCameraSettingsPanel;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBackRequested);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSettingsBackRequested);
 
 /** Root settings screen widget. Coordinates all settings panels and broadcasts when the user requests to return to the home screen. */
 UCLASS()
@@ -39,7 +39,7 @@ public:
 
 	/** Broadcasts when the user requests to return to the home screen. */
 	UPROPERTY(BlueprintAssignable)
-	FOnBackRequested OnBackRequested;
+	FOnSettingsBackRequested OnSettingsBackRequested;
 
 private:
 

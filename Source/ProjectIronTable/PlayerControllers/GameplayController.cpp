@@ -1,12 +1,16 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "GameplayController.h"
-#include "GameplayHUDComponent.h"
-#include "GameplayPawn.h"
+
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "CameraSettingsSave.h"
+#include "InputMappingContext.h"
+#include "InputAction.h"
 #include "Kismet/GameplayStatics.h"
+
+#include "GameplayHUDComponent.h"
+#include "GameplayPawn.h"
+#include "CameraSettingsSave.h"
 
 // Creates and attaches the HUD component subobject.
 AGameplayController::AGameplayController()
@@ -92,6 +96,11 @@ void AGameplayController::ApplyCameraSettings(const UCameraSettingsSave* Setting
 void AGameplayController::SaveCameraSettings()
 {
 	UCameraSettingsSave* Save = NewObject<UCameraSettingsSave>();
+	if (!IsValid(Save))
+	{
+		UE_LOG(LogTemp, Error, TEXT("AGameplayController::SaveCameraSettings — Failed to create CameraSettingsSave object"));
+		return;
+	}
 	Save->MinCameraMovementSpeed = MinCameraMovementSpeed;
 	Save->MaxCameraMovementSpeed = MaxCameraMovementSpeed;
 	Save->CameraSpeedMultiplier = CameraSpeedMultiplier;
@@ -102,7 +111,7 @@ void AGameplayController::SaveCameraSettings()
 	Save->MaxZoomLength = MaxZoomLength;
 	Save->ZoomSpeed = ZoomSpeed;
 
-	UGameplayStatics::SaveGameToSlot(Save, TEXT("CameraSettings"), 0);
+	UGameplayStatics::SaveGameToSlot(Save, UCameraSettingsSave::SaveSlotName, 0);
 }
 
 #if WITH_EDITOR
@@ -123,9 +132,13 @@ void AGameplayController::BeginPlay()
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	SetInputMode(InputMode);
 
-	if (UGameplayStatics::DoesSaveGameExist(TEXT("CameraSettings"), 0))
+	if (UGameplayStatics::DoesSaveGameExist(UCameraSettingsSave::SaveSlotName, 0))
 	{
-		UCameraSettingsSave* LoadedSettings = Cast<UCameraSettingsSave>(UGameplayStatics::LoadGameFromSlot(TEXT("CameraSettings"), 0));
+		UCameraSettingsSave* LoadedSettings = Cast<UCameraSettingsSave>(UGameplayStatics::LoadGameFromSlot(UCameraSettingsSave::SaveSlotName, 0));
+		if (!IsValid(LoadedSettings))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("AGameplayController::BeginPlay — Failed to load camera settings save"));
+		}
 		ApplyCameraSettings(LoadedSettings);
 	}
 }

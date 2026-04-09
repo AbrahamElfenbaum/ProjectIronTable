@@ -1,7 +1,10 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "PlayerList.h"
+
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
+#include "Components/ScrollBox.h"
+#include "Components/Button.h"
 
 // Binds the toggle button, populates the list, and collapses the scroll box initially.
 void UPlayerList::NativeConstruct()

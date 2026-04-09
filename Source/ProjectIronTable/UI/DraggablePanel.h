@@ -2,10 +2,10 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Components/TextBlock.h"
 #include "PanelLayoutSave.h"
 #include "DraggablePanel.generated.h"
 
+class UTextBlock;
 class UCanvasPanelSlot;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPanelStateChanged);

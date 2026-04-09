@@ -1,7 +1,11 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "DiceSelectorManager.h"
-#include "DiceSelector.h"
+
 #include "Kismet/KismetMathLibrary.h"
+#include "Components/Button.h"
+
+#include "DiceSelector.h"
+#include "DiceSpawnVolume.h"
 
 // Populates selector and button arrays, binds all button delegates, and refreshes initial button states.
 void UDiceSelectorManager::NativeConstruct()

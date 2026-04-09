@@ -2,9 +2,10 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Components/TextBlock.h"
-#include "Components/Button.h"
 #include "PlayerRow.generated.h"
+
+class UTextBlock;
+class UButton;
 
 /** Fired when the address button is clicked, passing the player's name. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAddressClicked, const FString&, PlayerName);

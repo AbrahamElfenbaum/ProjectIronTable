@@ -2,10 +2,11 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Components/ScrollBox.h"
-#include "Components/Button.h"
 #include "PlayerRow.h"
 #include "PlayerList.generated.h"
+
+class UScrollBox;
+class UButton;
 
 /** Collapsible widget that lists all connected players and allows addressing them for private chat. */
 UCLASS()

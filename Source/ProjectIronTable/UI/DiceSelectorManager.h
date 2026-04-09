@@ -3,9 +3,10 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "BaseDiceActor.h"
-#include "Components/Button.h"
-#include "DiceSpawnVolume.h"
 #include "DiceSelectorManager.generated.h"
+
+class UButton;
+class ADiceSpawnVolume;
 
 /** Controls whether a single-die roll uses normal, advantage, or disadvantage rules. */
 UENUM(BlueprintType)

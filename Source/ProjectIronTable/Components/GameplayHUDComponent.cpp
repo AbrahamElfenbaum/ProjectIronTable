@@ -1,11 +1,14 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "GameplayHUDComponent.h"
+
 #include "Blueprint/UserWidget.h"
-#include "ChatBox.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
-#include "DiceSelectorManager.h"
 #include "Kismet/GameplayStatics.h"
+
+#include "ChatBox.h"
+#include "DiceSelectorManager.h"
+#include "PlayerList.h"
 #include "DiceSpawnVolume.h"
 #include "Taskbar.h"
 #include "DraggablePanel.h"
@@ -27,6 +30,12 @@ void UGameplayHUDComponent::BeginPlay()
 
 	PlayerControllerRef = Cast<APlayerController>(GetOwner());
 
+	if (!IsValid(PlayerControllerRef))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UGameplayHUDComponent::BeginPlay — Owner is not a PlayerController"));
+		return;
+	}
+
 	if (PlayerControllerRef &&
 		PlayerControllerRef->IsLocalPlayerController() &&
 		GameplayScreenClass)
@@ -39,43 +48,43 @@ void UGameplayHUDComponent::BeginPlay()
 		PlayerListRef = UFunctionLibrary::GetTypedWidgetFromName<UPlayerList>(GameplayScreenRef, TEXT("PlayerList"));
 		TaskbarRef = UFunctionLibrary::GetTypedWidgetFromName<UTaskbar>(GameplayScreenRef, TEXT("Taskbar"));
 
-		if (DiceSelectorManagerRef)
+		if (IsValid(DiceSelectorManagerRef))
 		{
-			UE_LOG(LogTemp, Display, TEXT("Dice Selector Found"));
+			UE_LOG(LogTemp, Display, TEXT("UGameplayHUDComponent::BeginPlay — DiceSelectorManager found"));
 			DiceSelectorManagerRef->OnAllDiceRolled.AddDynamic(this, &UGameplayHUDComponent::AddRollResultToChat);
 			DiceSelectorManagerRef->OnDiceFailsafeDestroyed.AddDynamic(this, &UGameplayHUDComponent::OnDiceFailsafeHandler);
 			DiceSelectorManagerRef->OnRollInitiated.AddDynamic(this, &UGameplayHUDComponent::OnRollInitiated);
 
 			ADiceSpawnVolume* SpawnVolume = Cast<ADiceSpawnVolume>(UGameplayStatics::GetActorOfClass(GetWorld(), ADiceSpawnVolume::StaticClass()));
-			if (SpawnVolume)
+			if (IsValid(SpawnVolume))
 			{
 				DiceSelectorManagerRef->SpawnVolume = SpawnVolume;
 			}
 			else
 			{
-				UE_LOG(LogTemp, Warning, TEXT("DiceSpawnVolume not found in level!"));
+				UE_LOG(LogTemp, Warning, TEXT("UGameplayHUDComponent::BeginPlay — DiceSpawnVolume not found in level"));
 			}
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Dice Selector Not Found"));
+			UE_LOG(LogTemp, Warning, TEXT("UGameplayHUDComponent::BeginPlay — DiceSelectorManager not found"));
 		}
 
-		if (!ChatBoxRef)
+		if (!IsValid(ChatBoxRef))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Chat Box Not Found"));
+			UE_LOG(LogTemp, Warning, TEXT("UGameplayHUDComponent::BeginPlay — ChatBox not found"));
 		}
 
-		if (PlayerListRef)
+		if (IsValid(PlayerListRef))
 		{
 			PlayerListRef->OnAddressClicked.AddDynamic(this, &UGameplayHUDComponent::OnPlayerAddressClicked);
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Player List Not Found"));
+			UE_LOG(LogTemp, Warning, TEXT("UGameplayHUDComponent::BeginPlay — PlayerList not found"));
 		}
 
-		if (TaskbarRef)
+		if (IsValid(TaskbarRef))
 		{
 			DicePanel = FindAndRegisterPanel(TEXT("DicePanel"), TEXT("Dice"));
 			ChatPanel = FindAndRegisterPanel(TEXT("ChatPanel"), TEXT("Chat"));;
@@ -85,7 +94,7 @@ void UGameplayHUDComponent::BeginPlay()
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Taskbar Not Found"));
+			UE_LOG(LogTemp, Warning, TEXT("UGameplayHUDComponent::BeginPlay — Taskbar not found"));
 		}
 	}
 }
@@ -93,26 +102,26 @@ void UGameplayHUDComponent::BeginPlay()
 // Delegates focus to the chat box widget.
 void UGameplayHUDComponent::FocusChat()
 {
-	if (ChatBoxRef) ChatBoxRef->FocusChat();
+	if (IsValid(ChatBoxRef)) ChatBoxRef->FocusChat();
 }
 
 // Delegates exit to the chat box widget.
 void UGameplayHUDComponent::ExitChat()
 {
-	if (ChatBoxRef) ChatBoxRef->ExitChat();
+	if (IsValid(ChatBoxRef)) ChatBoxRef->ExitChat();
 }
 
 // Delegates scroll direction to the chat box widget.
 void UGameplayHUDComponent::ScrollChat(bool bUp)
 {
-	if (ChatBoxRef) ChatBoxRef->Scroll(bUp);
+	if (IsValid(ChatBoxRef)) ChatBoxRef->Scroll(bUp);
 }
 
 // Finds a DraggablePanel by widget name, registers it with the Taskbar, assigns its PanelID, and binds save delegates.
 UDraggablePanel* UGameplayHUDComponent::FindAndRegisterPanel(const FName& WidgetName, const FString& Label)
 {
 	UDraggablePanel* Panel = UFunctionLibrary::GetTypedWidgetFromName<UDraggablePanel>(GameplayScreenRef, WidgetName);
-	if (Panel)
+	if (IsValid(Panel))
 	{
 		UTaskbarButton* Button = TaskbarRef->RegisterWidget(Panel, Label);
 		Panel->SetPanelID(Label);
@@ -133,26 +142,36 @@ UDraggablePanel* UGameplayHUDComponent::FindAndRegisterPanel(const FName& Widget
 void UGameplayHUDComponent::SavePanelLayout()
 {
 	UPanelLayoutSave* PanelLayoutSave = NewObject<UPanelLayoutSave>();
+	if (!IsValid(PanelLayoutSave))
+	{
+		UE_LOG(LogTemp, Error, TEXT("UGameplayHUDComponent::SavePanelLayout — Failed to create PanelLayoutSave object"));
+		return;
+	}
 	SavePanelLayout(DicePanel, PanelLayoutSave);
 	SavePanelLayout(ChatPanel, PanelLayoutSave);
 	SavePanelLayout(PlayersPanel, PanelLayoutSave);
 	//Apply other panels as needed
 
-	UGameplayStatics::SaveGameToSlot(PanelLayoutSave, TEXT("PanelLayout"), 0);
+	UGameplayStatics::SaveGameToSlot(PanelLayoutSave, UPanelLayoutSave::SaveSlotName, 0);
 }
 
 // Notifies the chat box that a roll has been initiated so it can prepare for incoming roll result messages.
 void UGameplayHUDComponent::OnRollInitiated()
 {
+	if (!IsValid(ChatBoxRef))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UGameplayHUDComponent::OnRollInitiated — ChatBoxRef is null"));
+		return;
+	}
 	ChatBoxRef->TrySendPrivateRollMessage();
 }
 
 // Loads the PanelLayout save slot and applies stored position, size, and visibility to each panel.
 void UGameplayHUDComponent::LoadPanelLayout()
 {
-	if (UGameplayStatics::DoesSaveGameExist(TEXT("PanelLayout"), 0))
+	if (UGameplayStatics::DoesSaveGameExist(UPanelLayoutSave::SaveSlotName, 0))
 	{
-		UPanelLayoutSave* LoadedLayout = Cast<UPanelLayoutSave>(UGameplayStatics::LoadGameFromSlot(TEXT("PanelLayout"), 0));
+		UPanelLayoutSave* LoadedLayout = Cast<UPanelLayoutSave>(UGameplayStatics::LoadGameFromSlot(UPanelLayoutSave::SaveSlotName, 0));
 		if (LoadedLayout)
 		{
 			ApplyPanelLayout(DicePanel, LoadedLayout);
@@ -199,6 +218,11 @@ void UGameplayHUDComponent::ApplyPanelLayout(UDraggablePanel* Panel, UPanelLayou
 // Delivers the incoming message to the chat box on the owning client.
 void UGameplayHUDComponent::AddChatMessageOnOwningClient_Implementation(const FString& Message, const TArray<FString>& Recipients, bool bIsSender)
 {
+	if (!IsValid(ChatBoxRef))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UGameplayHUDComponent::AddChatMessageOnOwningClient — ChatBoxRef is null"));
+		return;
+	}
 	ChatBoxRef->AddChatMessage(Message, Recipients, bIsSender);
 }
 
@@ -219,6 +243,11 @@ void UGameplayHUDComponent::SendChatMessageOnServer_Implementation(const FString
 
 	//Get the game state to access the player array
 	AGameStateBase* GS = GetWorld()->GetGameState<AGameStateBase>();
+	if (!IsValid(GS))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UGameplayHUDComponent::SendChatMessageOnServer — GameState is null"));
+		return;
+	}
 
 	//Send the message to each player's HUD component if they're a participant (or if broadcast)
 	for (APlayerState* Play : GS->PlayerArray)
@@ -267,7 +296,7 @@ void UGameplayHUDComponent::AddRollResultToChat(TArray<FRollResult> Results, EDi
 	//Trim the last newline off the end of the message and send it to the server to be broadcast to all clients
 	Message.TrimEndInline();
 
-	if (ChatBoxRef)
+	if (IsValid(ChatBoxRef))
 	{
 		SendChatMessageOnServer(Message, ChatBoxRef->GetActiveChannelParticipants());
 	}
@@ -287,5 +316,10 @@ void UGameplayHUDComponent::OnDiceFailsafeHandler(EDiceType DiceType)
 // Appends the player's name as an @mention in the chat input field.
 void UGameplayHUDComponent::OnPlayerAddressClicked(const FString& PlayerName)
 {
+	if (!IsValid(ChatBoxRef))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UGameplayHUDComponent::OnPlayerAddressClicked — ChatBoxRef is null"));
+		return;
+	}
 	ChatBoxRef->AppendToInput(TEXT("@") + PlayerName + TEXT(" "));
 }

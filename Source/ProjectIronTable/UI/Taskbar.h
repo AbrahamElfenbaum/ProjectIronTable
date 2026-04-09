@@ -2,9 +2,9 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Components/HorizontalBox.h"
 #include "Taskbar.generated.h"
 
+class UHorizontalBox;
 class UTaskbarButton;
 class UButton;
 
@@ -41,7 +41,7 @@ protected:
 
 public:
 	/** Creates a TaskbarButton for the given widget and adds it to the taskbar. */
-	UTaskbarButton* RegisterWidget(UUserWidget* Widget, FString Label);
+	UTaskbarButton* RegisterWidget(UUserWidget* Widget, const FString& Label);
 
 	/** Resets all panels to their default sizes and positions */
 	UFUNCTION()

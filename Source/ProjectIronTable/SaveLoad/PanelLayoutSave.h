@@ -48,6 +48,9 @@ class PROJECTIRONTABLE_API UPanelLayoutSave : public USaveGame
 	GENERATED_BODY()
 
 public:
+
+	static const FString SaveSlotName;
+
 	/** Map of panel names to their layout data, including position, size, and visibility. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TMap<FString, FPanelLayoutData> PanelLayouts;

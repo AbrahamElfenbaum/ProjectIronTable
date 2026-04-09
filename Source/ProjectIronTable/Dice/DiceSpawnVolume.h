@@ -2,8 +2,9 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Components/BoxComponent.h"
 #include "DiceSpawnVolume.generated.h"
+
+class UBoxComponent;
 
 /** An actor that defines the box region in which dice are spawned. */
 UCLASS()

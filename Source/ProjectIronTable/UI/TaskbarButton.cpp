@@ -1,6 +1,9 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "TaskbarButton.h"
 
+#include "Components/TextBlock.h"
+#include "Components/Button.h"
+
 // Binds the toggle button click event.
 void UTaskbarButton::NativeConstruct()
 {
@@ -13,7 +16,7 @@ void UTaskbarButton::NativeConstruct()
 }
 
 // Stores the widget reference and sets the label text.
-void UTaskbarButton::SetTrackedWidget(UUserWidget* Widget, FString Label)
+void UTaskbarButton::SetTrackedWidget(UUserWidget* Widget, const FString& Label)
 {
 	TrackedWidget = Widget;
 	WidgetLabel->SetText(FText::FromString(Label));
@@ -27,6 +30,12 @@ UUserWidget* UTaskbarButton::GetTrackedWidget() const
 // Collapses the tracked widget if visible, or restores it if collapsed.
 void UTaskbarButton::OnToggleClicked()
 {
+	if (!IsValid(TrackedWidget))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UTaskbarButton::OnToggleClicked — TrackedWidget is null"));
+		return;
+	}
+
 	if (TrackedWidget->GetVisibility() == ESlateVisibility::Collapsed)
 	{
 		TrackedWidget->SetVisibility(ESlateVisibility::Visible);

@@ -1,7 +1,10 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "Taskbar.h"
-#include "TaskbarButton.h"
+
+#include "Components/HorizontalBox.h"
 #include "Components/Button.h"
+
+#include "TaskbarButton.h"
 #include "DraggablePanel.h"
 
 // Binds the reset button click event.
@@ -15,9 +18,14 @@ void UTaskbar::NativeConstruct()
 }
 
 // Creates a TaskbarButton for the widget, assigns it a label, and adds it to the button container.
-UTaskbarButton* UTaskbar::RegisterWidget(UUserWidget* Widget, FString Label)
+UTaskbarButton* UTaskbar::RegisterWidget(UUserWidget* Widget, const FString& Label)
 {
 	UTaskbarButton* TaskbarButton = CreateWidget<UTaskbarButton>(GetOwningPlayer(), TaskbarButtonClass);
+	if (!IsValid(TaskbarButton))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UTaskbar::RegisterWidget — Failed to create TaskbarButton for %s"), *Label);
+		return nullptr;
+	}
 	TaskbarButton->SetTrackedWidget(Widget, Label);
 	ButtonContainer->AddChild(TaskbarButton);
 	return TaskbarButton;

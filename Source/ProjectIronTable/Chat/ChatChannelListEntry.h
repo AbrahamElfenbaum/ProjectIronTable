@@ -2,11 +2,10 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Components/TextBlock.h"
-#include "Components/Button.h"
 #include "ChatChannelListEntry.generated.h"
 
-
+class UTextBlock;
+class UButton;
 class UChatChannel;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEntryClicked, UChatChannel*, ClickedChannel);

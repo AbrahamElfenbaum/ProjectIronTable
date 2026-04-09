@@ -3,9 +3,10 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "BaseDiceActor.h"
-#include "Components/TextBlock.h"
-#include "Components/Button.h"
 #include "DiceSelector.generated.h"
+
+class UTextBlock;
+class UButton;
 
 /** Broadcast whenever the selected die count changes (increment, decrement, or reset). */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDiceCountChanged);

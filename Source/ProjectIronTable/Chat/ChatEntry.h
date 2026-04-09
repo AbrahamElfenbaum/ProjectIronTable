@@ -2,8 +2,9 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Components/TextBlock.h"
 #include "ChatEntry.generated.h"
+
+class UTextBlock;
 
 /** A single line of chat text displayed inside a UChatChannel's scroll box. */
 UCLASS()

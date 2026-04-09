@@ -4,13 +4,13 @@
 #include "Components/ActorComponent.h"
 #include "BaseDiceActor.h"
 #include "DiceSelectorManager.h"
-#include "PlayerList.h"
 #include "GameplayHUDComponent.generated.h"
 
 class UChatBox;
 class UTaskbar;
 class UDraggablePanel;
 class UPanelLayoutSave;
+class UPlayerList;
 
 /**
  * Actor component attached to AGameplayController that owns and manages all gameplay UI.

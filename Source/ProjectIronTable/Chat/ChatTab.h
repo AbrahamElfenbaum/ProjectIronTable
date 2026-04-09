@@ -2,11 +2,11 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Components/TextBlock.h"
-#include "Components/Button.h"
 #include "ChatTab.generated.h"
 
 class UChatChannel;
+class UButton;
+class UTextBlock;
 
 /** Fired when the tab button is clicked, passing the channel this tab represents. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTabClicked, UChatChannel*, ClickedChannel);

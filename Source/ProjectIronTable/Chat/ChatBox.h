@@ -2,13 +2,13 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Components/HorizontalBox.h"
-#include "Components/VerticalBox.h"
-#include "Components/WidgetSwitcher.h"
 #include "Components/EditableText.h"
-#include "Components/Button.h"
 #include "ChatBox.generated.h"
 
+class UHorizontalBox;
+class UVerticalBox;
+class UWidgetSwitcher;
+class UButton;
 class UGameplayHUDComponent;
 class UChatEntry;
 class UChatChannel;
@@ -112,14 +112,14 @@ public:
 	void ExitChat();
 
 	/** Creates a new channel for the given participant list, adds it to the tab bar, and returns it. */
-	UChatChannel* CreateChannel(TArray<FString> Participants);
+	UChatChannel* CreateChannel(const TArray<FString>& Participants);
 
 	/** Makes the given channel active in the switcher and clears its notification. */
 	UFUNCTION()
 	void SwitchToChannel(UChatChannel* Channel);
 
 	/** Routes a message to the correct channel (creating one if needed) and shows a notification if not active. */
-	void AddChatMessage(const FString& Message, TArray<FString> Participants, bool bIsSender);
+	void AddChatMessage(const FString& Message, const TArray<FString>& Participants, bool bIsSender);
 
 	/** Appends text to the current contents of the input field. */
 	void AppendToInput(const FString& Text);

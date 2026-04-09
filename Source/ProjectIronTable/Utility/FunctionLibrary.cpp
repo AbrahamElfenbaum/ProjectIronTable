@@ -8,19 +8,19 @@ FString UFunctionLibrary::GetDiceName(EDiceType Type)
 	switch (Type)
 	{
 	case EDiceType::D4:
-		return "D4";
+		return TEXT("D4");
 	case EDiceType::D6:
-		return "D6";
+		return TEXT("D6");
 	case EDiceType::D8:
-		return "D8";
+		return TEXT("D8");
 	case EDiceType::D10:
-		return "D10";
+		return TEXT("D10");
 	case EDiceType::D12:
-		return "D12";
+		return TEXT("D12");
 	case EDiceType::D20:
-		return "D20";
+		return TEXT("D20");
 	case EDiceType::D100:
-		return "D100";
+		return TEXT("D100");
 	default:
 		return FString();
 	}
