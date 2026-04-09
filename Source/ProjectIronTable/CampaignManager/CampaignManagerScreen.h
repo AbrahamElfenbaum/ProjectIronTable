@@ -32,6 +32,19 @@ public:
 	/** Widget class used when creating campaign card entries. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UCampaignCard> CampaignCardClass;
+
+	/** Background color applied to the selected game type tab button. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FLinearColor SelectedTabColor;
+
+	/** Background color applied to unselected game type tab buttons. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FLinearColor UnselectedTabColor;
+
+	/** When true, Init populates the screen with hardcoded test data instead of the saved campaign data. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bUseFakeData;
+
 #pragma endregion
 
 private:
@@ -65,6 +78,10 @@ private:
 	/** Cached reference to the loaded campaign save game object. */
 	UPROPERTY()
 	TObjectPtr<UCampaignManagerSave> CampaignData;
+
+	/** Cached references to the active game type buttons. */
+	UPROPERTY()
+	TArray<UGameTypeButton*> ActiveButtons;
 #pragma endregion
 
 public:
@@ -86,6 +103,12 @@ private:
 	/** Clears the campaign grid and repopulates it with cards for the given game type. */
 	void PopulateCampaigns(const TArray<FCampaignRecord>& Campaigns, const FString& GameType);
 
+	/** Updates all active game type buttons — marks the one matching SelectedGameType as selected, all others as unselected. */
+	void SetSelectedGameButton();
+
+	/** Builds and returns a hardcoded TMap of campaign records for testing the campaign manager UI. */
+	TMap<FString, FCampaignList> BuildFakeData() const;
+
 	/** Switches the active game type and refreshes the campaign grid. */
 	UFUNCTION()
 	void OnGameTypeSelected(const FString& GameType);
@@ -94,7 +117,7 @@ private:
 	UFUNCTION()
 	void OnCampaignSelected(const FGuid& CampaignID, const FString& GameType);
 
-	/** Broadcasts OnCampaignBackRequested to signal the parent to return to the home screen. */
+	/** Broadcasts OnBackRequested to signal the parent to return to the home screen. */
 	UFUNCTION()
 	void OnBackClicked();
 #pragma endregion

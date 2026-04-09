@@ -52,7 +52,8 @@ Content/
 │   ├── Dice/                   — WE_DiceSelector, W_DiceSelectorManager
 │   ├── Chat/                   — W_ChatBox, WE_ChatChannel, WE_ChatTab, WE_ChatEntry
 │   ├── PlayerList/             — W_PlayerList, WE_PlayerRow
-│   ├── Screens/                — S_GameplayScreen, S_HomeScreen, S_MainScreen, S_SettingsScreen
+│   ├── CampaignManager/        — WE_GameTypeButton, WE_CampaignCard
+│   ├── Screens/                — S_GameplayScreen, S_HomeScreen, S_MainScreen, S_SettingsScreen, S_CampaignManagerScreen
 │   ├── Settings/               — WE_SettingsSlider
 │   │   └── Panels/             — WE_CameraSettingsPanel
 │   ├── HUD/                    — W_Taskbar, WE_TaskbarButton
@@ -261,9 +262,11 @@ Collapsible scrollable list of connected players.
 #### UGameTypeButton
 **Type:** `UUserWidget`
 
-Tab button representing a single game type in the Campaign Manager screen. Displays the game type name and is greyed out (non-interactable) when no campaigns exist for that type.
+Tab button representing a single game type in the Campaign Manager screen. Displays the game type name and is greyed out (non-interactable) when no campaigns exist for that type. Visually indicates the active tab via background color.
 
 **Bound Widgets:** `GameTypeTab` (`UButton`), `GameTypeLabel` (`UTextBlock`)
+
+**Private State:** `SelectedTabColor` (`FLinearColor`), `UnselectedTabColor` (`FLinearColor`) — set by `UCampaignManagerScreen` at creation time via `SetTabColors`
 
 **Delegates:**
 - `OnGameTypeSelected` (`FOnGameTypeSelected(const FString& GameType)`, BlueprintAssignable) — broadcast on click, passing the game type key
@@ -271,6 +274,9 @@ Tab button representing a single game type in the Campaign Manager screen. Displ
 **Key Methods:**
 - `SetLabel(const FString& Label)` — sets the button label text
 - `SetInteractable(bool bInteractable)` — enables or disables the button
+- `SetTabColors(const FLinearColor& InSelected, const FLinearColor& InUnselected)` — stores the two colors; must be called before `SetSelected`
+- `SetSelected(bool bSelected)` — applies `SelectedTabColor` or `UnselectedTabColor` to the button background
+- `GetLabel() const` → `FString` — returns the current label text
 
 ---
 
@@ -294,26 +300,30 @@ Displays one campaign entry. Stores campaign ID and game type as private members
 #### UCampaignManagerScreen
 **Type:** `UUserWidget` | **Blueprint:** `S_CampaignManagerScreen`
 
-Root widget for the Campaign Manager. Loads saved campaigns, builds game type tab buttons, and populates a campaign card grid filtered by the selected game type.
+Root widget for the Campaign Manager. Loads saved campaigns, builds game type tab buttons, and populates a campaign card grid filtered by the selected game type. Supports a fake-data mode for testing without a real save.
 
 **Config:**
 - `GameTypeButtonClass` (`TSubclassOf<UGameTypeButton>`)
 - `CampaignCardClass` (`TSubclassOf<UCampaignCard>`)
+- `SelectedTabColor` / `UnselectedTabColor` (`FLinearColor`) — passed to each button via `SetTabColors`
+- `bUseFakeData` (`bool`) — when true, `Init` uses hardcoded test data instead of the save game
 
 **Bound Widgets:** `BackButton`, `NewCampaignButton` (`UButton`), `GameTypeTabBar` (`UScrollBox`), `CampaignGrid` (`UWrapBox`), `CampaignScroll` (`UScrollBox`)
 
-**Private State:** `SelectedGameType` (`FString`), `CampaignData` (`TObjectPtr<UCampaignManagerSave>`, `UPROPERTY()`)
+**Private State:** `SelectedGameType` (`FString`), `CampaignData` (`TObjectPtr<UCampaignManagerSave>`, `UPROPERTY()`), `ActiveButtons` (`TArray<UGameTypeButton*>`, `UPROPERTY()`) — only buttons with at least one campaign
 
 **Delegates:**
-- `OnCampaignBackRequested` (`FOnCampaignBackRequested`, BlueprintAssignable) — fired when Back is clicked
+- `OnBackRequested` (`FOnBackRequested`, BlueprintAssignable) — fired when Back is clicked; uses shared type from `UDelegateLibrary`
 
 **Key Methods:**
-- `Init()` — loads `UCampaignManagerSave`, creates a `UGameTypeButton` per game type, populates the grid with the first game type that has campaigns
+- `Init()` — branches on `bUseFakeData`; either creates a temporary `UCampaignManagerSave` via `NewObject` and populates it with `BuildFakeData()`, or loads from the `"CampaignManager"` save slot. Creates one `UGameTypeButton` per game type, tracks buttons with campaigns in `ActiveButtons`, populates the grid with the first available type, calls `SetSelectedGameButton()` after the loop.
+- `SetSelectedGameButton()` — iterates `ActiveButtons` and calls `SetSelected` based on `SelectedGameType`
+- `BuildFakeData() const` — returns a `TMap<FString, FCampaignList>` with DnD5e (2), Pathfinder2e (1), CallOfCthulhu (0), Starfinder (0)
 
 **Handlers:**
-- `OnGameTypeSelected(const FString&)` — refreshes the campaign grid via `PopulateCampaigns`
+- `OnGameTypeSelected(const FString&)` — updates `SelectedGameType`, refreshes grid, calls `SetSelectedGameButton`
 - `OnCampaignSelected(const FGuid&, const FString&)` — placeholder; will launch the selected campaign
-- `OnBackClicked` — broadcasts `OnCampaignBackRequested`
+- `OnBackClicked` — broadcasts `OnBackRequested`
 
 > **Note:** The campaign grid (`UWrapBox`) must be inside a `UScrollBox` to support vertical scrolling when cards overflow.
 
@@ -387,7 +397,7 @@ Handles screen-level navigation only. Creates the root `S_MainScreen` widget, ge
 
 **Handlers:**
 - `OnSettingsClicked` → `ScreenSwitcherRef->SetActiveWidgetIndex(1)` — bound to `UHomeScreen::OnSettingsRequested`
-- `OnBackClicked` → `ScreenSwitcherRef->SetActiveWidgetIndex(0)` — bound to `USettingsScreen::OnSettingsBackRequested`
+- `OnBackClicked` → `ScreenSwitcherRef->SetActiveWidgetIndex(0)` — bound to `USettingsScreen::OnBackRequested`
 
 > Does **not** own any button refs, slider refs, or save/load logic — all of that lives in `UHomeScreen` and `UCameraSettingsPanel`.
 
@@ -447,9 +457,9 @@ Root settings screen widget. Hosts a `UWidgetSwitcher` for future panel navigati
 **Bound Widgets:** `PanelSwitcher` (`UWidgetSwitcher`), `BackButton` (`UButton`), `CameraSettingsPanel` (`UCameraSettingsPanel`)
 
 **Delegates:**
-- `OnSettingsBackRequested` (`FOnSettingsBackRequested`, BlueprintAssignable) — broadcast on Back button click; bound by `UMainScreenHUDComponent` to navigate back to the home screen
+- `OnBackRequested` (`FOnBackRequested`, BlueprintAssignable) — broadcast on Back button click; bound by `UMainScreenHUDComponent` to navigate back to the home screen; uses shared type from `UDelegateLibrary`
 
-**NativeConstruct:** binds `BackButton` click → broadcasts `OnSettingsBackRequested`, calls `CameraSettingsPanel->Init()`
+**NativeConstruct:** binds `BackButton` click → broadcasts `OnBackRequested`, calls `CameraSettingsPanel->Init()`
 
 ---
 
@@ -669,6 +679,16 @@ General-purpose helper functions accessible from C++ and Blueprint.
 
 ---
 
+#### UDelegateLibrary
+**Type:** `UBlueprintFunctionLibrary`
+
+Holds shared delegate type declarations used across multiple screens and systems. All cross-screen delegates are declared here to avoid name collisions and keep delegate types in one place.
+
+**Declared types:**
+- `FOnBackRequested` (`DECLARE_DYNAMIC_MULTICAST_DELEGATE`) — used by `USettingsScreen` and `UCampaignManagerScreen` to signal the parent to return to the previous screen
+
+---
+
 ### Environment/ *(planned — not yet implemented)*
 
 #### AEnvironmentManager
@@ -776,7 +796,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - Channel matching must check `Participants.Num()` equality before content — a subset-participant channel can otherwise incorrectly match
 
 ### Delegates
-- **`DECLARE_DYNAMIC_MULTICAST_DELEGATE` names are global** — two headers declaring the same delegate name cause a compile error. Use unique names per class (e.g. `FOnSettingsBackRequested`, `FOnCampaignBackRequested`) or consolidate shared delegates into a `CommonDelegates.h` header included wherever needed.
+- **`DECLARE_DYNAMIC_MULTICAST_DELEGATE` names are global** — two headers declaring the same delegate name cause a compile error. Declare shared delegate types once in `UDelegateLibrary` (`Utility/DelegateLibrary.h`) and include that header wherever the type is needed. Per-class delegates (e.g. `FOnGameTypeSelected`) stay in their own class header.
 
 ### C++ Patterns
 - Declaring `Type* MemberName = Cast<...>` in `BeginPlay` creates a local variable that shadows the member — use `MemberName = Cast<...>` (no type prefix)
@@ -863,7 +883,7 @@ The Campaign Manager is the primary hub between the home screen and an active se
 - [x] `UCampaignManagerSave` — save game; `TMap<FString, FCampaignList>` keyed by game type; slot `"CampaignManager"`
 - [x] `UGameTypeButton` — tab button per game type; greyed out if no campaigns exist
 - [x] `UCampaignCard` — campaign entry card; displays title, last played, player count; fires `OnCampaignSelected`
-- [~] `UCampaignManagerScreen` — in progress; loads save, populates tabs and grid; `OnCampaignSelected` handler is a placeholder
+- [~] `UCampaignManagerScreen` — tab switching, selected state highlighting, and fake-data test mode complete; `OnCampaignSelected` is still a placeholder; Blueprint wiring pending
 - [ ] Campaign Manager screen — lists all campaigns the player is part of (full flow pending)
 - [ ] Campaign creation — any player can create; private (invite-only) or public (discoverable)
 - [ ] Public campaign browser — filterable by name, game system, tags, one-shot vs. multi-session, meeting days/frequency/session length
@@ -1013,7 +1033,9 @@ The Campaign Manager is the primary hub between the home screen and an active se
 
 ---
 
-*Last updated: 2026-04-08* — Campaign Manager classes added: `UCampaignManagerSave`, `UGameTypeButton`, `UCampaignCard`, `UCampaignManagerScreen` (in progress). `CampaignManager/` source folder added. `USettingsScreen::OnBackRequested` renamed to `OnSettingsBackRequested`. Coding standards expanded (include order, GC safety, no debug output in committed code). Delegate naming collision gotcha added. Phase 3 roadmap updated.
+*Last updated: 2026-04-09* — `UDelegateLibrary` added to `Utility/` for shared delegate declarations. `FOnBackRequested` declared there; `USettingsScreen` and `UCampaignManagerScreen` both use it (replacing their individual delegate names). `UGameTypeButton` expanded: `SetTabColors`, `SetSelected`, `GetLabel`. `UCampaignManagerScreen` expanded: `SelectedTabColor`/`UnselectedTabColor`/`bUseFakeData` config, `ActiveButtons` state, `SetSelectedGameButton`, `BuildFakeData`. `UMainScreenHUDComponent` null-checks `MainScreenRef` after `CreateWidget`. Delegate naming gotcha updated to reference `UDelegateLibrary`.
+
+*2026-04-08* — Campaign Manager classes added: `UCampaignManagerSave`, `UGameTypeButton`, `UCampaignCard`, `UCampaignManagerScreen` (in progress). `CampaignManager/` source folder added. Coding standards expanded (include order, GC safety, no debug output in committed code). Delegate naming collision gotcha added. Phase 3 roadmap updated.
 
 *2026-04-08* — Environment system designed (not yet implemented): `AEnvironmentManager`, `EWeatherType`, `UEnvironmentControlPanel` added as planned classes. Phase 2 roadmap updated with full environment system checklist. Phase 4 lighting item cross-references Phase 2. Build.cs note added for pending `Environment/` folder.
 

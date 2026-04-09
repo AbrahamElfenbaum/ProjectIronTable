@@ -65,7 +65,7 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - `Settings/` — Settings widget classes (`UCameraSettingsPanel`, `USettingsScreen`)
 - `UI/` — Non-chat widget classes (`UDiceSelector`, `UDiceSelectorManager`, `UTaskbar`, `UTaskbarButton`, `UDraggablePanel`, `UDragHandle`, `UResizeHandle`, `USettingsSlider`, `UHomeScreen`)
 - `Physics/Materials/` — Physical material assets (friction, restitution for dice)
-- `Utility/` — Blueprint function libraries (`UFunctionLibrary`)
+- `Utility/` — Blueprint function libraries (`UFunctionLibrary`, `UDelegateLibrary`)
 
 ### Content (`Content/`)
 - `Blueprints/Core/GameModes/` — Game mode blueprints (`GM_Testing`, `GM_Gameplay`, `GM_MainScreen`)
@@ -90,6 +90,7 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - `UI/PlayerList/` — Player list widgets (`W_PlayerList`, `WE_PlayerRow`)
 - `UI/Taskbar/` — Taskbar widgets (`W_Taskbar`, `WE_TaskbarButton`)
 - `UI/Utility/` — Reusable utility widgets (`W_DraggablePanel`, `WBP_DragHandle`, `WBP_ResizeHandle`)
+- `UI/CampaignManager/` — Campaign manager widget elements (`WE_GameTypeButton`, `WE_CampaignCard`)
 - `UI/Screens/` — Full screen widgets (`S_GameplayScreen`, `S_HomeScreen`, `S_MainScreen`, `S_SettingsScreen`, `S_CampaignManagerScreen`)
 - `UI/Settings/` — Settings widget elements (`WE_SettingsSlider`)
 - `UI/Settings/Panels/` — Settings panel widgets (`WE_CameraSettingsPanel`)

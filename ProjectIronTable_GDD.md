@@ -593,7 +593,9 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 
 ---
 
-*Last updated: 2026-04-08* — Environment system (Time of Day & Weather) fully designed. Voice/video chat moved from Out of Scope to Open Questions (undecided between built-in, Discord integration, or out of scope). Open question list renumbered. Expanded the Maps "Lighting and atmosphere" stub into a complete feature section covering time of day, weather types, intensity, GM panel, replication model, and planned C++ classes.
+*Last updated: 2026-04-09* — No design changes. Implementation session: `UCampaignManagerScreen` tab-switching and visual selection complete; `UDelegateLibrary` introduced for shared delegate types.
+
+*2026-04-08* — Environment system (Time of Day & Weather) fully designed. Voice/video chat moved from Out of Scope to Open Questions (undecided between built-in, Discord integration, or out of scope). Open question list renumbered. Expanded the Maps "Lighting and atmosphere" stub into a complete feature section covering time of day, weather types, intensity, GM panel, replication model, and planned C++ classes.
 
 *2026-04-03* — Map system redesigned as a 3D tile/prop builder (primary differentiator). Added Combat Map and World/Region Map scale modes with location pin linking. Host/Server Owner roles clarified and separated. Custom content section rewritten with auto-distribution model (no placeholders), glTF format decision, and manual peer-to-peer sharing. Host delegation added as a resolved design question. Player Roles section restructured with Server Owner and Host as distinct entries.
 
