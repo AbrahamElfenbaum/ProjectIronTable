@@ -1,5 +1,4 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
-
 #pragma once
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
@@ -18,6 +17,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Dice")
 	static FString GetDiceName(EDiceType Type);
 
+	/** Finds a named child widget within the given UserWidget and casts it to T. Returns nullptr and logs a warning if the widget is not found or the cast fails. */
 	template<typename T>
 	static T* GetTypedWidgetFromName(UUserWidget* Widget, FName Name)
 	{

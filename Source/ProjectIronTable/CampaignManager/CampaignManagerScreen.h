@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "CampaignManagerSave.h"
+#include "DelegateLibrary.h"
 #include "CampaignManagerScreen.generated.h"
 
 class UButton;
@@ -10,9 +11,6 @@ class UScrollBox;
 class UWrapBox;
 class UGameTypeButton;
 class UCampaignCard;
-
-/** Fired when the back button is clicked, signaling the parent to return to the home screen. */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCampaignBackRequested);
 
 /** Root widget for the campaign manager screen. Loads saved campaigns, populates game type tabs, and displays campaign cards. */
 UCLASS()
@@ -34,17 +32,6 @@ public:
 	/** Widget class used when creating campaign card entries. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UCampaignCard> CampaignCardClass;
-#pragma endregion
-
-#pragma region Events
-	/** Fired when the back button is clicked; parent should return to the home screen. */
-	UPROPERTY(BlueprintAssignable)
-	FOnCampaignBackRequested OnCampaignBackRequested;
-#pragma endregion
-
-#pragma region Public Methods
-	/** Loads the campaign save, populates game type tabs, and displays the first available campaign list. */
-	void Init();
 #pragma endregion
 
 private:
@@ -79,6 +66,21 @@ private:
 	UPROPERTY()
 	TObjectPtr<UCampaignManagerSave> CampaignData;
 #pragma endregion
+
+public:
+
+#pragma region Events
+	/** Fired when the back button is clicked; parent should return to the home screen. */
+	UPROPERTY(BlueprintAssignable)
+	FOnBackRequested OnBackRequested;
+#pragma endregion
+
+#pragma region Public Methods
+	/** Loads the campaign save, populates game type tabs, and displays the first available campaign list. */
+	void Init();
+#pragma endregion
+
+private:
 
 #pragma region Event Handlers
 	/** Clears the campaign grid and repopulates it with cards for the given game type. */

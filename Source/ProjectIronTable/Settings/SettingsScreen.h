@@ -2,13 +2,12 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "DelegateLibrary.h"
 #include "SettingsScreen.generated.h"
 
 class UButton;
 class UWidgetSwitcher;
 class UCameraSettingsPanel;
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSettingsBackRequested);
 
 /** Root settings screen widget. Coordinates all settings panels and broadcasts when the user requests to return to the home screen. */
 UCLASS()
@@ -21,6 +20,7 @@ protected:
 
 private:
 
+#pragma region Widget References
 	/** The instantiated panel switcher widget. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidgetSwitcher> PanelSwitcher;
@@ -32,19 +32,22 @@ private:
 	/** The camera settings panel widget. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UCameraSettingsPanel> CameraSettingsPanel;
+#pragma endregion
 
-	//Add more settings panels here as needed.
+public:
 
-public: 
-
+#pragma region Events
 	/** Broadcasts when the user requests to return to the home screen. */
 	UPROPERTY(BlueprintAssignable)
-	FOnSettingsBackRequested OnSettingsBackRequested;
+	FOnBackRequested OnBackRequested;
+#pragma endregion
 
 private:
 
+#pragma region Event Handlers
 	/** Broadcasts OnBackRequested to notify the parent to return to the home screen. */
 	UFUNCTION()
 	void OnBackClicked();
+#pragma endregion
 
 };

@@ -25,8 +25,12 @@ void UMainScreenHUDComponent::BeginPlay()
 		PlayerControllerRef->IsLocalPlayerController() &&
 		MainScreenClass)
 	{
-
 		MainScreenRef = CreateWidget<UUserWidget>(GetWorld(), MainScreenClass);
+		if (!IsValid(MainScreenRef))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("UMainScreenHUDComponent::BeginPlay — Failed to create MainScreen widget"));
+			return;
+		}
 		MainScreenRef->AddToViewport();
 
 		ScreenSwitcherRef = UFunctionLibrary::GetTypedWidgetFromName<UWidgetSwitcher>(MainScreenRef, TEXT("ScreenSwitcher"));
@@ -50,7 +54,7 @@ void UMainScreenHUDComponent::BeginPlay()
 
 		if (IsValid(SettingsScreenRef))
 		{
-			SettingsScreenRef->OnSettingsBackRequested.AddDynamic(this, &UMainScreenHUDComponent::OnBackClicked);
+			SettingsScreenRef->OnBackRequested.AddDynamic(this, &UMainScreenHUDComponent::OnBackClicked);
 		}
 		else
 		{

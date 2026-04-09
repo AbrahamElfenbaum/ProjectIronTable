@@ -24,5 +24,5 @@ void USettingsScreen::NativeConstruct()
 // Broadcasts OnBackRequested to notify the parent to return to the home screen.
 void USettingsScreen::OnBackClicked()
 {
-	OnSettingsBackRequested.Broadcast();
+	OnBackRequested.Broadcast();
 }

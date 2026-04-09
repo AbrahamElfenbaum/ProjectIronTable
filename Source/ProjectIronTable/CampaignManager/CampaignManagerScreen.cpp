@@ -25,7 +25,8 @@ void UCampaignManagerScreen::Init()
 	if (UGameplayStatics::DoesSaveGameExist(UCampaignManagerSave::SaveSlotName, 0))
 	{
 		USaveGame* LoadedSave = UGameplayStatics::LoadGameFromSlot(UCampaignManagerSave::SaveSlotName, 0);
-		if (CampaignData = Cast<UCampaignManagerSave>(LoadedSave))
+		CampaignData = Cast<UCampaignManagerSave>(LoadedSave);
+		if (IsValid(CampaignData))
 		{
 			bool bGridPopulated = false;
 			for (const TPair<FString, FCampaignList>& Game : CampaignData->CampaignRecords)
@@ -120,5 +121,5 @@ void UCampaignManagerScreen::OnCampaignSelected(const FGuid& CampaignID, const F
 // Broadcasts OnCampaignBackRequested to signal the parent to return to the home screen.
 void UCampaignManagerScreen::OnBackClicked()
 {
-	OnCampaignBackRequested.Broadcast();
+	OnBackRequested.Broadcast();
 }
