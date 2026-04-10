@@ -371,7 +371,7 @@ Stores panel layout for all registered panels.
 Persists all campaigns grouped by game type.
 
 **Supporting types:**
-- `FCampaignRecord` (`USTRUCT`) — one campaign entry: `CampaignID` (`FGuid`), `CampaignName` (`FString`), `LastPlayed` (`FDateTime`), `NumberOfPlayers` (`int32`)
+- `FCampaignRecord` (`USTRUCT`) — one campaign entry: `CampaignID` (`FGuid`), `CampaignName` (`FString`), `LastPlayed` (`FDateTime`), `NumberOfPlayers` (`int32`), `SessionIDs` (`TArray<FGuid>`) — ordered list of session IDs belonging to this campaign; used as the index to locate sessions without filesystem scanning
 - `FCampaignList` (`USTRUCT`) — wrapper struct holding `TArray<FCampaignRecord> Campaigns`; required because `TMap<K, TArray<V>>` cannot be a `UPROPERTY`
 
 **Fields:** `CampaignRecords` (`TMap<FString, FCampaignList>`) — keyed by game type string (e.g. `"DnD5e"`)
@@ -1065,6 +1065,10 @@ The Campaign Manager is the primary hub between the home screen and an active se
 - When no Host is present, certain actions lock (moving NPCs, editing stats); full lock policy TBD when session management is built
 - **Mesh distribution:** when Host brings a map into a session, assets missing from client machines auto-transfer from Host before the map renders. No placeholders — all clients see the map in full. Assets cached locally after first transfer.
 - **Server model:** Listen server — the Server Owner hosts the session from their own machine. Acceptable tradeoff at this scale (2–8 players, non-persistent sessions). Code must be written to make a future switch to dedicated server seamless: all authoritative state lives on the server, clients never trust themselves, and the Server Owner role is checked via a flag (not `IsLocalController()` or similar) so swapping to a dedicated server changes who holds the flag, not the logic.
+- **GM role supports multiple players simultaneously** — a session can have more than one GM active at the same time.
+- **GM role is transferable** — any existing GM or the Server Owner can promote or demote players at any time.
+- **Default GM on session creation:** the campaign creator. Stored in `USessionSave` as `TArray<FGuid> GMPlayerIDs`.
+- **`USessionSave` runtime role fields:** `HostPlayerID` (`FGuid`, Server Owner), `GMPlayerIDs` (`TArray<FGuid>`), `PlayerIDs` (`TArray<FGuid>`)
 - **Session discovery:** Public browser (filterable by name, game system, tags, schedule, etc.) + direct invite link/code.
 - **Join flow:** Invite code = immediate join, no approval. Public browser = join request; requester gets temporary chat access to introduce themselves; Host approves or declines.
 - **Pre-session lobby:** Waiting room before session starts. Shows who is connected, has pre-game chat, lets players access character sheets. Host sees connection status and launches when ready.
@@ -1123,23 +1127,17 @@ The Campaign Manager is the primary hub between the home screen and an active se
 | `UPanelLayoutSave` | Player | Global | Panel positions/sizes/visibility — already exists, stays separate |
 | `UCameraSettingsSave` | Player | Global | Camera settings — already exists, stays separate |
 
-**Save disk layout:**
-```
-SaveGames/
-├── GM/
-│   └── {GameTypeID}/
-│       └── {CampaignID}/
-│           └── {SessionID}.sav
-└── Player/
-    └── {GameTypeID}/
-        └── {CampaignID}/
-            └── {SessionID}.sav
-```
-Root splits by role (GM/Player), then game type, then campaign, then session. Finding all sessions for a campaign = listing the `{CampaignID}/` folder. No need to parse file contents to navigate the hierarchy.
+**Save slot model:**
+
+Sessions are stored using Unreal's built-in save slot system — no custom file I/O. The slot name encodes the session identity: `"Session_{SessionID}"`. `UCampaignManagerSave` is the authoritative index: each `FCampaignRecord` contains a `TArray<FGuid> SessionIDs` listing every session that belongs to that campaign. To find all sessions for a campaign, look up its record in the index. To load the most recent session, sort by timestamp stored in `USessionSave` and load by slot name. To open a campaign = find its `FCampaignRecord`, read `SessionIDs`, load the most recent (or let GM pick from the list).
+
+This approach keeps all save I/O within UE's native save game system and makes a future dedicated-server migration straightforward — the index and session slots move to wherever the server runs, no path logic to change.
 
 ---
 
-*Last updated: 2026-04-10* — Session lifecycle fully designed: server startup, player join, lobby, session start, late join. "Request fresh player data" identified as shared logic (one function, two call sites). Save file inventory defined: `USessionSave`, `UGMSave`, `UPlayerSave`; global GM library deferred. Disk layout documented. Session data ownership model and migration note added. Server model confirmed as listen server.
+*Last updated: 2026-04-10 (updated)* — GM role finalized: multiple GMs supported per session, role is transferable, default GM = campaign creator. `USessionSave` role fields added: `HostPlayerID`, `GMPlayerIDs`, `PlayerIDs`. Save disk layout replaced with slot-name model: sessions stored as `"Session_{SessionID}"` save slots; `UCampaignManagerSave` is the authoritative campaign→session index via `FCampaignRecord.SessionIDs`. No custom file I/O.
+
+*2026-04-10* — Session lifecycle fully designed: server startup, player join, lobby, session start, late join. "Request fresh player data" identified as shared logic (one function, two call sites). Save file inventory defined: `USessionSave`, `UGMSave`, `UPlayerSave`; global GM library deferred. Disk layout documented. Session data ownership model and migration note added. Server model confirmed as listen server.
 
 *2026-04-09* — `UBaseScreen` added as shared base for all main screen widgets (`BackButton`, `OnBackRequested`, `virtual Init()`). `UCampaignManagerScreen`, `USettingsScreen` refactored to inherit `UBaseScreen`. `UAssetLibraryScreen` and `UCampaignBrowserScreen` added as stubs (`AssetLibrary/`, `CampaignBrowser/` source folders). `UHomeScreen` updated: Play button replaced with Campaign Manager button; CampaignBrowser and AssetLibrary buttons added; all four navigation delegates now wired through `UMainScreenHUDComponent`. `UMainScreenHUDComponent` now manages five screens (indices 0–4). `UCampaignManagerScreen::BuildFakeData` expanded to 9 game types with 20 DnD campaigns. `BindWidget` in base class needs `protected` gotcha added. Phase 2 roadmap item checked off.
 

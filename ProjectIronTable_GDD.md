@@ -46,32 +46,27 @@ Between sessions, players may update their character sheets. The GM may prep map
 - Technical/administrative role: create or close the session, kick players, transfer server ownership
 - Does **not** automatically run the game — the Server Owner and Host are separate roles and can be different people
 
-### Host (Game Facilitator)
-
-- The designated game facilitator — equivalent to GM in traditional TTRPGs, but the role name is "Host" at the system level to support GM-less games
-- Can be any connected player, including the Server Owner; assigned by the Server Owner
-- Full control over the live game state: bring maps into the session, advance turns, manage game flow
-- Controls NPC/monster miniatures
-- Can hide or reveal sections of the map (fog of war)
-- Has access to Host-only information (monster HP, hidden notes)
-- Can override or adjudicate dice rolls
-- Manages session state (start, pause, save, end)
-- Can grant or revoke specific permissions to/from individual players
-- Can delegate specific powers to individual players (e.g., allow a player to move enemy tokens or bring in a map)
-
-> **Design Note:** "Host" is the system-level role name. Games that use a traditional GM (D&D, Pathfinder, etc.) can label it "GM" in their UI theme. GM-less games (Warhammer Fantasy, some PbtA games) use the same permission system with whoever is facilitating that session assigned as Host.
-
 ### Game Master (GM)
 
+The game facilitator for the session. "GM" is the common shorthand — the system-level role name is "Host" to support GM-less games, but in practice most groups will refer to whoever holds this role as the GM.
+
+- **One or more players can hold the GM role simultaneously** — co-GM setups are fully supported
+- **The GM role is transferable** — any existing GM or the Server Owner can promote a player to GM or remove the role at any time
+- **Default GM on session creation:** the campaign creator. Stored in `USessionSave`; tracked as `TArray<FGuid> GMPlayerIDs`
+- Can be any connected player, including the Server Owner; Server Owner assigns initial GM assignment or changes it at any time
+- Full control over the live game state: bring maps into the session, advance turns, manage game flow
 - Full control over the map: place, move, and remove tiles, minis, and objects
 - Controls NPC/monster miniatures
 - Can hide or reveal sections of the map (fog of war)
 - Has access to GM-only information (monster HP, hidden notes)
 - Can override or adjudicate dice rolls
 - Manages session state (start, pause, save, end)
-- Can grant or revoke specific permissions to/from individual players (for gameplay or administrative reasons)
+- Can grant or revoke specific permissions to/from individual players
+- Can delegate specific powers to individual players (e.g., allow a player to move enemy tokens or bring in a map)
 
 **GM Camera:** The GM has a separate God-view camera with all the functions of the player camera, plus the ability to see the full map including areas behind fog of war. However, the GM's vision is still subject to vision-blocking effects — if a Sphere of Darkness is placed on the map, the GM cannot see inside it unless one of their controlled NPCs has a way to perceive through it. Vision is entity-based, not role-based: what you see is determined by what your controlled characters can perceive.
+
+> **Design Note:** "Host" is the system-level role name. Games that use a traditional GM (D&D, Pathfinder, etc.) can label it "GM" in their UI theme. GM-less games (Warhammer Fantasy, some PbtA games) use the same permission system with whoever is facilitating that session assigned as Host.
 
 > **Design Note:** Player vision and character vision are separate systems. The player can always see any part of the map that has been revealed to them — they are not restricted to their character's perspective. Line of sight and vision-blocking effects only affect what the character *mechanically* can do: attack, target spells, perceive hidden enemies, etc. A character with blocked line of sight may have disadvantage on attacks or be unable to target certain spells, but the player can still see the map.
 >
@@ -261,7 +256,7 @@ Specific tools (ruler, AoE templates — cone, sphere, line, cube, etc.) and the
 
 **What is saved:** The full session state — map layout, token positions, fog of war, initiative tracker, chat log, character sheets, notes, and inventory. Everything is saved together as a single snapshot.
 
-**Save slot:** Each campaign has one rolling save slot. There are no multiple save states — each save overwrites the previous.
+**Save model:** Each session is a separate save file. Sessions are grouped into campaigns via an index (`UCampaignManagerSave`) — the campaign is a logical grouping, not a file. To "load a campaign" means loading the most recent session in that campaign's index, or letting the GM choose from a list. Session files are stored using Unreal's native save slot system with slot names encoding the session ID; no custom file I/O is needed.
 
 **Manual save:** The GM can save at any time. The GM can grant save permission to other players.
 
@@ -486,7 +481,7 @@ The session runs as a networked game. Chat and dice rolls are already replicated
 
 **Player count:** Default maximum of 8 users per session (GM included). This cap can be removed, but the option is off by default. No hard limit is enforced beyond what the host machine can handle — if the game grows and this becomes an issue it will be revisited.
 
-**Server Owner vs Host:** The Server Owner and Host are separate roles. The Server Owner is whoever created/controls the server. The Host is the designated game facilitator and can be any player — the Server Owner assigns the Host role. The Host runs the game; the Server Owner manages the technical session. Both can be the same person or different people.
+**Server Owner vs GM:** The Server Owner and GM are separate roles. The Server Owner is whoever created/controls the server — they handle the technical session (start, stop, kick). The GM is the designated game facilitator and can be any player; the Server Owner assigns the initial GM, but the role can also be transferred later. The GM runs the game; the Server Owner manages the server. Both can be the same person or different people. **Multiple players can hold the GM role simultaneously** — co-GM setups are supported, and GM status is transferable at any time.
 
 **Host disconnect:** The Host should have control over what happens to the session if they disconnect — whether intentionally or accidentally. At minimum, certain actions should be locked when no Host is present (e.g., moving NPCs, editing stats). The full disconnect policy will be defined as the session management system is built.
 
@@ -607,10 +602,14 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 24. ~~Are UI panels fixed layout or draggable/resizable?~~ — **Resolved:** Fully draggable, resizable, and toggleable. Layout persists per user.
 25. ~~Should the Host be able to delegate specific powers to players?~~ — **Resolved:** Yes. Specific delegatable actions TBD when built. (See open question 4.)
 26. ~~Listen server or dedicated server?~~ — **Resolved:** Listen server. Server Owner hosts from their own machine. Code is structured for a seamless future switch to dedicated: authoritative state server-side, Server Owner role checked via flag not `IsLocalController()`.
+27. ~~Can there be multiple GMs in one session?~~ — **Resolved:** Yes. Multiple players can hold the GM role simultaneously. GM role is transferable between players at any time. Default GM = campaign creator.
+28. ~~How is session save data organized on disk?~~ — **Resolved:** Sessions stored as `"Session_{SessionID}"` save slots via Unreal's native save system. `UCampaignManagerSave` is the authoritative campaign→session index. No custom file paths or directories.
 
 ---
 
-*Last updated: 2026-04-10* — Session lifecycle fully designed (server startup, join, lobby, session start, late join) and added to Multiplayer section. Campaign sorting behaviour added (active sessions pinned to top). Save file inventory defined. Campaign Manager GM/Player mode toggle added. Server model confirmed as listen server (open question #2 resolved).
+*Last updated: 2026-04-10 (updated)* — GM role finalized: multiple simultaneous GMs supported, role is transferable, default GM = campaign creator. Player Roles section consolidated (Host and GM merged into single GM section). Session Save model updated: each session is a separate file; sessions grouped into campaigns via `UCampaignManagerSave` index; slot-name storage, no custom file I/O. Open questions #27 and #28 resolved.
+
+*2026-04-10* — Session lifecycle fully designed (server startup, join, lobby, session start, late join) and added to Multiplayer section. Campaign sorting behaviour added (active sessions pinned to top). Save file inventory defined. Campaign Manager GM/Player mode toggle added. Server model confirmed as listen server (open question #2 resolved).
 
 *2026-04-09* — No design changes. Implementation session: home screen navigation fully wired to Campaign Manager, Campaign Browser (stub), and Asset Library (stub) screens. `UBaseScreen` introduced as shared base class. Play button removed in favour of Campaign Manager button.
 
