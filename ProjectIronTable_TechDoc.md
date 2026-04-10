@@ -1069,9 +1069,77 @@ The Campaign Manager is the primary hub between the home screen and an active se
 - **Join flow:** Invite code = immediate join, no approval. Public browser = join request; requester gets temporary chat access to introduce themselves; Host approves or declines.
 - **Pre-session lobby:** Waiting room before session starts. Shows who is connected, has pre-game chat, lets players access character sheets. Host sees connection status and launches when ready.
 
+**Session data ownership model:**
+
+| Data | Owner | Storage | Notes |
+|---|---|---|---|
+| Session ID, display name, player cap, game type | Server (Host machine) | `USaveGame` on Host machine + `GameState` at runtime | Save is source of truth; `GameState` is runtime copy |
+| Approved player list | Server (Host machine) | `USaveGame` on Host machine + `GameState` at runtime | Editable in and out of session; in-session changes write back to save |
+| Map state | Server (Host machine) | `USaveGame` on Host machine + `GameState` at runtime | Grows as map builder is built |
+| Combat / initiative state | Server (Host machine) | `USaveGame` on Host machine + `GameState` at runtime | Restored on reload if session closed mid-combat |
+| Chat log | Server (Host machine) | `USaveGame` on Host machine | Persists across sessions |
+| Volatile copies of player data (character sheets, etc.) | Server (runtime only) | `PlayerState` | Populated on join, discarded on disconnect/session end. Never written to disk by the server. |
+| Character sheets, private notes | Player | `USaveGame` on player's machine | Server requests a copy on join; player machine is always the source of truth |
+
+**Session lifecycle:**
+
+**Server startup:**
+1. Host launches the session from the Campaign Manager
+2. Server starts and loads `USessionSave` — `GameState` is populated with last saved state (map, chat log, approved player list, combat state, etc.)
+3. Host controls activate
+4. Players already running the game receive an in-app notification that the session is live (approved players not yet connected only; delivery to offline players deferred to notification system)
+
+**Player join (before session starts):**
+1. Player opens the Campaign Manager and finds the campaign
+2. If the Host is present — join button drops them straight into the session flow
+3. If the Host is absent — join button drops them into the lobby
+4. Server checks the joining player against the approved player list in `GameState`
+5. If approved — player enters. If not — rejected. Host presence is not required for this check.
+6. In the lobby, players can chat with each other and access any player-owned data that doesn't require the Host (character sheets, personal notes, mini selection)
+
+**Session start:**
+1. Host arrives (if not already present)
+2. Server requests fresh player data from all connected clients
+3. Each client sends their current `UPlayerSave` data; server populates `PlayerState` for each player — player machine is always source of truth, overwriting any cached copy
+4. Host triggers session start
+5. Map loads and full session state is restored from `USessionSave`
+
+**Late join (session already active):**
+- Same flow as session start join, lobby step skipped
+- Server requests fresh data from the late joiner individually and populates their `PlayerState`
+- Player is dropped directly into the active session
+- "Request fresh player data" logic is shared between session start and late join — one function, two call sites
+
+**Migration note:** All server-held save data is treated conceptually as belonging to "the server" even though it physically lives on the Host's machine in the listen server model. This data must be clearly grouped and labeled so that migrating to a dedicated server later is a matter of moving where that data is stored — not rearchitecting how it flows.
+
+**Save file inventory:**
+
+| Class | Owner | Scope | Contents |
+|---|---|---|---|
+| `UCampaignManagerSave` | Any player | Global | Campaign records — already exists |
+| `USessionSave` | Server (Host machine) | Per session | Session metadata, map state, chat log, approved player list, combat state. Linked to campaign via `CampaignID (FGuid)`. Has own `SessionID (FGuid)`. |
+| `UGMSave` | GM | Per campaign | NPC notes, encounter prep, loot tables, location notes, permissions config. Campaign-scoped by default. Global GM library (opt-in cross-campaign sharing) deferred to a later phase. |
+| `UPlayerSave` | Player | Per campaign | Character sheet, private notes. Source of truth — server never writes to this. |
+| `UPanelLayoutSave` | Player | Global | Panel positions/sizes/visibility — already exists, stays separate |
+| `UCameraSettingsSave` | Player | Global | Camera settings — already exists, stays separate |
+
+**Save disk layout:**
+```
+SaveGames/
+├── GM/
+│   └── {GameTypeID}/
+│       └── {CampaignID}/
+│           └── {SessionID}.sav
+└── Player/
+    └── {GameTypeID}/
+        └── {CampaignID}/
+            └── {SessionID}.sav
+```
+Root splits by role (GM/Player), then game type, then campaign, then session. Finding all sessions for a campaign = listing the `{CampaignID}/` folder. No need to parse file contents to navigate the hierarchy.
+
 ---
 
-*Last updated: 2026-04-10* — Server model confirmed as listen server. "Pending research" section removed. Architecture note added: all authoritative state on server, Server Owner checked via flag not `IsLocalController()`, so a future dedicated server switch changes who holds the flag — not the logic. Phase 1 noted as functionally complete (aesthetics deferred). Phase 2 session management identified as next focus.
+*Last updated: 2026-04-10* — Session lifecycle fully designed: server startup, player join, lobby, session start, late join. "Request fresh player data" identified as shared logic (one function, two call sites). Save file inventory defined: `USessionSave`, `UGMSave`, `UPlayerSave`; global GM library deferred. Disk layout documented. Session data ownership model and migration note added. Server model confirmed as listen server.
 
 *2026-04-09* — `UBaseScreen` added as shared base for all main screen widgets (`BackButton`, `OnBackRequested`, `virtual Init()`). `UCampaignManagerScreen`, `USettingsScreen` refactored to inherit `UBaseScreen`. `UAssetLibraryScreen` and `UCampaignBrowserScreen` added as stubs (`AssetLibrary/`, `CampaignBrowser/` source folders). `UHomeScreen` updated: Play button replaced with Campaign Manager button; CampaignBrowser and AssetLibrary buttons added; all four navigation delegates now wired through `UMainScreenHUDComponent`. `UMainScreenHUDComponent` now manages five screens (indices 0–4). `UCampaignManagerScreen::BuildFakeData` expanded to 9 game types with 20 DnD campaigns. `BindWidget` in base class needs `protected` gotcha added. Phase 2 roadmap item checked off.
 

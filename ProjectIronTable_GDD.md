@@ -386,6 +386,10 @@ The Campaign Manager is the primary hub between the home screen and an active se
 
 **Access:** Reached via the Play button on the home screen.
 
+**Mode toggle:** The Campaign Manager has two modes — Player and GM. Default is Player (campaigns the user is a participant in). A button in the screen switches to GM mode (campaigns the user is hosting/running). Same screen and layout for both; switching clears and repopulates the grid from the relevant data source.
+
+**Campaign sorting:** Campaigns with an active session (host present) are pinned to the top of the list, sorted by most recent among themselves. All other campaigns follow, sorted by most recently played. Deferred until session management is built.
+
 **Layout (TBD — two candidates):**
 - **Grid:** Columns represent game systems (D&D, Pathfinder, Warhammer, etc.); rows are campaigns within each system. Columns are collapsible.
 - **Tab list:** A sidebar (left or right) with one tab per game system, displayed 3 per row (count subject to change). Clicking a tab shows a scrollable list of campaigns for that system.
@@ -488,6 +492,8 @@ The session runs as a networked game. Chat and dice rolls are already replicated
 
 **Server model:** Listen server — the Server Owner hosts the session from their own machine. Acceptable tradeoff at this scale (2–8 players, non-persistent sessions). Code is structured so a future switch to dedicated server is seamless: all authoritative state lives server-side, and the Server Owner role is flag-based rather than tied to `IsLocalController()`.
 
+**Data ownership:** Server-held data (map state, chat log, approved player list, session metadata) is saved on the Host's machine and treated conceptually as server-owned — even in the listen server model. `GameState` holds the runtime copy; `USaveGame` on the Host machine is the source of truth. Per-player volatile data (character sheet copies, etc.) lives in `PlayerState` for the duration of the session and is never written to disk by the server. Player-owned data (character sheets, private notes) stays on the player's machine; the server requests a copy on join. This grouping is intentional — migrating to a dedicated server later means moving where the server-held data is stored, not rearchitecting the flow.
+
 **Session discovery:** Players find sessions via the Campaign Manager public browser (filterable) or via direct invite link/code.
 
 **Joining a session:**
@@ -495,6 +501,16 @@ The session runs as a networked game. Chat and dice rolls are already replicated
 - **Public browser** — sends a join request to the session. A notification appears in chat for all current players and the GM: *"[Username] wants to join."* The requesting player gets temporary chat access so they can introduce themselves and the group can talk to them before a decision is made. The GM approves or declines — no formal application process is imposed. Groups handle their own vetting however they see fit.
 
 **Pre-session lobby:** When a player joins a session before the GM has started it, they land in a waiting room. The lobby shows who is connected and who hasn't joined yet, has chat available before the game starts, and lets players access their character sheet while waiting. The GM (Host) sees everyone's connection status and launches the session when ready.
+
+**Session lifecycle:**
+
+*Server startup:* Host launches the session from the Campaign Manager. Server starts and loads last saved state into `GameState`. Host controls activate. Connected players receive an in-app notification that the session is live.
+
+*Player join (before session starts):* Player finds the campaign in the Campaign Manager. If the Host is present, they join directly. If not, they enter the lobby. The server checks the approved player list in `GameState` — Host presence is not required for this check. In the lobby, players can chat and access any player-owned data that doesn't require the Host (character sheets, notes, mini selection).
+
+*Session start:* Host arrives (if not already present). Server requests fresh player data from all connected clients — player machine is always source of truth, overwriting any cached copy. Host triggers session start. Map loads and full session state is restored.
+
+*Late join:* Same flow as a normal join but lobby is skipped. Server requests fresh data from the late joiner individually and drops them directly into the active session. The "request fresh player data" logic is shared between session start and late join — one function, two call sites.
 
 ---
 
@@ -594,7 +610,7 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 
 ---
 
-*Last updated: 2026-04-10* — Server model confirmed as listen server (open question #2 resolved). Multiplayer section updated. Phase 2 session management identified as next focus.
+*Last updated: 2026-04-10* — Session lifecycle fully designed (server startup, join, lobby, session start, late join) and added to Multiplayer section. Campaign sorting behaviour added (active sessions pinned to top). Save file inventory defined. Campaign Manager GM/Player mode toggle added. Server model confirmed as listen server (open question #2 resolved).
 
 *2026-04-09* — No design changes. Implementation session: home screen navigation fully wired to Campaign Manager, Campaign Browser (stub), and Asset Library (stub) screens. `UBaseScreen` introduced as shared base class. Play button removed in favour of Campaign Manager button.
 
