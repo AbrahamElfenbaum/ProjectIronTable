@@ -397,6 +397,74 @@ Persists all nine camera config properties across sessions.
 
 ---
 
+#### USessionSave
+**Type:** `USaveGame` | **Slot:** `"Session_{SessionID}"`
+
+Per-session save file. One instance per game session. `UCampaignManagerSave` is the authoritative index — `FCampaignRecord.SessionIDs` lists all sessions for a campaign. To open a campaign, read its `SessionIDs` and load the most recent by `LastSaved`.
+
+**Fields:**
+| Field | Type | Replicated | Notes |
+|---|---|---|---|
+| `GameTypeID` | `FString` | — | Game system key (e.g. `"DnD5e"`); matches `UCampaignManagerSave` key |
+| `CampaignID` | `FGuid` | — | Campaign this session belongs to |
+| `SessionID` | `FGuid` | — | Unique session identity; used to build save slot name |
+| `HostPlayerID` | `FGuid` | — | Server Owner. One per session, non-transferable |
+| `GMPlayerIDs` | `TArray<FGuid>` | — | All active GMs. Multiple supported; transferable; default = campaign creator |
+| `PlayerIDs` | `TArray<FGuid>` | — | All non-GM players |
+| `LastSaved` | `FDateTime` | — | Used to sort sessions when loading a campaign (most recent first) |
+
+---
+
+### GameStates/
+
+#### ASessionGameState
+**Type:** `AGameStateBase` | **Assigned in:** `GM_Gameplay`
+
+Runtime session state replicated to all clients. Mirrors `USessionSave` at runtime — loaded from disk on session start, written back on save. Server is authoritative; clients read via accessors (to be added).
+
+**Fields:**
+| Field | Type | Replicated | Notes |
+|---|---|---|---|
+| `GameTypeID` | `FString` | Yes | Game system identifier |
+| `CampaignID` | `FGuid` | No | Server bookkeeping only |
+| `SessionID` | `FGuid` | No | Server bookkeeping only |
+| `HostPlayerID` | `FGuid` | Yes | Server Owner identity |
+| `GMPlayerIDs` | `TArray<FGuid>` | Yes | All active GMs |
+| `PlayerIDs` | `TArray<FGuid>` | Yes | All non-GM players |
+| `LastSaved` | `FDateTime` | No | Save logic only |
+
+> Uses `AGameStateBase`, not `AGameState` — avoids match state logic and built-in `PlayerArray` that are designed for arena/shooter games.
+
+---
+
+### PlayerStates/
+
+#### ASessionPlayerState
+**Type:** `APlayerState` | **Assigned in:** `GM_Gameplay`
+
+Per-player runtime state replicated to all clients. Holds role flags derived from `ASessionGameState` — set by the server when the session starts or when roles change. Not persisted to disk; repopulated each session from `USessionSave`.
+
+**Fields:**
+| Field | Type | Replicated | Notes |
+|---|---|---|---|
+| `bIsGM` | `bool` | Yes | Derived from `ASessionGameState::GMPlayerIDs` |
+| `bIsHost` | `bool` | Yes | Derived from `ASessionGameState::HostPlayerID` |
+
+> `FGuid PlayerID` is not needed — use `GetUniqueId()` from the base `APlayerState`. Adding a duplicate causes a compiler warning.
+
+---
+
+### GameModes/
+
+#### AGameplayGameMode
+**Type:** `AGameModeBase` | **Blueprint:** *(pending)*
+
+Server authority hub for gameplay sessions. Stub — session init, player login/logout, and role assignment logic to be added.
+
+> Uses `AGameModeBase`, not `AGameMode` — avoids match state logic not needed for TTRPG sessions.
+
+---
+
 ### Components/
 
 #### UMainScreenHUDComponent
@@ -784,7 +852,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - All source subdirectories must be added to `PublicIncludePaths` in `ProjectIronTable.Build.cs`
 - Uses `Path.Combine(ModuleDirectory, "FolderName")` — requires `using System.IO;` at the top
 - This allows `#include "FileName.h"` with no path prefix from any folder in the module
-- **Current registered folders:** `AssetLibrary`, `CampaignBrowser`, `CampaignManager`, `Chat`, `Components`, `Dice`, `Settings`, `UI`, `Utility`, `Pawns`, `PlayerControllers`, `PlayerList`, `SaveLoad`
+- **Current registered folders:** `AssetLibrary`, `CampaignBrowser`, `CampaignManager`, `Chat`, `Components`, `Dice`, `GameModes`, `GameStates`, `PlayerControllers`, `PlayerList`, `PlayerStates`, `Pawns`, `SaveLoad`, `Settings`, `UI`, `Utility`
 - **Pending (Environment system):** Add `Environment` to `PublicIncludePaths` when the `Environment/` source folder is created
 
 ---
@@ -902,8 +970,8 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - [x] Draggable and resizable panels — `UDraggablePanel`, `UDragHandle`, `UResizeHandle`
 - [x] Close and reopen private chat tabs
 - [x] Home screen → Campaign Manager navigation (Play button replaced with Campaign Manager button; CampaignBrowser and AssetLibrary stub screens added)
-- [ ] Session management (start, load, save)
-- [ ] Session save/load — full snapshot (map, tokens, fog of war, initiative, chat, sheets, notes, inventory); one rolling save slot per campaign; manual save + autosave (configurable interval); auto-save on session close
+- [~] Session management (start, load, save) — `USessionSave`, `ASessionGameState`, `ASessionPlayerState`, `AGameplayGameMode` (stub) added; join/approval flow and session init logic pending
+- [ ] Session save/load — full snapshot (map, tokens, fog of war, initiative, chat, sheets, notes, inventory); sessions stored as `"Session_{SessionID}"` slots indexed by `UCampaignManagerSave`; manual save + autosave (configurable interval); auto-save on session close
 - [ ] GM permissions system
 - [ ] Session player cap (default 8, removable)
 - [ ] Tab renaming (client-local)
@@ -1135,7 +1203,9 @@ This approach keeps all save I/O within UE's native save game system and makes a
 
 ---
 
-*Last updated: 2026-04-10 (updated)* — GM role finalized: multiple GMs supported per session, role is transferable, default GM = campaign creator. `USessionSave` role fields added: `HostPlayerID`, `GMPlayerIDs`, `PlayerIDs`. Save disk layout replaced with slot-name model: sessions stored as `"Session_{SessionID}"` save slots; `UCampaignManagerSave` is the authoritative campaign→session index via `FCampaignRecord.SessionIDs`. No custom file I/O.
+*Last updated: 2026-04-10 (updated 2)* — `USessionSave` implemented (SaveLoad/). `ASessionGameState` and `ASessionPlayerState` implemented with replication. `AGameplayGameMode` stub added (GameModes/). `GM_Gameplay` updated: Game State Class → `ASessionGameState`, Player State Class → `ASessionPlayerState`. Build.cs updated: `GameStates`, `PlayerStates`, `GameModes` added to `PublicIncludePaths`. Roadmap session management item marked in-progress.
+
+*2026-04-10 (updated)* — GM role finalized: multiple GMs supported per session, role is transferable, default GM = campaign creator. `USessionSave` role fields added: `HostPlayerID`, `GMPlayerIDs`, `PlayerIDs`. Save disk layout replaced with slot-name model: sessions stored as `"Session_{SessionID}"` save slots; `UCampaignManagerSave` is the authoritative campaign→session index via `FCampaignRecord.SessionIDs`. No custom file I/O.
 
 *2026-04-10* — Session lifecycle fully designed: server startup, player join, lobby, session start, late join. "Request fresh player data" identified as shared logic (one function, two call sites). Save file inventory defined: `USessionSave`, `UGMSave`, `UPlayerSave`; global GM library deferred. Disk layout documented. Session data ownership model and migration note added. Server model confirmed as listen server.
 

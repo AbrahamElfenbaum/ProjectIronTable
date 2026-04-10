@@ -22,7 +22,10 @@ public class ProjectIronTable : ModuleRules
             Path.Combine(ModuleDirectory, "Settings"),
             Path.Combine(ModuleDirectory, "CampaignManager"),
             Path.Combine(ModuleDirectory, "CampaignBrowser"),
-            Path.Combine(ModuleDirectory, "AssetLibrary")
+            Path.Combine(ModuleDirectory, "AssetLibrary"),
+            Path.Combine(ModuleDirectory, "GameStates"),
+            Path.Combine(ModuleDirectory, "PlayerStates"),
+            Path.Combine(ModuleDirectory, "GameModes")
 
         });
 
