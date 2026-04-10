@@ -24,10 +24,13 @@ Source/ProjectIronTable/
 ├── Chat/              — Chat widget classes (ChatBox, ChatEntry, ChatChannel, ChatTab, ChatChannelListEntry)
 ├── Components/        — Actor component classes (GameplayHUDComponent, MainScreenHUDComponent)
 ├── Dice/              — Dice actors and data assets
+├── GameModes/         — Game mode classes (GameplayGameMode)
+├── GameStates/        — Game state classes (SessionGameState)
 ├── Pawns/             — Pawn classes
 ├── PlayerControllers/ — Player controller classes
 ├── PlayerList/        — Player list widget classes (PlayerList, PlayerRow)
-├── SaveLoad/          — Save game classes (PanelLayoutSave, CameraSettingsSave, CampaignManagerSave)
+├── PlayerStates/      — Player state classes (SessionPlayerState)
+├── SaveLoad/          — Save game classes (PanelLayoutSave, CameraSettingsSave, CampaignManagerSave, SessionSave)
 ├── Settings/          — Settings widget classes (CameraSettingsPanel, SettingsScreen)
 ├── UI/                — Non-chat widget classes (no HUD components; HomeScreen and BaseScreen live here)
 └── Utility/           — Function libraries and general-purpose helpers
@@ -1203,7 +1206,9 @@ This approach keeps all save I/O within UE's native save game system and makes a
 
 ---
 
-*Last updated: 2026-04-10 (updated 2)* — `USessionSave` implemented (SaveLoad/). `ASessionGameState` and `ASessionPlayerState` implemented with replication. `AGameplayGameMode` stub added (GameModes/). `GM_Gameplay` updated: Game State Class → `ASessionGameState`, Player State Class → `ASessionPlayerState`. Build.cs updated: `GameStates`, `PlayerStates`, `GameModes` added to `PublicIncludePaths`. Roadmap session management item marked in-progress.
+*Last updated: 2026-04-10 (updated 3)* — Folder structure corrected: `GameModes/`, `GameStates/`, `PlayerStates/` added to source tree overview; `SessionSave` added to SaveLoad line.
+
+*2026-04-10 (updated 2)* — `USessionSave` implemented (SaveLoad/). `ASessionGameState` and `ASessionPlayerState` implemented with replication. `AGameplayGameMode` stub added (GameModes/). `GM_Gameplay` updated: Game State Class → `ASessionGameState`, Player State Class → `ASessionPlayerState`. Build.cs updated: `GameStates`, `PlayerStates`, `GameModes` added to `PublicIncludePaths`. Roadmap session management item marked in-progress.
 
 *2026-04-10 (updated)* — GM role finalized: multiple GMs supported per session, role is transferable, default GM = campaign creator. `USessionSave` role fields added: `HostPlayerID`, `GMPlayerIDs`, `PlayerIDs`. Save disk layout replaced with slot-name model: sessions stored as `"Session_{SessionID}"` save slots; `UCampaignManagerSave` is the authoritative campaign→session index via `FCampaignRecord.SessionIDs`. No custom file I/O.
 
