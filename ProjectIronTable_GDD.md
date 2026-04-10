@@ -486,7 +486,7 @@ The session runs as a networked game. Chat and dice rolls are already replicated
 
 **Host disconnect:** The Host should have control over what happens to the session if they disconnect — whether intentionally or accidentally. At minimum, certain actions should be locked when no Host is present (e.g., moving NPCs, editing stats). The full disconnect policy will be defined as the session management system is built.
 
-**Server model:** Leaning listen server — the Server Owner hosts the session from their own machine. Acceptable tradeoff at this scale (2–8 players, non-persistent sessions). Pending technical validation in UE5.
+**Server model:** Listen server — the Server Owner hosts the session from their own machine. Acceptable tradeoff at this scale (2–8 players, non-persistent sessions). Code is structured so a future switch to dedicated server is seamless: all authoritative state lives server-side, and the Server Owner role is flag-based rather than tied to `IsLocalController()`.
 
 **Session discovery:** Players find sessions via the Campaign Manager public browser (filterable) or via direct invite link/code.
 
@@ -555,7 +555,7 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 ### Still Open
 
 1. **Voice / video chat** — Undecided between three options: (a) built-in voice/video using a real-time comms SDK or UE plugin, (b) Discord integration (SDK or Rich Presence), (c) out of scope — players use a separate tool. All three are viable; scope and complexity differ significantly. To be decided before the UI/Polish phase at latest.
-2. **Server model** — Leaning listen server; pending technical validation in UE5.
+2. ~~**Server model** — Leaning listen server; pending technical validation in UE5.~~ — **Resolved:** Listen server confirmed. See Resolved item 26.
 3. **Host disconnect policy** — Certain actions lock when no Host is present. Full policy TBD when session management is built.
 4. **GM/Host permission types** — Fine-grained per-player permissions are enforced in code. Specific permission list TBD when the system is built.
 5. **Host delegation permission types** — Delegation is supported. Specific delegatable actions TBD when built.
@@ -590,10 +590,13 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 23. ~~Dark/neutral UI theme or fantasy/themed aesthetic?~~ — **Resolved:** No fixed default. Theme is decoupled from game system and customizable per player.
 24. ~~Are UI panels fixed layout or draggable/resizable?~~ — **Resolved:** Fully draggable, resizable, and toggleable. Layout persists per user.
 25. ~~Should the Host be able to delegate specific powers to players?~~ — **Resolved:** Yes. Specific delegatable actions TBD when built. (See open question 4.)
+26. ~~Listen server or dedicated server?~~ — **Resolved:** Listen server. Server Owner hosts from their own machine. Code is structured for a seamless future switch to dedicated: authoritative state server-side, Server Owner role checked via flag not `IsLocalController()`.
 
 ---
 
-*Last updated: 2026-04-09* — No design changes. Implementation session: home screen navigation fully wired to Campaign Manager, Campaign Browser (stub), and Asset Library (stub) screens. `UBaseScreen` introduced as shared base class. Play button removed in favour of Campaign Manager button.
+*Last updated: 2026-04-10* — Server model confirmed as listen server (open question #2 resolved). Multiplayer section updated. Phase 2 session management identified as next focus.
+
+*2026-04-09* — No design changes. Implementation session: home screen navigation fully wired to Campaign Manager, Campaign Browser (stub), and Asset Library (stub) screens. `UBaseScreen` introduced as shared base class. Play button removed in favour of Campaign Manager button.
 
 *2026-04-09* — No design changes. Implementation session: `UCampaignManagerScreen` tab-switching and visual selection complete; `UDelegateLibrary` introduced for shared delegate types.
 

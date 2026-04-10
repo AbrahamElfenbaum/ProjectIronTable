@@ -1055,7 +1055,7 @@ The Campaign Manager is the primary hub between the home screen and an active se
 
 ---
 
-### Multiplayer Architecture (Pending Research)
+### Multiplayer Architecture
 
 **Decided:**
 - **Server Owner** and **Host** are separate roles. Server Owner = technical admin (create/close session, kick, transfer ownership). Host = game facilitator (bring maps into play, manage game state, advance turns). Server Owner assigns the Host role to any player.
@@ -1064,17 +1064,16 @@ The Campaign Manager is the primary hub between the home screen and an active se
 - Default player cap: 8 (Host included); removable; no hard engine limit
 - When no Host is present, certain actions lock (moving NPCs, editing stats); full lock policy TBD when session management is built
 - **Mesh distribution:** when Host brings a map into a session, assets missing from client machines auto-transfer from Host before the map renders. No placeholders — all clients see the map in full. Assets cached locally after first transfer.
-- **Server model:** Leaning listen server — Server Owner hosts the session from their own machine. Acceptable tradeoff at this scale (2–8 players, non-persistent sessions). Pending technical validation in UE5.
+- **Server model:** Listen server — the Server Owner hosts the session from their own machine. Acceptable tradeoff at this scale (2–8 players, non-persistent sessions). Code must be written to make a future switch to dedicated server seamless: all authoritative state lives on the server, clients never trust themselves, and the Server Owner role is checked via a flag (not `IsLocalController()` or similar) so swapping to a dedicated server changes who holds the flag, not the logic.
 - **Session discovery:** Public browser (filterable by name, game system, tags, schedule, etc.) + direct invite link/code.
 - **Join flow:** Invite code = immediate join, no approval. Public browser = join request; requester gets temporary chat access to introduce themselves; Host approves or declines.
 - **Pre-session lobby:** Waiting room before session starts. Shows who is connected, has pre-game chat, lets players access character sheets. Host sees connection status and launches when ready.
 
-**Needs research:**
-- Listen server vs. dedicated server — technical validation in UE5
-
 ---
 
-*Last updated: 2026-04-09* — `UBaseScreen` added as shared base for all main screen widgets (`BackButton`, `OnBackRequested`, `virtual Init()`). `UCampaignManagerScreen`, `USettingsScreen` refactored to inherit `UBaseScreen`. `UAssetLibraryScreen` and `UCampaignBrowserScreen` added as stubs (`AssetLibrary/`, `CampaignBrowser/` source folders). `UHomeScreen` updated: Play button replaced with Campaign Manager button; CampaignBrowser and AssetLibrary buttons added; all four navigation delegates now wired through `UMainScreenHUDComponent`. `UMainScreenHUDComponent` now manages five screens (indices 0–4). `UCampaignManagerScreen::BuildFakeData` expanded to 9 game types with 20 DnD campaigns. `BindWidget` in base class needs `protected` gotcha added. Phase 2 roadmap item checked off.
+*Last updated: 2026-04-10* — Server model confirmed as listen server. "Pending research" section removed. Architecture note added: all authoritative state on server, Server Owner checked via flag not `IsLocalController()`, so a future dedicated server switch changes who holds the flag — not the logic. Phase 1 noted as functionally complete (aesthetics deferred). Phase 2 session management identified as next focus.
+
+*2026-04-09* — `UBaseScreen` added as shared base for all main screen widgets (`BackButton`, `OnBackRequested`, `virtual Init()`). `UCampaignManagerScreen`, `USettingsScreen` refactored to inherit `UBaseScreen`. `UAssetLibraryScreen` and `UCampaignBrowserScreen` added as stubs (`AssetLibrary/`, `CampaignBrowser/` source folders). `UHomeScreen` updated: Play button replaced with Campaign Manager button; CampaignBrowser and AssetLibrary buttons added; all four navigation delegates now wired through `UMainScreenHUDComponent`. `UMainScreenHUDComponent` now manages five screens (indices 0–4). `UCampaignManagerScreen::BuildFakeData` expanded to 9 game types with 20 DnD campaigns. `BindWidget` in base class needs `protected` gotcha added. Phase 2 roadmap item checked off.
 
 *2026-04-08* — Campaign Manager classes added: `UCampaignManagerSave`, `UGameTypeButton`, `UCampaignCard`, `UCampaignManagerScreen` (in progress). `CampaignManager/` source folder added. Coding standards expanded (include order, GC safety, no debug output in committed code). Delegate naming collision gotcha added. Phase 3 roadmap updated.
 
