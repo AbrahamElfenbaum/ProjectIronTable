@@ -42,7 +42,7 @@ public:
 #pragma endregion
 
 protected:
-	/** Called when the widget is constructed. */
+	/** Reserved for future channel setup logic. */
 	virtual void NativeConstruct() override;
 
 public:

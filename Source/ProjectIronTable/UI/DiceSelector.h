@@ -38,7 +38,9 @@ private:
 	/** Decrements the die count by one (minimum zero). */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> DecreaseButton;
+#pragma endregion
 
+#pragma region Event Handlers
 	/** Increments DiceCount and broadcasts OnCountChanged. */
 	UFUNCTION()
 	void IncreaseDiceCount();

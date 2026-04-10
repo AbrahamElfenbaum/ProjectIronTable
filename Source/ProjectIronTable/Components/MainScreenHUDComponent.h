@@ -6,7 +6,11 @@
 
 class UWidgetSwitcher;
 class UHomeScreen;
+class UCampaignManagerScreen;
+class UCampaignBrowserScreen;
+class UAssetLibraryScreen;
 class USettingsScreen;
+
 
 /** Actor component attached to AMainScreenController that owns and manages all main screen UI. */
 UCLASS(Blueprintable, ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
@@ -45,6 +49,18 @@ private:
 	UPROPERTY()
 	TObjectPtr<UHomeScreen> HomeScreenRef;
 
+	/** The instantiated campaign manager screen widget. */
+	UPROPERTY()
+	TObjectPtr<UCampaignManagerScreen> CampaignManagerScreenRef;
+
+	/** The instantiated campaign browser screen widget. */
+	UPROPERTY()
+	TObjectPtr<UCampaignBrowserScreen> CampaignBrowserScreenRef;
+
+	/** The instantiated asset library screen widget. */
+	UPROPERTY()
+	TObjectPtr<UAssetLibraryScreen> AssetLibraryScreenRef;
+
 	/** The instantiated settings screen widget. */
 	UPROPERTY()
 	TObjectPtr<USettingsScreen> SettingsScreenRef;
@@ -58,6 +74,18 @@ private:
 	/** Switches the screen switcher back to the home screen. */
 	UFUNCTION()
 	void OnBackClicked();
+
+	/** Switches the screen switcher to the campaign manager screen. */
+	UFUNCTION()
+	void OnCampaignManagerClicked();
+
+	/** Switches the screen switcher to the campaign browser screen. */
+	UFUNCTION()
+	void OnCampaignBrowserClicked();
+
+	/** Switches the screen switcher to the asset library screen. */
+	UFUNCTION()
+	void OnAssetLibraryClicked();
 
 	/** Switches the screen switcher to the settings screen. */
 	UFUNCTION()

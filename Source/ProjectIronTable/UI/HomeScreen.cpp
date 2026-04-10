@@ -2,25 +2,24 @@
 #include "HomeScreen.h"
 
 #include "Components/Button.h"
-#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 
 // Binds all button click delegates.
 void UHomeScreen::Init()
 {
-	if (PlayButton)
+	if (CampaignManagerButton)
 	{
-		PlayButton->OnClicked.AddDynamic(this, &UHomeScreen::OnPlayClicked);
+		CampaignManagerButton->OnClicked.AddDynamic(this, &UHomeScreen::OnCampaignManagerClicked);
 	}
 
-	if (JoinButton)
+	if (CampaignBrowserButton)
 	{
-		JoinButton->OnClicked.AddDynamic(this, &UHomeScreen::OnJoinClicked);
+		CampaignBrowserButton->OnClicked.AddDynamic(this, &UHomeScreen::OnCampaignBrowserClicked);
 	}
 
-	if (LibraryButton)
+	if (AssetLibraryButton)
 	{
-		LibraryButton->OnClicked.AddDynamic(this, &UHomeScreen::OnLibraryClicked);
+		AssetLibraryButton->OnClicked.AddDynamic(this, &UHomeScreen::OnAssetLibraryClicked);
 	}
 
 	if (SettingsButton)
@@ -34,22 +33,22 @@ void UHomeScreen::Init()
 	}
 }
 
-// Opens the gameplay level.
-void UHomeScreen::OnPlayClicked()
+// Broadcasts OnCampaignManagerRequested.
+void UHomeScreen::OnCampaignManagerClicked()
 {
-	UGameplayStatics::OpenLevel(this, TEXT("L_Gameplay"));
+	OnCampaignManagerRequested.Broadcast();
 }
 
-// Broadcasts OnJoinRequested.
-void UHomeScreen::OnJoinClicked()
+// Broadcasts OnCampaignBrowserRequested.
+void UHomeScreen::OnCampaignBrowserClicked()
 {
-	OnJoinRequested.Broadcast();
+	OnCampaignBrowserRequested.Broadcast();
 }
 
-// Broadcasts OnLibraryRequested.
-void UHomeScreen::OnLibraryClicked()
+// Broadcasts OnAssetLibraryRequested.
+void UHomeScreen::OnAssetLibraryClicked()
 {
-	OnLibraryRequested.Broadcast();
+	OnAssetLibraryRequested.Broadcast();
 }
 
 // Broadcasts OnSettingsRequested.

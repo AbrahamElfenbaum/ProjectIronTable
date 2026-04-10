@@ -1,12 +1,10 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #pragma once
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "BaseScreen.h"
 #include "CampaignManagerSave.h"
-#include "DelegateLibrary.h"
 #include "CampaignManagerScreen.generated.h"
 
-class UButton;
 class UScrollBox;
 class UWrapBox;
 class UGameTypeButton;
@@ -14,13 +12,9 @@ class UCampaignCard;
 
 /** Root widget for the campaign manager screen. Loads saved campaigns, populates game type tabs, and displays campaign cards. */
 UCLASS()
-class PROJECTIRONTABLE_API UCampaignManagerScreen : public UUserWidget
+class PROJECTIRONTABLE_API UCampaignManagerScreen : public UBaseScreen
 {
 	GENERATED_BODY()
-
-protected:
-	/** Binds the back button click delegate. */
-	virtual void NativeConstruct() override;
 
 public:
 
@@ -44,16 +38,11 @@ public:
 	/** When true, Init populates the screen with hardcoded test data instead of the saved campaign data. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bUseFakeData;
-
 #pragma endregion
 
 private:
 
 #pragma region Widget References
-	/** Button that returns to the home screen. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> BackButton;
-
 	/** Button that begins the new campaign creation flow. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> NewCampaignButton;
@@ -86,15 +75,9 @@ private:
 
 public:
 
-#pragma region Events
-	/** Fired when the back button is clicked; parent should return to the home screen. */
-	UPROPERTY(BlueprintAssignable)
-	FOnBackRequested OnBackRequested;
-#pragma endregion
-
 #pragma region Public Methods
 	/** Loads the campaign save, populates game type tabs, and displays the first available campaign list. */
-	void Init();
+	virtual void Init() override;
 #pragma endregion
 
 private:
@@ -116,10 +99,5 @@ private:
 	/** Called when a campaign card is clicked; launches the selected campaign. */
 	UFUNCTION()
 	void OnCampaignSelected(const FGuid& CampaignID, const FString& GameType);
-
-	/** Broadcasts OnBackRequested to signal the parent to return to the home screen. */
-	UFUNCTION()
-	void OnBackClicked();
 #pragma endregion
-
 };

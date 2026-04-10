@@ -593,7 +593,9 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 
 ---
 
-*Last updated: 2026-04-09* — No design changes. Implementation session: `UCampaignManagerScreen` tab-switching and visual selection complete; `UDelegateLibrary` introduced for shared delegate types.
+*Last updated: 2026-04-09* — No design changes. Implementation session: home screen navigation fully wired to Campaign Manager, Campaign Browser (stub), and Asset Library (stub) screens. `UBaseScreen` introduced as shared base class. Play button removed in favour of Campaign Manager button.
+
+*2026-04-09* — No design changes. Implementation session: `UCampaignManagerScreen` tab-switching and visual selection complete; `UDelegateLibrary` introduced for shared delegate types.
 
 *2026-04-08* — Environment system (Time of Day & Weather) fully designed. Voice/video chat moved from Out of Scope to Open Questions (undecided between built-in, Discord integration, or out of scope). Open question list renumbered. Expanded the Maps "Lighting and atmosphere" stub into a complete feature section covering time of day, weather types, intensity, GM panel, replication model, and planned C++ classes.
 

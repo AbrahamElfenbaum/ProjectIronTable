@@ -123,15 +123,18 @@ public:
 private:
 
 	/** Flat array of all selector widgets for iteration. */
+	UPROPERTY()
 	TArray<UDiceSelector*> Selectors;
 
 	/** All dice actors currently in the world from the most recent roll. */
+	UPROPERTY()
 	TArray<ABaseDiceActor*> SpawnedDice;
 
 	/** Results collected as individual dice finish rolling. */
 	TArray<FRollResult> PendingResults;
 
 	/** The three advantage-mode buttons, kept together for bulk enable/disable. */
+	UPROPERTY()
 	TArray<UButton*> AdvantageButtons;
 
 	/** Number of dice spawned for the current roll; used to detect when all results are in. */
@@ -167,6 +170,7 @@ public:
 
 private:
 
+#pragma region Event Handlers
 	/** Collects a result and broadcasts OnAllDiceRolled when all expected results are in. */
 	UFUNCTION()
 	void OnDiceRolledHandler(FRollResult Result);
@@ -194,7 +198,9 @@ private:
 	/** Sets roll mode to Disadvantage and refreshes advantage button states. */
 	UFUNCTION()
 	void OnDisadvantageClicked();
+#pragma endregion
 
+#pragma region Private Methods
 	/** Enables or disables the roll button based on whether any dice are selected and no roll is in progress. */
 	void UpdateRollButtonState();
 
@@ -203,4 +209,5 @@ private:
 
 	/** Returns the base vector with a uniform random offset applied to each axis within Range. Z is only randomized when bUseZAxis is true. */
 	FVector GetRandomizedVector(const FVector& BaseVector, const float&, bool bUseZAxis);
+#pragma endregion
 };

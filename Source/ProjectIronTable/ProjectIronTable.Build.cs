@@ -20,7 +20,9 @@ public class ProjectIronTable : ModuleRules
             Path.Combine(ModuleDirectory, "SaveLoad"),
             Path.Combine(ModuleDirectory, "Components"),
             Path.Combine(ModuleDirectory, "Settings"),
-            Path.Combine(ModuleDirectory, "CampaignManager")
+            Path.Combine(ModuleDirectory, "CampaignManager"),
+            Path.Combine(ModuleDirectory, "CampaignBrowser"),
+            Path.Combine(ModuleDirectory, "AssetLibrary")
 
         });
 

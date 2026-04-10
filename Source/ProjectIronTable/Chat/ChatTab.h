@@ -87,9 +87,12 @@ private:
 	void OnCloseButtonClicked();
 
 public:
+
+#pragma region Public Methods
 	/** Enables or disables the tab button — used to prevent clicking the active tab. */
 	void SetInteractable(bool bInteractable);
 
 	/** Shows or hides the close button — pass false for the Server tab which cannot be closed. */
 	void SetCloseable(bool bShowButton);
+#pragma endregion
 };

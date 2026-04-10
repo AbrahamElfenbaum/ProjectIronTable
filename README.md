@@ -54,6 +54,8 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 ## Structure
 
 ### Source (`Source/ProjectIronTable/`)
+- `AssetLibrary/` — Asset library screen (`UAssetLibraryScreen`, stub)
+- `CampaignBrowser/` — Campaign browser screen (`UCampaignBrowserScreen`, stub)
 - `CampaignManager/` — Campaign manager widget classes (`UGameTypeButton`, `UCampaignCard`, `UCampaignManagerScreen`)
 - `Chat/` — Chat widget classes (`UChatBox`, `UChatEntry`, `UChatChannel`, `UChatTab`, `UChatChannelListEntry`)
 - `Components/` — Actor component classes (`UGameplayHUDComponent`, `UMainScreenHUDComponent`)
@@ -63,7 +65,7 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - `PlayerList/` — Player list widget classes (`UPlayerList`, `UPlayerRow`)
 - `SaveLoad/` — Save game classes (`UPanelLayoutSave`, `UCameraSettingsSave`, `UCampaignManagerSave`)
 - `Settings/` — Settings widget classes (`UCameraSettingsPanel`, `USettingsScreen`)
-- `UI/` — Non-chat widget classes (`UDiceSelector`, `UDiceSelectorManager`, `UTaskbar`, `UTaskbarButton`, `UDraggablePanel`, `UDragHandle`, `UResizeHandle`, `USettingsSlider`, `UHomeScreen`)
+- `UI/` — Non-chat widget classes (`UBaseScreen`, `UDiceSelector`, `UDiceSelectorManager`, `UTaskbar`, `UTaskbarButton`, `UDraggablePanel`, `UDragHandle`, `UResizeHandle`, `USettingsSlider`, `UHomeScreen`)
 - `Physics/Materials/` — Physical material assets (friction, restitution for dice)
 - `Utility/` — Blueprint function libraries (`UFunctionLibrary`, `UDelegateLibrary`)
 
@@ -91,7 +93,7 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - `UI/Taskbar/` — Taskbar widgets (`W_Taskbar`, `WE_TaskbarButton`)
 - `UI/Utility/` — Reusable utility widgets (`W_DraggablePanel`, `WBP_DragHandle`, `WBP_ResizeHandle`)
 - `UI/CampaignManager/` — Campaign manager widget elements (`WE_GameTypeButton`, `WE_CampaignCard`)
-- `UI/Screens/` — Full screen widgets (`S_GameplayScreen`, `S_HomeScreen`, `S_MainScreen`, `S_SettingsScreen`, `S_CampaignManagerScreen`)
+- `UI/Screens/` — Full screen widgets (`S_GameplayScreen`, `S_HomeScreen`, `S_MainScreen`, `S_SettingsScreen`, `S_CampaignManagerScreen`, `S_CampaignBrowserScreen`, `S_AssetLibraryScreen`)
 - `UI/Settings/` — Settings widget elements (`WE_SettingsSlider`)
 - `UI/Settings/Panels/` — Settings panel widgets (`WE_CameraSettingsPanel`)
 - `UI/Testing/` — Debug/test widgets (`WE_DebugDisplay`)

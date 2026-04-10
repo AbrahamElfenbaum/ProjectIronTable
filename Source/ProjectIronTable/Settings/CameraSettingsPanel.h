@@ -71,7 +71,7 @@ private:
 	TObjectPtr<UButton> ResetButton;
 #pragma endregion
 
-#pragma region Event Functions
+#pragma region Event Handlers
 	/** Reads all slider values, saves them to the camera settings save slot. */
 	UFUNCTION()
 	void OnApplyClicked();

@@ -137,7 +137,6 @@ void ABaseDiceActor::OnMeshSleep(UPrimitiveComponent* SleepingComponent, FName B
 {
 	SleepingComponent->SetSimulatePhysics(false);
 
-	//UE_LOG(LogTemp, Warning, TEXT("OnMeshSleep fired: %s"), *SleepingComponent->GetName());
 	if (SleepingComponent == Mesh1)
 	{
 		bMesh1Asleep = true;
@@ -150,7 +149,6 @@ void ABaseDiceActor::OnMeshSleep(UPrimitiveComponent* SleepingComponent, FName B
 	if (bMesh1Asleep && bMesh2Asleep)
 	{
 		FRollResult Result = GetRolledValue();
-		//UE_LOG(LogTemp, Warning, TEXT("Dice finished rolling! Result = %d"), Result.Value);
 		OnDiceRolled.Broadcast(Result);
 	}
 }

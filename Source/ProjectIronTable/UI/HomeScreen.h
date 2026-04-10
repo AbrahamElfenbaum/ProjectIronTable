@@ -6,9 +6,10 @@
 
 class UButton;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCampaignManagerRequested);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCampaignBrowserRequested);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAssetLibraryRequested);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSettingsRequested);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnJoinRequested);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLibraryRequested);
 
 /** Home screen widget. Binds all home screen buttons and broadcasts delegates for navigation events that require parent coordination. */
 UCLASS()
@@ -24,17 +25,17 @@ public:
 private:
 
 #pragma region Buttons
-	/** Button that transitions to the gameplay scene. */
+	/** Button that opens the campaign manager screen. */
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> PlayButton;
+	TObjectPtr<UButton> CampaignManagerButton;
 
 	/** Button that opens the join session flow (not yet implemented). */
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> JoinButton;
+	TObjectPtr<UButton> CampaignBrowserButton;
 
 	/** Button that opens the asset library screen (not yet implemented). */
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> LibraryButton;
+	TObjectPtr<UButton> AssetLibraryButton;
 
 	/** Button that opens the settings panel. */
 	UPROPERTY(meta = (BindWidget))
@@ -47,32 +48,36 @@ private:
 
 public:
 
+	/** Broadcasts when the user requests to open the campaign manager screen. */
+	UPROPERTY(BlueprintAssignable)
+	FOnCampaignManagerRequested OnCampaignManagerRequested;
+
+	/** Broadcasts when the user requests to open the campaign browser screen. */
+	UPROPERTY(BlueprintAssignable)
+	FOnCampaignBrowserRequested OnCampaignBrowserRequested;
+
+	/** Broadcasts when the user requests to open the asset library screen. */
+	UPROPERTY(BlueprintAssignable)
+	FOnAssetLibraryRequested OnAssetLibraryRequested;
+
 	/** Broadcasts when the user requests to open the settings screen. */
 	UPROPERTY(BlueprintAssignable)
 	FOnSettingsRequested OnSettingsRequested;
 
-	/** Broadcasts when the user requests to join a session. */
-	UPROPERTY(BlueprintAssignable)
-	FOnJoinRequested OnJoinRequested;
-
-	/** Broadcasts when the user requests to open the asset library. */
-	UPROPERTY(BlueprintAssignable)
-	FOnLibraryRequested OnLibraryRequested;
-
 private:
 
 #pragma region Event Functions
-	/** Opens the gameplay level. */
+	/** Broadcasts OnCampaignManagerRequested. */
 	UFUNCTION()
-	void OnPlayClicked();
+	void OnCampaignManagerClicked();
 
-	/** Broadcasts OnJoinRequested. */
+	/** Broadcasts OnCampaignBrowserRequested. */
 	UFUNCTION()
-	void OnJoinClicked();
+	void OnCampaignBrowserClicked();
 
-	/** Broadcasts OnLibraryRequested. */
+	/** Broadcasts OnAssetLibraryRequested. */
 	UFUNCTION()
-	void OnLibraryClicked();
+	void OnAssetLibraryClicked();
 
 	/** Opens the settings screen. */
 	UFUNCTION()

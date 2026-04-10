@@ -34,17 +34,17 @@ public:
 	TSubclassOf<UPlayerRow> PlayerRowClass;
 #pragma endregion
 
+#pragma region State
+	/** Tracks whether the scroll box is currently visible. */
+	bool bIsExpanded = false;
+#pragma endregion
+
+public:
+
 #pragma region Events
 	/** Forwarded from any player row's OnAddressClicked; passes the target player's name. */
 	UPROPERTY(BlueprintAssignable)
 	FOnAddressClicked OnAddressClicked;
-#pragma endregion
-
-private:
-
-#pragma region State
-	/** Tracks whether the scroll box is currently visible. */
-	bool bIsExpanded = false;
 #pragma endregion
 
 protected:

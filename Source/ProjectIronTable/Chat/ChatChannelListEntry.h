@@ -26,7 +26,9 @@ private:
 	/** Label displaying the channel name. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> EntryLabel;
+#pragma endregion
 
+#pragma region State
 	/** The channel this entry represents. */
 	UPROPERTY()
 	TObjectPtr<UChatChannel> Channel;

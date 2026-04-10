@@ -2,22 +2,11 @@
 #include "CampaignManagerScreen.h"
 
 #include "Kismet/GameplayStatics.h"
-#include "Components/Button.h"
 #include "Components/ScrollBox.h"
 #include "Components/WrapBox.h"
 
 #include "GameTypeButton.h"
 #include "CampaignCard.h"
-
-// Binds the back button click delegate.
-void UCampaignManagerScreen::NativeConstruct()
-{
-	Super::NativeConstruct();
-	if (BackButton)
-	{
-		BackButton->OnClicked.AddDynamic(this, &UCampaignManagerScreen::OnBackClicked);
-	}
-}
 
 // Loads campaign data (real or fake), builds game type tabs, and populates the grid with the first available game type's campaigns.
 void UCampaignManagerScreen::Init()
@@ -95,7 +84,7 @@ void UCampaignManagerScreen::PopulateCampaigns(const TArray<FCampaignRecord>& Ca
 		}
 
 		CampaignCard->SetCampaignTitle(Campaign.CampaignName);
-		CampaignCard->SetLastPlayedDate(Campaign.LastPlayed.ToString());
+		CampaignCard->SetLastPlayedDate(Campaign.LastPlayed.ToString(TEXT("%Y-%m-%d")));
 		CampaignCard->SetNumberOfPlayers(Campaign.NumberOfPlayers);
 		CampaignCard->SetCampaignData(Campaign.CampaignID, GameType);
 		CampaignCard->OnCampaignSelected.AddDynamic(this, &UCampaignManagerScreen::OnCampaignSelected);
@@ -110,16 +99,52 @@ TMap<FString, FCampaignList> UCampaignManagerScreen::BuildFakeData() const
 	TMap<FString, FCampaignList> Records;
 
 	FCampaignList DnDList;
-	DnDList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("The Lost Mines"),   FDateTime(2026, 3, 15), 4));
-	DnDList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Curse of Strahd"),  FDateTime(2026, 4, 1),  5));
+	DnDList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("The Lost Mines"),         FDateTime(2026, 3, 15), 4));
+	DnDList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Curse of Strahd"),        FDateTime(2026, 4, 1),  5));
+	DnDList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Tomb of Annihilation"),   FDateTime(2026, 1, 10), 3));
+	DnDList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Dragon of Icespire Peak"),FDateTime(2025, 12, 5), 2));
+	DnDList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Descent into Avernus"),   FDateTime(2026, 2, 28), 6));
+	DnDList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Waterdeep: Dragon Heist"),FDateTime(2025, 11, 20),4));
+	DnDList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Out of the Abyss"),       FDateTime(2026, 3, 30), 5));
+	DnDList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Ghosts of Saltmarsh"),    FDateTime(2026, 4, 5),  3));
+	DnDList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Rime of the Frostmaiden"),FDateTime(2026, 1, 22), 4));
+	DnDList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Stormwreck Isle"),          FDateTime(2026, 4, 8),  2));
+	DnDList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Princes of the Apocalypse"),FDateTime(2026, 2, 11), 5));
+	DnDList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Storm King's Thunder"),     FDateTime(2026, 1, 3),  4));
+	DnDList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Dungeon of the Mad Mage"),  FDateTime(2025, 11, 8), 3));
+	DnDList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Tales from the Yawning Portal"), FDateTime(2025, 10, 15), 4));
+	DnDList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Candlekeep Mysteries"),     FDateTime(2026, 3, 21), 2));
+	DnDList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Spelljammer: Light of Xaryxis"), FDateTime(2026, 2, 1), 5));
+	DnDList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Keys from the Golden Vault"),FDateTime(2026, 3, 27), 3));
+	DnDList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Dragonlance: Shadow of the Dragon Queen"), FDateTime(2026, 1, 18), 6));
+	DnDList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("The Wild Beyond the Witchlight"), FDateTime(2025, 12, 28), 4));
 	Records.Add(TEXT("DnD5e"), DnDList);
 
 	FCampaignList PathfinderList;
-	PathfinderList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Age of Ashes"), FDateTime(2026, 2, 20), 3));
+	PathfinderList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Age of Ashes"),      FDateTime(2026, 2, 20), 3));
+	PathfinderList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Extinction Curse"),  FDateTime(2026, 1, 14), 4));
+	PathfinderList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Abomination Vaults"),FDateTime(2026, 3, 9),  5));
+	PathfinderList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Kingmaker"),         FDateTime(2025, 12, 1), 6));
 	Records.Add(TEXT("Pathfinder2e"), PathfinderList);
 
-	Records.Add(TEXT("CallOfCthulhu"), FCampaignList());
-	Records.Add(TEXT("Starfinder"),    FCampaignList());
+	FCampaignList CthulhuList;
+	CthulhuList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Masks of Nyarlathotep"),FDateTime(2026, 3, 18), 3));
+	CthulhuList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Shadows of Yog-Sothoth"),FDateTime(2026, 2, 7), 4));
+	Records.Add(TEXT("CallOfCthulhu"), CthulhuList);
+
+	FCampaignList StarfinderList;
+	StarfinderList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Dead Suns"),        FDateTime(2026, 1, 30), 4));
+	StarfinderList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Against the Aeon Throne"),FDateTime(2026, 3, 3), 3));
+	Records.Add(TEXT("Starfinder"), StarfinderList);
+
+	FCampaignList VampireList;
+	VampireList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Chicago by Night"), FDateTime(2026, 4, 2), 5));
+	Records.Add(TEXT("VtM"), VampireList);
+
+	Records.Add(TEXT("Shadowrun"),   FCampaignList());
+	Records.Add(TEXT("WFRP"),        FCampaignList());
+	Records.Add(TEXT("Cyberpunk RED"),FCampaignList());
+	Records.Add(TEXT("Mothership"),  FCampaignList());
 
 	return Records;
 }
@@ -162,8 +187,3 @@ void UCampaignManagerScreen::OnCampaignSelected(const FGuid& CampaignID, const F
 {
 }
 
-// Broadcasts OnBackRequested to signal the parent to return to the home screen.
-void UCampaignManagerScreen::OnBackClicked()
-{
-	OnBackRequested.Broadcast();
-}

@@ -18,6 +18,8 @@ ProjectIronTable is a TTRPG simulator built in Unreal Engine 5.7. It supports ma
 ### C++ Source (`Source/ProjectIronTable/`)
 ```
 Source/ProjectIronTable/
+├── AssetLibrary/      — Asset library screen (AssetLibraryScreen)
+├── CampaignBrowser/   — Campaign browser screen (CampaignBrowserScreen)
 ├── CampaignManager/   — Campaign manager widget classes (GameTypeButton, CampaignCard, CampaignManagerScreen)
 ├── Chat/              — Chat widget classes (ChatBox, ChatEntry, ChatChannel, ChatTab, ChatChannelListEntry)
 ├── Components/        — Actor component classes (GameplayHUDComponent, MainScreenHUDComponent)
@@ -27,7 +29,7 @@ Source/ProjectIronTable/
 ├── PlayerList/        — Player list widget classes (PlayerList, PlayerRow)
 ├── SaveLoad/          — Save game classes (PanelLayoutSave, CameraSettingsSave, CampaignManagerSave)
 ├── Settings/          — Settings widget classes (CameraSettingsPanel, SettingsScreen)
-├── UI/                — Non-chat widget classes (no HUD components; HomeScreen lives here)
+├── UI/                — Non-chat widget classes (no HUD components; HomeScreen and BaseScreen live here)
 └── Utility/           — Function libraries and general-purpose helpers
 ```
 
@@ -53,7 +55,7 @@ Content/
 │   ├── Chat/                   — W_ChatBox, WE_ChatChannel, WE_ChatTab, WE_ChatEntry
 │   ├── PlayerList/             — W_PlayerList, WE_PlayerRow
 │   ├── CampaignManager/        — WE_GameTypeButton, WE_CampaignCard
-│   ├── Screens/                — S_GameplayScreen, S_HomeScreen, S_MainScreen, S_SettingsScreen, S_CampaignManagerScreen
+│   ├── Screens/                — S_GameplayScreen, S_HomeScreen, S_MainScreen, S_SettingsScreen, S_CampaignManagerScreen, S_CampaignBrowserScreen, S_AssetLibraryScreen
 │   ├── Settings/               — WE_SettingsSlider
 │   │   └── Panels/             — WE_CameraSettingsPanel
 │   ├── HUD/                    — W_Taskbar, WE_TaskbarButton
@@ -257,6 +259,24 @@ Collapsible scrollable list of connected players.
 
 ---
 
+### AssetLibrary/
+
+#### UAssetLibraryScreen
+**Type:** `UBaseScreen` | **Blueprint:** `S_AssetLibraryScreen`
+
+Stub screen for the asset library. Inherits all back-navigation behavior from `UBaseScreen`. No additional logic yet.
+
+---
+
+### CampaignBrowser/
+
+#### UCampaignBrowserScreen
+**Type:** `UBaseScreen` | **Blueprint:** `S_CampaignBrowserScreen`
+
+Stub screen for the public campaign browser. Inherits all back-navigation behavior from `UBaseScreen`. No additional logic yet.
+
+---
+
 ### CampaignManager/
 
 #### UGameTypeButton
@@ -298,34 +318,32 @@ Displays one campaign entry. Stores campaign ID and game type as private members
 ---
 
 #### UCampaignManagerScreen
-**Type:** `UUserWidget` | **Blueprint:** `S_CampaignManagerScreen`
+**Type:** `UBaseScreen` | **Blueprint:** `S_CampaignManagerScreen`
 
-Root widget for the Campaign Manager. Loads saved campaigns, builds game type tab buttons, and populates a campaign card grid filtered by the selected game type. Supports a fake-data mode for testing without a real save.
+Root widget for the Campaign Manager. Inherits back-navigation from `UBaseScreen`. Loads saved campaigns, builds game type tab buttons, and populates a campaign card grid filtered by the selected game type. Supports a fake-data mode for testing without a real save.
 
 **Config:**
 - `GameTypeButtonClass` (`TSubclassOf<UGameTypeButton>`)
 - `CampaignCardClass` (`TSubclassOf<UCampaignCard>`)
-- `SelectedTabColor` / `UnselectedTabColor` (`FLinearColor`) — passed to each button via `SetTabColors`
+- `SelectedTabColor` / `UnselectedTabColor` (`FLinearColor`) — passed to each button via `SetTabColors`; must have alpha > 0 or buttons appear invisible
 - `bUseFakeData` (`bool`) — when true, `Init` uses hardcoded test data instead of the save game
 
-**Bound Widgets:** `BackButton`, `NewCampaignButton` (`UButton`), `GameTypeTabBar` (`UScrollBox`), `CampaignGrid` (`UWrapBox`), `CampaignScroll` (`UScrollBox`)
+**Bound Widgets:** `NewCampaignButton` (`UButton`), `GameTypeTabBar` (`UScrollBox`), `CampaignGrid` (`UWrapBox`), `CampaignScroll` (`UScrollBox`) *(BackButton inherited from UBaseScreen)*
 
 **Private State:** `SelectedGameType` (`FString`), `CampaignData` (`TObjectPtr<UCampaignManagerSave>`, `UPROPERTY()`), `ActiveButtons` (`TArray<UGameTypeButton*>`, `UPROPERTY()`) — only buttons with at least one campaign
 
-**Delegates:**
-- `OnBackRequested` (`FOnBackRequested`, BlueprintAssignable) — fired when Back is clicked; uses shared type from `UDelegateLibrary`
-
 **Key Methods:**
-- `Init()` — branches on `bUseFakeData`; either creates a temporary `UCampaignManagerSave` via `NewObject` and populates it with `BuildFakeData()`, or loads from the `"CampaignManager"` save slot. Creates one `UGameTypeButton` per game type, tracks buttons with campaigns in `ActiveButtons`, populates the grid with the first available type, calls `SetSelectedGameButton()` after the loop.
+- `virtual void Init() override` — branches on `bUseFakeData`; either creates a temporary `UCampaignManagerSave` via `NewObject` and populates it with `BuildFakeData()`, or loads from the `"CampaignManager"` save slot. Creates one `UGameTypeButton` per game type, tracks buttons with campaigns in `ActiveButtons`, populates the grid with the first available type, calls `SetSelectedGameButton()` after the loop.
 - `SetSelectedGameButton()` — iterates `ActiveButtons` and calls `SetSelected` based on `SelectedGameType`
-- `BuildFakeData() const` — returns a `TMap<FString, FCampaignList>` with DnD5e (2), Pathfinder2e (1), CallOfCthulhu (0), Starfinder (0)
+- `BuildFakeData() const` — returns a `TMap<FString, FCampaignList>` with DnD5e (20), Pathfinder2e (4), CallOfCthulhu (2), Starfinder (2), VtM (1), Shadowrun/WFRP/CyberpunkRED/Mothership (0 each)
 
 **Handlers:**
 - `OnGameTypeSelected(const FString&)` — updates `SelectedGameType`, refreshes grid, calls `SetSelectedGameButton`
 - `OnCampaignSelected(const FGuid&, const FString&)` — placeholder; will launch the selected campaign
-- `OnBackClicked` — broadcasts `OnBackRequested`
 
 > **Note:** The campaign grid (`UWrapBox`) must be inside a `UScrollBox` to support vertical scrolling when cards overflow.
+>
+> **Note:** `SelectedTabColor` and `UnselectedTabColor` default to alpha 0 — set alpha > 0 in the Blueprint defaults or tab buttons will be invisible.
 
 ---
 
@@ -385,7 +403,7 @@ Persists all nine camera config properties across sessions.
 **Type:** `UActorComponent` | **Blueprint:** `BP_HomeScreenHUDComponent` (rename pending)
 **Owner:** `AMainScreenController`
 
-Handles screen-level navigation only. Creates the root `S_MainScreen` widget, gets refs to `UHomeScreen` and `USettingsScreen`, calls `Init()` on each, and wires their navigation delegates to the `ScreenSwitcher`.
+Handles screen-level navigation only. Creates the root `S_MainScreen` widget, gets refs to all five screens, calls `Init()` on each, and wires their navigation delegates to the `ScreenSwitcher`.
 
 **Config:**
 - `MainScreenClass` (`TSubclassOf<UUserWidget>`) — **must be set on the component instance inside `PC_MainScreen`**, not on a standalone component Blueprint
@@ -393,13 +411,19 @@ Handles screen-level navigation only. Creates the root `S_MainScreen` widget, ge
 **Widget names it searches for (must match exactly):**
 - `ScreenSwitcher` (`UWidgetSwitcher`) — root switcher on `S_MainScreen`
 - `HomeScreen` (`UHomeScreen`) — index 0
-- `SettingsScreen` (`USettingsScreen`) — index 1
+- `CampaignManagerScreen` (`UCampaignManagerScreen`) — index 1
+- `CampaignBrowserScreen` (`UCampaignBrowserScreen`) — index 2
+- `AssetLibraryScreen` (`UAssetLibraryScreen`) — index 3
+- `SettingsScreen` (`USettingsScreen`) — index 4
 
 **Handlers:**
-- `OnSettingsClicked` → `ScreenSwitcherRef->SetActiveWidgetIndex(1)` — bound to `UHomeScreen::OnSettingsRequested`
-- `OnBackClicked` → `ScreenSwitcherRef->SetActiveWidgetIndex(0)` — bound to `USettingsScreen::OnBackRequested`
+- `OnCampaignManagerClicked` → `SetActiveWidgetIndex(1)` — bound to `UHomeScreen::OnCampaignManagerRequested`
+- `OnCampaignBrowserClicked` → `SetActiveWidgetIndex(2)` — bound to `UHomeScreen::OnCampaignBrowserRequested`
+- `OnAssetLibraryClicked` → `SetActiveWidgetIndex(3)` — bound to `UHomeScreen::OnAssetLibraryRequested`
+- `OnSettingsClicked` → `SetActiveWidgetIndex(4)` — bound to `UHomeScreen::OnSettingsRequested`
+- `OnBackClicked` → `SetActiveWidgetIndex(0)` — bound to `OnBackRequested` on all four non-home screens
 
-> Does **not** own any button refs, slider refs, or save/load logic — all of that lives in `UHomeScreen` and `UCameraSettingsPanel`.
+> Does **not** own any button refs, slider refs, or save/load logic — all of that lives in the individual screen classes.
 
 ---
 
@@ -450,16 +474,13 @@ Self-contained camera settings panel. Owns all 9 `USettingsSlider` refs, the App
 ---
 
 #### USettingsScreen
-**Type:** `UUserWidget` | **Blueprint:** `S_SettingsScreen`
+**Type:** `UBaseScreen` | **Blueprint:** `S_SettingsScreen`
 
-Root settings screen widget. Hosts a `UWidgetSwitcher` for future panel navigation and exposes a delegate that fires when the user clicks Back.
+Root settings screen widget. Inherits back button, `OnBackRequested` delegate, and `NativeConstruct` binding from `UBaseScreen`. Hosts a `UWidgetSwitcher` for future panel navigation.
 
-**Bound Widgets:** `PanelSwitcher` (`UWidgetSwitcher`), `BackButton` (`UButton`), `CameraSettingsPanel` (`UCameraSettingsPanel`)
+**Bound Widgets:** `PanelSwitcher` (`UWidgetSwitcher`), `CameraSettingsPanel` (`UCameraSettingsPanel`) *(BackButton inherited from UBaseScreen)*
 
-**Delegates:**
-- `OnBackRequested` (`FOnBackRequested`, BlueprintAssignable) — broadcast on Back button click; bound by `UMainScreenHUDComponent` to navigate back to the home screen; uses shared type from `UDelegateLibrary`
-
-**NativeConstruct:** binds `BackButton` click → broadcasts `OnBackRequested`, calls `CameraSettingsPanel->Init()`
+**NativeConstruct:** calls `Super::NativeConstruct()` (binds back button), then calls `CameraSettingsPanel->Init()`
 
 ---
 
@@ -470,19 +491,38 @@ Root settings screen widget. Hosts a `UWidgetSwitcher` for future panel navigati
 
 Home screen widget. Owns all five home screen buttons and exposes delegates for screen-level navigation.
 
-**Bound Widgets:** `PlayButton`, `JoinButton`, `LibraryButton`, `SettingsButton`, `QuitButton` (`UButton`)
+**Bound Widgets:** `CampaignManagerButton`, `CampaignBrowserButton`, `AssetLibraryButton`, `SettingsButton`, `QuitButton` (`UButton`)
 
 **Delegates:**
-- `OnSettingsRequested` (BlueprintAssignable) — bound by `UMainScreenHUDComponent` → switches to settings screen
-- `OnJoinRequested` (BlueprintAssignable) — stub; not yet implemented
-- `OnLibraryRequested` (BlueprintAssignable) — stub; not yet implemented
+- `OnCampaignManagerRequested` (BlueprintAssignable) — bound by `UMainScreenHUDComponent` → switches to Campaign Manager screen
+- `OnCampaignBrowserRequested` (BlueprintAssignable) — bound by `UMainScreenHUDComponent` → switches to Campaign Browser screen
+- `OnAssetLibraryRequested` (BlueprintAssignable) — bound by `UMainScreenHUDComponent` → switches to Asset Library screen
+- `OnSettingsRequested` (BlueprintAssignable) — bound by `UMainScreenHUDComponent` → switches to Settings screen
 
 **Key Methods:**
 - `Init()` — binds all button delegates
 
 **Direct handlers (no delegate):**
-- Play → `OpenLevel("L_Gameplay")` directly
 - Quit → `QuitGame` directly
+
+---
+
+#### UBaseScreen
+**Type:** `UUserWidget`
+
+Shared base class for all main screen widgets. Provides a common back button, `OnBackRequested` delegate, and a virtual `Init()` hook so subclasses only need to override what they actually use.
+
+**Bound Widgets (protected):** `BackButton` (`UButton`) — must be named exactly `BackButton` in every child Blueprint
+
+**Delegates:**
+- `OnBackRequested` (`FOnBackRequested`, BlueprintAssignable) — broadcast when `BackButton` is clicked; bound by `UMainScreenHUDComponent` to navigate back to index 0
+
+**Key Methods:**
+- `virtual void Init()` — empty default; override in subclasses that need setup logic
+
+**NativeConstruct:** binds `BackButton` click → broadcasts `OnBackRequested`
+
+> **Note:** `BackButton` must be `protected` (not `private`) in `UBaseScreen` — `BindWidget` requires the property to be visible to the engine's reflection system. Private breaks the binding silently.
 
 ---
 
@@ -685,7 +725,7 @@ General-purpose helper functions accessible from C++ and Blueprint.
 Holds shared delegate type declarations used across multiple screens and systems. All cross-screen delegates are declared here to avoid name collisions and keep delegate types in one place.
 
 **Declared types:**
-- `FOnBackRequested` (`DECLARE_DYNAMIC_MULTICAST_DELEGATE`) — used by `USettingsScreen` and `UCampaignManagerScreen` to signal the parent to return to the previous screen
+- `FOnBackRequested` (`DECLARE_DYNAMIC_MULTICAST_DELEGATE`) — declared on `UBaseScreen`; broadcast by all screen subclasses when the user clicks Back; bound by `UMainScreenHUDComponent` to navigate to index 0
 
 ---
 
@@ -744,7 +784,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - All source subdirectories must be added to `PublicIncludePaths` in `ProjectIronTable.Build.cs`
 - Uses `Path.Combine(ModuleDirectory, "FolderName")` — requires `using System.IO;` at the top
 - This allows `#include "FileName.h"` with no path prefix from any folder in the module
-- **Current registered folders:** `CampaignManager`, `Chat`, `Components`, `Dice`, `Settings`, `UI`, `Utility`, `Pawns`, `PlayerControllers`, `PlayerList`, `SaveLoad`
+- **Current registered folders:** `AssetLibrary`, `CampaignBrowser`, `CampaignManager`, `Chat`, `Components`, `Dice`, `Settings`, `UI`, `Utility`, `Pawns`, `PlayerControllers`, `PlayerList`, `SaveLoad`
 - **Pending (Environment system):** Add `Environment` to `PublicIncludePaths` when the `Environment/` source folder is created
 
 ---
@@ -807,6 +847,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - `UPhysicalMaterial` requires the `PhysicsCore` module in `Build.cs`
 - A `USTRUCT` or `UCLASS` member that holds raw `UObject*` pointers (including `TArray<UObject*>`) must use `UPROPERTY()` — without it the GC can't track the references and they may be prematurely collected
 - `USlider::SetValue` fires `OnValueChanged` the same as a user drag — guard with `ClampedValue != Value` to prevent recursion
+- **`BindWidget` in a base `UUserWidget` class must be `protected`, not `private`** — private `BindWidget` members in a base class silently break widget binding in all subclasses; use `protected` so the property is visible to UE's reflection system
 - **Canvas slot position/size are 0,0 at `NativeConstruct` time** — do not cache `CanvasSlot->GetPosition()/GetSize()` there for use as defaults. Use `EditAnywhere UPROPERTY` fields instead and set them manually in the Blueprint.
 - **C++ template functions cannot be `UFUNCTION()`** — templated methods are not compatible with Unreal's reflection system. Blueprint-accessible utilities need a non-template wrapper with a `UClass*` + manual cast, or just remain C++-only
 
@@ -860,7 +901,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - [x] Taskbar minimize system — `UTaskbar` + `UTaskbarButton`
 - [x] Draggable and resizable panels — `UDraggablePanel`, `UDragHandle`, `UResizeHandle`
 - [x] Close and reopen private chat tabs
-- [ ] Home screen → Campaign Manager navigation (Play button)
+- [x] Home screen → Campaign Manager navigation (Play button replaced with Campaign Manager button; CampaignBrowser and AssetLibrary stub screens added)
 - [ ] Session management (start, load, save)
 - [ ] Session save/load — full snapshot (map, tokens, fog of war, initiative, chat, sheets, notes, inventory); one rolling save slot per campaign; manual save + autosave (configurable interval); auto-save on session close
 - [ ] GM permissions system
@@ -1033,7 +1074,7 @@ The Campaign Manager is the primary hub between the home screen and an active se
 
 ---
 
-*Last updated: 2026-04-09* — `UDelegateLibrary` added to `Utility/` for shared delegate declarations. `FOnBackRequested` declared there; `USettingsScreen` and `UCampaignManagerScreen` both use it (replacing their individual delegate names). `UGameTypeButton` expanded: `SetTabColors`, `SetSelected`, `GetLabel`. `UCampaignManagerScreen` expanded: `SelectedTabColor`/`UnselectedTabColor`/`bUseFakeData` config, `ActiveButtons` state, `SetSelectedGameButton`, `BuildFakeData`. `UMainScreenHUDComponent` null-checks `MainScreenRef` after `CreateWidget`. Delegate naming gotcha updated to reference `UDelegateLibrary`.
+*Last updated: 2026-04-09* — `UBaseScreen` added as shared base for all main screen widgets (`BackButton`, `OnBackRequested`, `virtual Init()`). `UCampaignManagerScreen`, `USettingsScreen` refactored to inherit `UBaseScreen`. `UAssetLibraryScreen` and `UCampaignBrowserScreen` added as stubs (`AssetLibrary/`, `CampaignBrowser/` source folders). `UHomeScreen` updated: Play button replaced with Campaign Manager button; CampaignBrowser and AssetLibrary buttons added; all four navigation delegates now wired through `UMainScreenHUDComponent`. `UMainScreenHUDComponent` now manages five screens (indices 0–4). `UCampaignManagerScreen::BuildFakeData` expanded to 9 game types with 20 DnD campaigns. `BindWidget` in base class needs `protected` gotcha added. Phase 2 roadmap item checked off.
 
 *2026-04-08* — Campaign Manager classes added: `UCampaignManagerSave`, `UGameTypeButton`, `UCampaignCard`, `UCampaignManagerScreen` (in progress). `CampaignManager/` source folder added. Coding standards expanded (include order, GC safety, no debug output in committed code). Delegate naming collision gotcha added. Phase 3 roadmap updated.
 
