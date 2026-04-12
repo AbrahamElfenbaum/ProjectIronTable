@@ -24,6 +24,13 @@ protected:
 	UPROPERTY()
 	FGuid SessionID;
 
+	/** Persistent player identity loaded from UPlayerSave on startup. Passed via login options to the server on travel. */
+	UPROPERTY()
+	FGuid PlayerID;
+
+	/** Loads or generates the persistent PlayerID from UPlayerSave. Called once on game startup. */
+	void Init() override;
+
 public:
 
 	/** Returns the ID of the campaign associated with the pending session. */
@@ -32,9 +39,15 @@ public:
 	/** Returns the ID of the session to load on the gameplay level. */
 	FGuid GetSessionID() const;
 
+	/** Returns the persistent player identity loaded from UPlayerSave on startup. */
+	FGuid GetPlayerID() const;
+
 	/** Sets the campaign ID before traveling to the gameplay level. */
 	void SetCampaignID(const FGuid& InCampaignID);
 
 	/** Sets the session ID before traveling to the gameplay level. */
 	void SetSessionID(const FGuid& InSessionID);
+
+	/** Sets the player ID. Should not be needed outside of testing — PlayerID is set from UPlayerSave in Init. */
+	void SetPlayerID(const FGuid& InPlayerID);
 };

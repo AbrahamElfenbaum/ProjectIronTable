@@ -20,7 +20,7 @@
 USessionHUDComponent::USessionHUDComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
-	SetIsReplicated(true);
+	SetIsReplicatedByDefault(true);
 }
 
 // Creates and adds the gameplay screen widget, then caches references to child widgets and wires up delegates.

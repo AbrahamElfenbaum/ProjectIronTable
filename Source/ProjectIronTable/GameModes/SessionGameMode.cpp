@@ -63,20 +63,37 @@ void ASessionGameMode::PostLogin(APlayerController* NewPlayer)
 		return;
 	}
 
-	FGuid PlayerID = SessionPlayerState->GetSessionPlayerID();
-	SessionPlayerState->SetIsHost(PlayerID == SessionGameState->GetHostPlayerID());
-	SessionPlayerState->SetIsGM(SessionGameState->GetGMPlayerIDs().Contains(PlayerID));
+	FString sPlayerID = UGameplayStatics::ParseOption(OptionsString, "PlayerID");
+	if (sPlayerID.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ASessionGameMode::PostLogin — PlayerID not found in options string; role assignment will fail"));
+		return;
+	}
+
+	FGuid SessionPlayerID;
+	if (FGuid::Parse(sPlayerID, SessionPlayerID))
+	{
+		SessionPlayerState->SetSessionPlayerID(SessionPlayerID);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ASessionGameMode::PostLogin — Failed to parse PlayerID from options string; role assignment will fail"));
+		return;
+	}
+
+	SessionPlayerState->SetIsHost(SessionPlayerID == SessionGameState->GetHostPlayerID());
+	SessionPlayerState->SetIsGM(SessionGameState->GetGMPlayerIDs().Contains(SessionPlayerID));
 
 	if (SessionPlayerState->GetIsGM())
 	{
 		TArray<FGuid> GMPlayerIDs = SessionGameState->GetGMPlayerIDs();
-		GMPlayerIDs.AddUnique(PlayerID);
+		GMPlayerIDs.AddUnique(SessionPlayerID);
 		SessionGameState->SetGMPlayerIDs(GMPlayerIDs);
 	}
 	else
 	{
 		TArray<FGuid> PlayerIDs = SessionGameState->GetPlayerIDs();
-		PlayerIDs.AddUnique(PlayerID);
+		PlayerIDs.AddUnique(SessionPlayerID);
 		SessionGameState->SetPlayerIDs(PlayerIDs);
 	}
 }

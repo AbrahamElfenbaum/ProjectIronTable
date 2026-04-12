@@ -67,11 +67,14 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - `PlayerControllers/` — Player controllers (`ASessionController`, `AMainScreenController`)
 - `PlayerList/` — Player list widget classes (`UPlayerList`, `UPlayerRow`)
 - `PlayerStates/` — Player state classes (`ASessionPlayerState`)
-- `SaveLoad/` — Save game classes (`UPanelLayoutSave`, `UCameraSettingsSave`, `UCampaignManagerSave`, `USessionSave`)
+- `SaveLoad/` — Save game classes (`UPanelLayoutSave`, `UCameraSettingsSave`, `UCampaignManagerSave`, `USessionSave`, `UPlayerSave`)
 - `Settings/` — Settings widget classes (`UCameraSettingsPanel`, `USettingsScreen`)
 - `UI/` — Non-chat widget classes (`UBaseScreen`, `UDiceSelector`, `UDiceSelectorManager`, `UTaskbar`, `UTaskbarButton`, `UDraggablePanel`, `UDragHandle`, `UResizeHandle`, `USettingsSlider`, `UHomeScreen`)
 - `Physics/Materials/` — Physical material assets (friction, restitution for dice)
 - `Utility/` — Blueprint function libraries (`UFunctionLibrary`, `UDelegateLibrary`)
+
+### Flow Diagrams (`Flow Diagrams/`)
+- `LoginFlow.drawio` — Player identity and session login flow from app launch through `PostLogin` role assignment
 
 ### Content (`Content/`)
 - `Blueprints/Core/GameModes/` — Game mode blueprints (`GM_Testing`, `GM_Session`, `GM_MainScreen`)

@@ -31,7 +31,7 @@ Source/ProjectIronTable/
 ├── PlayerControllers/ — Player controller classes
 ├── PlayerList/        — Player list widget classes (PlayerList, PlayerRow)
 ├── PlayerStates/      — Player state classes (SessionPlayerState)
-├── SaveLoad/          — Save game classes (PanelLayoutSave, CameraSettingsSave, CampaignManagerSave, SessionSave)
+├── SaveLoad/          — Save game classes (PanelLayoutSave, CameraSettingsSave, CampaignManagerSave, SessionSave, PlayerSave)
 ├── Settings/          — Settings widget classes (CameraSettingsPanel, SettingsScreen)
 ├── UI/                — Non-chat widget classes (no HUD components; HomeScreen and BaseScreen live here)
 └── Utility/           — Function libraries and general-purpose helpers
@@ -401,6 +401,18 @@ Persists all nine camera config properties across sessions.
 
 ---
 
+#### UPlayerSave
+**Type:** `USaveGame` | **Slot:** `"PlayerIdentity"`, index 0
+
+Stores the player's permanent identity GUID. Created on first launch by `USessionInstance::Init` with a newly generated GUID; reloaded every session after. The `PlayerID` is appended to the `ServerTravel` URL as `?PlayerID=<guid>` and read by `ASessionGameMode::PostLogin` via `UGameplayStatics::ParseOption`.
+
+**Fields:**
+| Field | Type | Notes |
+|---|---|---|
+| `PlayerID` | `FGuid` | Permanent player identity. Generated once; never changes. |
+
+---
+
 #### USessionSave
 **Type:** `USaveGame` | **Slot:** `"Session_{SessionID}"`
 
@@ -424,15 +436,16 @@ Per-session save file. One instance per game session. `UCampaignManagerSave` is 
 #### USessionInstance
 **Type:** `UGameInstance` | **Set in:** Project Settings → Maps & Modes → Game Instance Class
 
-Persistent game instance that survives level transitions. Carries the minimum session context needed to bootstrap `ASessionGameMode` on the gameplay level. Set before calling `ServerTravel`; read in `InitGame`.
+Persistent game instance that survives level transitions. Carries session context and the player's permanent identity. On startup (`Init`), loads `UPlayerSave` from disk and stores `PlayerID`; creates and saves a new one if none exists. `CampaignID` and `SessionID` are set before `ServerTravel` and read in `InitGame`.
 
 **Fields:**
 | Field | Type | Notes |
 |---|---|---|
 | `CampaignID` | `FGuid` | Campaign context — not used to locate the save file, but carried for bookkeeping |
 | `SessionID` | `FGuid` | Used to build the save slot name: `"Session_{SessionID}"` |
+| `PlayerID` | `FGuid` | Persistent player identity loaded from `UPlayerSave` on startup. Appended to travel URL as `?PlayerID=<guid>`. |
 
-**Public API:** `GetCampaignID`, `SetCampaignID`, `GetSessionID`, `SetSessionID`
+**Public API:** `GetCampaignID`, `SetCampaignID`, `GetSessionID`, `SetSessionID`, `GetPlayerID`, `SetPlayerID`
 
 ---
 
@@ -476,7 +489,7 @@ Per-player runtime state replicated to all clients. Holds role flags derived fro
 
 > Do **not** name the field `PlayerID` — shadows `APlayerState::PlayerID` (`int32`), causing a compiler error. Use `SessionPlayerID`.
 
-> **Known gap:** `SessionPlayerID` is not yet set on the `PlayerState` at login time. The intended flow is: client reads their `SessionPlayerID` from `UPlayerSave` and passes it via login options (`?PlayerID=...`); server reads it in `PostLogin` via `UGameplayStatics::ParseOption`. Not yet implemented.
+> `SessionPlayerID` is set in `PostLogin` by parsing `OptionsString` via `UGameplayStatics::ParseOption(OptionsString, "PlayerID")`. The client appends the ID to the travel URL in `UCampaignManagerScreen::OnCampaignSelected`.
 
 ---
 
@@ -489,13 +502,11 @@ Server authority hub for gameplay sessions. Manages session init, player login/l
 
 **`InitGame`:** Reads `SessionID` from `USessionInstance`, loads the matching `USessionSave` slot (`"Session_{SessionID}"`), and pushes all fields into `ASessionGameState`. Early returns with warnings on null instance, missing save, or null GameState.
 
-**`PostLogin`:** Gets `ASessionPlayerState` and `ASessionGameState` for the joining player. Reads `SessionPlayerID`, sets `bIsHost` and `bIsGM` by comparing against GameState data. Adds the player to `GMPlayerIDs` or `PlayerIDs` in GameState using `AddUnique`.
+**`PostLogin`:** Parses `PlayerID` from `OptionsString` via `UGameplayStatics::ParseOption`, calls `FGuid::Parse` to convert to `FGuid`, sets it on `ASessionPlayerState` via `SetSessionPlayerID`. Then sets `bIsHost` and `bIsGM` by comparing against `ASessionGameState` data. Adds the player to `GMPlayerIDs` or `PlayerIDs` in GameState using `AddUnique`. Warns and returns early if options string is empty or GUID parse fails.
 
 **`Logout`:** Casts `AController*` to `APlayerController*`, gets their `SessionPlayerState`, removes their `SessionPlayerID` from `GMPlayerIDs` or `PlayerIDs` based on `bIsGM`.
 
 > Uses `AGameModeBase`, not `AGameMode` — avoids match state logic not needed for TTRPG sessions.
-
-> **Known gap:** `SessionPlayerID` is not set on `ASessionPlayerState` before `PostLogin` reads it — role checks will silently fail until the login options flow is implemented (see `ASessionPlayerState`).
 
 ---
 
@@ -1004,7 +1015,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - [x] Draggable and resizable panels — `UDraggablePanel`, `UDragHandle`, `UResizeHandle`
 - [x] Close and reopen private chat tabs
 - [x] Home screen → Campaign Manager navigation (Play button replaced with Campaign Manager button; CampaignBrowser and AssetLibrary stub screens added)
-- [~] Session management (start, load, save) — `USessionInstance`, `USessionSave`, `ASessionGameState`, `ASessionPlayerState`, `ASessionGameMode` all implemented; `InitGame`/`PostLogin`/`Logout` logic complete; one known gap: `SessionPlayerID` not yet passed via login options — role checks will silently fail until that flow is built
+- [~] Session management (start, load, save) — `USessionInstance`, `USessionSave`, `UPlayerSave`, `ASessionGameState`, `ASessionPlayerState`, `ASessionGameMode` all implemented; `InitGame`/`PostLogin`/`Logout` logic complete; login options flow implemented (`?PlayerID=<guid>` passed via travel URL, parsed in `PostLogin`); remaining gap: `UCampaignManagerScreen::OnCampaignSelected` `ServerTravel` call needs to be routed through a server RPC
 - [ ] Session save/load — full snapshot (map, tokens, fog of war, initiative, chat, sheets, notes, inventory); sessions stored as `"Session_{SessionID}"` slots indexed by `UCampaignManagerSave`; manual save + autosave (configurable interval); auto-save on session close
 - [ ] GM permissions system
 - [ ] Session player cap (default 8, removable)
@@ -1297,7 +1308,9 @@ This approach keeps all save I/O within UE's native save game system and makes a
 
 *2026-03-20* — Added roadmap items: dice physics tuning (Phase 1) and custom UI art assets (Phase 6).
 
-*2026-04-12* — Renamed all "Gameplay"-prefixed classes to "Session": `AGameplayGameMode` → `ASessionGameMode`, `AGameplayController` → `ASessionController`, `UGameplayHUDComponent` → `USessionHUDComponent`, `AGameplayPawn` → `ASessionPawn`. All Blueprint assets reparented accordingly (GM_Session, PC_Session, P_Session, BP_SessionHUDComponent). Input folder renamed `Input/Gameplay/` → `Input/Session/`. Known gap documented: `SessionPlayerID` never set before `PostLogin` — `UPlayerSave` + login options flow needed. Chat bug logged: second message can't be entered after first send.
+*2026-04-12* — Renamed all "Gameplay"-prefixed classes to "Session": `AGameplayGameMode` → `ASessionGameMode`, `AGameplayController` → `ASessionController`, `UGameplayHUDComponent` → `USessionHUDComponent`, `AGameplayPawn` → `ASessionPawn`. All Blueprint assets reparented accordingly (GM_Session, PC_Session, P_Session, BP_SessionHUDComponent). Input folder renamed `Input/Gameplay/` → `Input/Session/`. Chat bug logged: second message can't be entered after first send.
+
+*2026-04-12 (updated)* — Player identity / login options flow implemented. Added `UPlayerSave` (SaveLoad/) — stores permanent `FGuid PlayerID`, created on first launch in `USessionInstance::Init`. `USessionInstance` updated: loads/generates `PlayerID` on startup via `Init`. `UCampaignManagerScreen::OnCampaignSelected` builds travel URL with `?PlayerID=<guid>`. `ASessionGameMode::PostLogin` parses `PlayerID` from `OptionsString` and sets it on `ASessionPlayerState` before role checks. `USessionHUDComponent` constructor fixed: `SetIsReplicated` → `SetIsReplicatedByDefault`. Flow diagram added to `Flow Diagrams/LoginFlow.drawio`.
 
 *2026-03-19* — Roll results display in chat complete. Dice physics improved (PhysicalMaterial, angular impulse, post-settle lock). Failsafe destroy system added with chat notification. DiceSelector count display resets correctly after rolling.
 

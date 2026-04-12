@@ -7,6 +7,7 @@
 
 #include "GameTypeButton.h"
 #include "CampaignCard.h"
+#include "SessionInstance.h"
 
 // Loads campaign data (real or fake), builds game type tabs, and populates the grid with the first available game type's campaigns.
 void UCampaignManagerScreen::Init()
@@ -183,7 +184,26 @@ void UCampaignManagerScreen::OnGameTypeSelected(const FString& GameType)
 }
 
 // Placeholder — launches the selected campaign with the given ID and game type.
+// TODO: ServerTravel must be called on the server, not the client. When this is fully implemented,
+// route through a server RPC. Also replace "MapName" with the actual session level path.
 void UCampaignManagerScreen::OnCampaignSelected(const FGuid& CampaignID, const FString& GameType)
 {
+	USessionInstance* SessionInstance = Cast<USessionInstance>(UGameplayStatics::GetGameInstance(this));
+	if (!IsValid(SessionInstance))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UCampaignManagerScreen::OnCampaignSelected — Failed to get SessionInstance"));
+		return;
+	}
+
+	FGuid PlayerID = SessionInstance->GetPlayerID();
+	if (!PlayerID.IsValid())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UCampaignManagerScreen::OnCampaignSelected — PlayerID is invalid"));
+		return;
+	}
+
+	FString TravelURL = FString::Printf(TEXT("MapName?PlayerID=%s"), *PlayerID.ToString());
+
+	GetWorld()->ServerTravel(TravelURL);
 }
 
