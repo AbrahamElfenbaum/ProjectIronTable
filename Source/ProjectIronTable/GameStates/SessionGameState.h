@@ -16,6 +16,7 @@ class PROJECTIRONTABLE_API ASessionGameState : public AGameStateBase
 
 protected:
 
+	/** Registers replicated properties with the Unreal replication system. */
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	/** Game system this session belongs to (e.g. "DnD5e"). Matches the key used in UCampaignManagerSave. */
@@ -30,7 +31,7 @@ protected:
 	UPROPERTY()
 	FGuid SessionID;
 
-	/** Player ID of the Server Owner � the machine running the listen server. One per session, non-transferable. */
+	/** Player ID of the Server Owner — the machine running the listen server. One per session, non-transferable. */
 	UPROPERTY(Replicated)
 	FGuid HostPlayerID;
 
@@ -45,5 +46,48 @@ protected:
 	/** Timestamp of the last save. Used to sort sessions when loading a campaign (most recent first). */
 	UPROPERTY()
 	FDateTime LastSaved;
-	
+
+public:
+
+	/** Returns the game system identifier for this session (e.g. "DnD5e"). */
+	FString GetGameTypeID() const;
+
+	/** Sets the game system identifier for this session. */
+	void SetGameTypeID(const FString& InGameTypeID);
+
+	/** Returns the ID of the campaign this session belongs to. */
+	FGuid GetCampaignID() const;
+
+	/** Sets the campaign ID for this session. */
+	void SetCampaignID(const FGuid& InCampaignID);
+
+	/** Returns the unique ID for this session. */
+	FGuid GetSessionID() const;
+
+	/** Sets the unique ID for this session. */
+	void SetSessionID(const FGuid& InSessionID);
+
+	/** Returns the player ID of the Server Owner. */
+	FGuid GetHostPlayerID() const;
+
+	/** Sets the player ID of the Server Owner. */
+	void SetHostPlayerID(const FGuid& InHostPlayerID);
+
+	/** Returns the player IDs of all active GMs. */
+	const TArray<FGuid>& GetGMPlayerIDs() const;
+
+	/** Sets the full list of GM player IDs. */
+	void SetGMPlayerIDs(const TArray<FGuid>& InGMPlayerIDs);
+
+	/** Returns the player IDs of all non-GM players in this session. */
+	const TArray<FGuid>& GetPlayerIDs() const;
+
+	/** Sets the full list of non-GM player IDs. */
+	void SetPlayerIDs(const TArray<FGuid>& InPlayerIDs);
+
+	/** Returns the timestamp of the last save. */
+	FDateTime GetLastSaved() const;
+
+	/** Sets the timestamp of the last save. */
+	void SetLastSaved(const FDateTime& InLastSaved);
 };

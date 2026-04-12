@@ -17,7 +17,12 @@ class PROJECTIRONTABLE_API ASessionPlayerState : public APlayerState
 
 protected:
 
+	/** Registers replicated properties with the Unreal replication system. */
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	/** Persistent player identity GUID. Used to look up role assignments in ASessionGameState. */
+	UPROPERTY(Replicated)
+	FGuid SessionPlayerID;
 
 	/** True if this player currently holds the GM role. Set by the server; derived from ASessionGameState::GMPlayerIDs. */
 	UPROPERTY(Replicated)
@@ -26,4 +31,24 @@ protected:
 	/** True if this player is the Server Owner (host machine). Set by the server; derived from ASessionGameState::HostPlayerID. */
 	UPROPERTY(Replicated)
 	bool bIsHost;
+
+public:
+
+	/** Returns this player's persistent session identity GUID. */
+	FGuid GetSessionPlayerID() const;
+
+	/** Sets this player's persistent session identity GUID. */
+	void SetSessionPlayerID(const FGuid& InPlayerID);
+
+	/** Returns true if this player currently holds the GM role. */
+	bool GetIsGM() const;
+
+	/** Sets the GM role flag. Should only be called by the server. */
+	void SetIsGM(bool bInIsGM);
+
+	/** Returns true if this player is the Server Owner. */
+	bool GetIsHost() const;
+
+	/** Sets the host flag. Should only be called by the server. */
+	void SetIsHost(bool bInIsHost);
 };

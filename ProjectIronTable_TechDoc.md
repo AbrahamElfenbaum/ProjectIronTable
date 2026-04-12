@@ -24,6 +24,7 @@ Source/ProjectIronTable/
 ├── Chat/              — Chat widget classes (ChatBox, ChatEntry, ChatChannel, ChatTab, ChatChannelListEntry)
 ├── Components/        — Actor component classes (GameplayHUDComponent, MainScreenHUDComponent)
 ├── Dice/              — Dice actors and data assets
+├── GameInstances/     — Game instance class (SessionInstance)
 ├── GameModes/         — Game mode classes (GameplayGameMode)
 ├── GameStates/        — Game state classes (SessionGameState)
 ├── Pawns/             — Pawn classes
@@ -418,12 +419,29 @@ Per-session save file. One instance per game session. `UCampaignManagerSave` is 
 
 ---
 
+### GameInstances/
+
+#### USessionInstance
+**Type:** `UGameInstance` | **Set in:** Project Settings → Maps & Modes → Game Instance Class
+
+Persistent game instance that survives level transitions. Carries the minimum session context needed to bootstrap `AGameplayGameMode` on the gameplay level. Set before calling `ServerTravel`; read in `InitGame`.
+
+**Fields:**
+| Field | Type | Notes |
+|---|---|---|
+| `CampaignID` | `FGuid` | Campaign context — not used to locate the save file, but carried for bookkeeping |
+| `SessionID` | `FGuid` | Used to build the save slot name: `"Session_{SessionID}"` |
+
+**Public API:** `GetCampaignID`, `SetCampaignID`, `GetSessionID`, `SetSessionID`
+
+---
+
 ### GameStates/
 
 #### ASessionGameState
 **Type:** `AGameStateBase` | **Assigned in:** `GM_Gameplay`
 
-Runtime session state replicated to all clients. Mirrors `USessionSave` at runtime — loaded from disk on session start, written back on save. Server is authoritative; clients read via accessors (to be added).
+Runtime session state replicated to all clients. Mirrors `USessionSave` at runtime — loaded from disk on session start by `AGameplayGameMode::InitGame`, written back on save. Server is authoritative; all fields have public getters and setters.
 
 **Fields:**
 | Field | Type | Replicated | Notes |
@@ -445,15 +463,20 @@ Runtime session state replicated to all clients. Mirrors `USessionSave` at runti
 #### ASessionPlayerState
 **Type:** `APlayerState` | **Assigned in:** `GM_Gameplay`
 
-Per-player runtime state replicated to all clients. Holds role flags derived from `ASessionGameState` — set by the server when the session starts or when roles change. Not persisted to disk; repopulated each session from `USessionSave`.
+Per-player runtime state replicated to all clients. Holds role flags derived from `ASessionGameState` — set by the server in `PostLogin`. Not persisted to disk; repopulated each session from `USessionSave`.
 
 **Fields:**
 | Field | Type | Replicated | Notes |
 |---|---|---|---|
+| `SessionPlayerID` | `FGuid` | Yes | Persistent player identity GUID — distinct from engine's built-in `int32 PlayerID` |
 | `bIsGM` | `bool` | Yes | Derived from `ASessionGameState::GMPlayerIDs` |
 | `bIsHost` | `bool` | Yes | Derived from `ASessionGameState::HostPlayerID` |
 
-> `FGuid PlayerID` is not needed — use `GetUniqueId()` from the base `APlayerState`. Adding a duplicate causes a compiler warning.
+**Public API:** `GetSessionPlayerID`, `SetSessionPlayerID`, `GetIsGM`, `SetIsGM`, `GetIsHost`, `SetIsHost`
+
+> Do **not** name the field `PlayerID` — shadows `APlayerState::PlayerID` (`int32`), causing a compiler error. Use `SessionPlayerID`.
+
+> **Known gap:** `SessionPlayerID` is not yet set on the `PlayerState` at login time. The intended flow is: client reads their `SessionPlayerID` from `UPlayerSave` and passes it via login options (`?PlayerID=...`); server reads it in `PostLogin` via `UGameplayStatics::ParseOption`. Not yet implemented.
 
 ---
 
@@ -462,9 +485,17 @@ Per-player runtime state replicated to all clients. Holds role flags derived fro
 #### AGameplayGameMode
 **Type:** `AGameModeBase` | **Blueprint:** *(pending)*
 
-Server authority hub for gameplay sessions. Stub — session init, player login/logout, and role assignment logic to be added.
+Server authority hub for gameplay sessions. Manages session init, player login/logout, and role assignment.
+
+**`InitGame`:** Reads `SessionID` from `USessionInstance`, loads the matching `USessionSave` slot (`"Session_{SessionID}"`), and pushes all fields into `ASessionGameState`. Early returns with warnings on null instance, missing save, or null GameState.
+
+**`PostLogin`:** Gets `ASessionPlayerState` and `ASessionGameState` for the joining player. Reads `SessionPlayerID`, sets `bIsHost` and `bIsGM` by comparing against GameState data. Adds the player to `GMPlayerIDs` or `PlayerIDs` in GameState using `AddUnique`.
+
+**`Logout`:** Casts `AController*` to `APlayerController*`, gets their `SessionPlayerState`, removes their `SessionPlayerID` from `GMPlayerIDs` or `PlayerIDs` based on `bIsGM`.
 
 > Uses `AGameModeBase`, not `AGameMode` — avoids match state logic not needed for TTRPG sessions.
+
+> **Known gap:** `SessionPlayerID` is not set on `ASessionPlayerState` before `PostLogin` reads it — role checks will silently fail until the login options flow is implemented (see `ASessionPlayerState`).
 
 ---
 
@@ -973,7 +1004,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - [x] Draggable and resizable panels — `UDraggablePanel`, `UDragHandle`, `UResizeHandle`
 - [x] Close and reopen private chat tabs
 - [x] Home screen → Campaign Manager navigation (Play button replaced with Campaign Manager button; CampaignBrowser and AssetLibrary stub screens added)
-- [~] Session management (start, load, save) — `USessionSave`, `ASessionGameState`, `ASessionPlayerState`, `AGameplayGameMode` (stub) added; join/approval flow and session init logic pending
+- [~] Session management (start, load, save) — `USessionInstance`, `USessionSave`, `ASessionGameState`, `ASessionPlayerState`, `AGameplayGameMode` all implemented; `InitGame`/`PostLogin`/`Logout` logic complete; one known gap: `SessionPlayerID` not yet passed via login options — role checks will silently fail until that flow is built
 - [ ] Session save/load — full snapshot (map, tokens, fog of war, initiative, chat, sheets, notes, inventory); sessions stored as `"Session_{SessionID}"` slots indexed by `UCampaignManagerSave`; manual save + autosave (configurable interval); auto-save on session close
 - [ ] GM permissions system
 - [ ] Session player cap (default 8, removable)
@@ -1206,7 +1237,9 @@ This approach keeps all save I/O within UE's native save game system and makes a
 
 ---
 
-*Last updated: 2026-04-10 (updated 2)* — Folder structure corrected: `GameModes/`, `GameStates/`, `PlayerStates/` added to source tree overview; `SessionSave` added to SaveLoad line.
+*Last updated: 2026-04-11* — `USessionInstance` added (`GameInstances/`). `AGameplayGameMode` fully implemented: `InitGame` loads `USessionSave` into `ASessionGameState`; `PostLogin` assigns role flags and adds player to correct list; `Logout` removes player from list. `ASessionPlayerState` gained `SessionPlayerID` (Replicated FGuid) with full accessors. `ASessionGameState` gained full getter/setter API for all fields. `GameInstances/` folder added to source tree and Build.cs. Known gap documented: `SessionPlayerID` not yet set via login options.
+
+*2026-04-10 (updated 2)* — Folder structure corrected: `GameModes/`, `GameStates/`, `PlayerStates/` added to source tree overview; `SessionSave` added to SaveLoad line.
 
 *2026-04-10 (updated 1)* — `USessionSave` implemented (SaveLoad/). `ASessionGameState` and `ASessionPlayerState` implemented with replication. `AGameplayGameMode` stub added (GameModes/). `GM_Gameplay` updated: Game State Class → `ASessionGameState`, Player State Class → `ASessionPlayerState`. Build.cs updated: `GameStates`, `PlayerStates`, `GameModes` added to `PublicIncludePaths`. Roadmap session management item marked in-progress.
 
