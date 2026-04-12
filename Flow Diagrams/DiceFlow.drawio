@@ -1,0 +1,104 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Dice Flow" id="dice-flow">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- MAIN ROLL FLOW -->
+        <mxCell id="10" value="Player selects dice counts&#xa;(UDiceSelector +/- buttons)&#xa;and roll mode (Normal/Adv/Dis)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="80" y="40" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="11" value="Player clicks Roll button&#xa;UDiceSelectorManager::RollDice()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="95" y="150" width="190" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="12" value="OnRollInitiated fires&#xa;↓&#xa;USessionHUDComponent::OnRollInitiated()&#xa;↓&#xa;ChatBox::TrySendPrivateRollMessage()&#xa;(sends roll notice to private channel if @mentions in input)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="60" y="250" width="260" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="13" value="bRollInProgress = true&#xa;ExpectedDiceCount = total dice&#xa;PendingResults cleared&#xa;SpawnedDice cleared" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="80" y="390" width="220" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="14" value="For each die type with count &gt; 0:&#xa;SpawnActor at random point in SpawnVolume&#xa;Apply randomized linear + angular impulse&#xa;Bind OnDiceRolled → OnDiceRolledHandler&#xa;Bind OnFailsafeDestroyed → OnDiceFailsafeHandler" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="510" width="260" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- PHYSICS / SETTLE -->
+        <mxCell id="15" value="Physics simulation runs&#xa;(Chaos physics, UE5)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="95" y="650" width="190" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="16" value="Die settles&#xa;OnComponentSleep fires&#xa;(requires Generate Wake Events = true)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="95" y="750" width="190" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="17" value="ABaseDiceActor::OnDiceRolled fires&#xa;FRollResult{ DiceType, Value, DiceActor }" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="80" y="860" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="18" value="OnDiceRolledHandler()&#xa;PendingResults.Add(Result)&#xa;All results in?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="90" y="960" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- RESULTS -->
+        <mxCell id="19" value="OnAllDiceRolled fires&#xa;(Results[], RollMode)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="95" y="1080" width="190" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="20" value="USessionHUDComponent::AddRollResultToChat()&#xa;&#xa;Formats result string based on RollMode:&#xa;Normal: &quot;Rolled D20: 17&quot;&#xa;Advantage: &quot;Rolled D20 (Adv): 17 [kept] 4&quot;&#xa;Sends via SendChatMessageOnServer()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="55" y="1175" width="270" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="21" value="Timer: TimeBeforeDestroyingDice&#xa;→ DestroyDice()&#xa;All SpawnedDice destroyed&#xa;bRollInProgress = false" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="80" y="1315" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- FAILSAFE PATH -->
+        <mxCell id="30" value="FAILSAFE PATH" style="text;html=1;fontStyle=1;fontSize=12;fillColor=#f8cecc;strokeColor=#b85450;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="430" y="650" width="180" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="31" value="Die doesn't settle within&#xa;FailSafeTime (default 10s)&#xa;ABaseDiceActor destroys self" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="420" y="710" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="32" value="OnFailsafeDestroyed fires&#xa;(EDiceType)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="440" y="820" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="33" value="UDiceSelectorManager::OnDiceFailsafeHandler()&#xa;Decrement ExpectedDiceCount&#xa;If all remaining results in → OnAllDiceRolled" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="400" y="910" width="260" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="34" value="USessionHUDComponent::OnDiceFailsafeHandler()&#xa;Sends chat message:&#xa;&quot;A D{type} was lost&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="420" y="1020" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ADVANTAGE NOTE -->
+        <mxCell id="40" value="ADVANTAGE / DISADVANTAGE NOTE&#xa;&#xa;Only valid when exactly 1 die type is selected.&#xa;Spawns 2 dice of that type.&#xa;Advantage: keep higher result.&#xa;Disadvantage: keep lower result.&#xa;FRollResult.bWasKept marks the kept die." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="420" y="200" width="260" height="130" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows -->
+        <mxCell id="a1" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="10" target="11" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a2" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="11" target="12" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a3" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="12" target="13" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a4" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="13" target="14" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a5" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="14" target="15" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a6" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="15" target="16" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a7" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="16" target="17" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a8" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="17" target="18" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a9" value="Yes" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="18" target="19" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a10" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="19" target="20" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a11" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="20" target="21" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a30" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="31" target="32" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a31" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="32" target="33" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a32" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="32" target="34" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

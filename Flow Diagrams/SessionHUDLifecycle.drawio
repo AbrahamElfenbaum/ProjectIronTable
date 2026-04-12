@@ -1,0 +1,95 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Session HUD Lifecycle" id="hud-lifecycle">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- STARTUP -->
+        <mxCell id="s1" value="STARTUP (BeginPlay — local clients only)" style="text;html=1;fontStyle=1;fontSize=13;fillColor=#dae8fc;strokeColor=#6c8ebf;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="340" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="10" value="USessionHUDComponent::BeginPlay()" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="100" y="70" width="220" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="11" value="Cast owner → APlayerController&#xa;Cache PlayerControllerRef&#xa;Guard: not local controller → return" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="80" y="155" width="260" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="12" value="CreateWidget(GameplayScreenClass)&#xa;AddToViewport()&#xa;Cache GameplayScreenRef" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="80" y="265" width="260" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="13" value="GetWidgetFromName() for each:&#xa;• DiceSelectorManager&#xa;• ChatBox&#xa;• PlayerList&#xa;• Taskbar" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="80" y="375" width="260" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="14" value="FindAndRegisterPanel() for each:&#xa;• DicePanel → &quot;Dice&quot;&#xa;• ChatPanel → &quot;Chat&quot;&#xa;• PlayersPanel → &quot;Players&quot;&#xa;&#xa;Finds UDraggablePanel by name&#xa;Registers with Taskbar (toggle button)&#xa;Binds OnDragged/OnResized/OnToggled → SavePanelLayout" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="505" width="300" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="15" value="LoadPanelLayout()&#xa;&#xa;Load UPanelLayoutSave from slot &quot;PanelLayout&quot;&#xa;Apply saved Position/Size/Visibility&#xa;to each registered UDraggablePanel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="80" y="665" width="260" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="16" value="Bind delegates:&#xa;• DiceSelectorManager.OnAllDiceRolled → AddRollResultToChat&#xa;• DiceSelectorManager.OnDiceFailsafeDestroyed → OnDiceFailsafeHandler&#xa;• DiceSelectorManager.OnRollInitiated → OnRollInitiated&#xa;• PlayerList.OnPlayerAddressClicked → OnPlayerAddressClicked" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="50" y="795" width="320" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="17" value="Set input mode: FInputModeGameAndUI&#xa;bShowMouseCursor = true&#xa;ADiceSpawnVolume found via GetActorOfClass&#xa;Assigned to DiceSelectorManager.SpawnVolume" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="70" y="935" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- CHAT RPC FLOW -->
+        <mxCell id="s2" value="CHAT RPC FLOW (runtime)" style="text;html=1;fontStyle=1;fontSize=13;fillColor=#e1d5e7;strokeColor=#9673a6;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="500" y="20" width="260" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="20" value="ChatBox calls&#xa;HUDComponent::SendChatMessageOnServer()&#xa;[Server RPC]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="510" y="70" width="240" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="21" value="Server validates message&#xa;Recipients empty? → broadcast to ALL&#xa;Recipients set? → send to sender + recipients only" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="500" y="180" width="260" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="22" value="AddChatMessageOnOwningClient()&#xa;[Client RPC]&#xa;bIsSender = (this client == sender)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="510" y="300" width="240" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="23" value="ChatBoxRef::AddChatMessage()&#xa;Routes to correct channel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="520" y="410" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- PANEL SAVE -->
+        <mxCell id="s3" value="PANEL LAYOUT SAVE (runtime)" style="text;html=1;fontStyle=1;fontSize=13;fillColor=#d5e8d4;strokeColor=#82b366;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="500" y="530" width="260" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="30" value="Panel dragged / resized / toggled" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="530" y="590" width="200" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="31" value="SavePanelLayout()&#xa;&#xa;For each registered panel:&#xa;Write Position/Size/Visibility&#xa;into UPanelLayoutSave keyed by PanelID&#xa;SaveGameToSlot(&quot;PanelLayout&quot;)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="500" y="680" width="260" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows startup -->
+        <mxCell id="a1" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="10" target="11" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a2" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="11" target="12" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a3" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="12" target="13" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a4" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="13" target="14" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a5" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="14" target="15" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a6" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="15" target="16" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a7" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="16" target="17" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a20" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="20" target="21" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a21" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="21" target="22" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a22" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="22" target="23" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a30" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="30" target="31" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
