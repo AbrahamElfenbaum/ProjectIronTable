@@ -4,22 +4,22 @@
 #include "GameFramework/PlayerController.h"
 #include "InputMappingContext.h"
 #include "InputAction.h"
-#include "GameplayController.generated.h"
+#include "SessionController.generated.h"
 
-class UGameplayHUDComponent;
-class AGameplayPawn;
+class USessionHUDComponent;
+class ASessionPawn;
 class UEnhancedInputLocalPlayerSubsystem;
 class UCameraSettingsSave;
 
-/** Main player controller. Drives camera movement and routes input to the HUD. */
+/** Main player controller for active sessions. Drives camera movement and routes input to the HUD. */
 UCLASS()
-class PROJECTIRONTABLE_API AGameplayController : public APlayerController
+class PROJECTIRONTABLE_API ASessionController : public APlayerController
 {
 	GENERATED_BODY()
 
 public:
 	/** Creates and attaches the HUD component subobject. */
-	AGameplayController();
+	ASessionController();
 
 protected:
 	/** Caches the pawn reference, registers the gameplay input context, and binds all input actions. */
@@ -38,11 +38,11 @@ protected:
 #pragma region Runtime References
 	/** The HUD component owned by this controller, responsible for all UI widgets. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TObjectPtr<UGameplayHUDComponent> HUDComponent;
+	TObjectPtr<USessionHUDComponent> HUDComponent;
 
-	/** Cached reference to the possessed gameplay pawn. */
+	/** Cached reference to the possessed session pawn. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TObjectPtr<AGameplayPawn> GameplayPawnRef;
+	TObjectPtr<ASessionPawn> SessionPawnRef;
 
 	/** Reference to the Enhanced Input subsystem for managing mapping contexts. */
 	UPROPERTY()
@@ -101,40 +101,37 @@ private:
 
 public:
 
-#pragma region Gameplay Input
-
+#pragma region Session Input
 	/** Input mapping context active during normal gameplay. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay Input")
-	TObjectPtr<UInputMappingContext> IMC_Gameplay;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Session Input")
+	TObjectPtr<UInputMappingContext> IMC_Session;
 
 	/** WASD camera translation input action. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay Input")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Session Input")
 	TObjectPtr<UInputAction> IA_CameraMove;
 
 	/** Mouse-drag camera pan input action. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay Input")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Session Input")
 	TObjectPtr<UInputAction> IA_CameraPan;
 
 	/** Resets camera pitch to default while held. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay Input")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Session Input")
 	TObjectPtr<UInputAction> IA_CameraPanReset;
 
 	/** Hold to apply the camera sprint speed multiplier. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay Input")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Session Input")
 	TObjectPtr<UInputAction> IA_CameraSprint;
 
 	/** Scroll-wheel camera zoom input action. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay Input")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Session Input")
 	TObjectPtr<UInputAction> IA_CameraZoom;
 
 	/** Triggers chat focus mode. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay Input")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Session Input")
 	TObjectPtr<UInputAction> IA_FocusChat;
-
 #pragma endregion
 
 #pragma region Chat Input
-
 	/** Input mapping context active while the chat box is focused. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Chat Input")
 	TObjectPtr<UInputMappingContext> IMC_Chat;
@@ -146,7 +143,6 @@ public:
 	/** Scrolls the active chat channel up or down. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Chat Input")
 	TObjectPtr<UInputAction> IA_ScrollChat;
-
 #pragma endregion
 
 public:

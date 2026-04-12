@@ -2,7 +2,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
-#include "GameplayGameMode.generated.h"
+#include "SessionGameMode.generated.h"
 
 class APlayerController;
 class AController;
@@ -12,7 +12,7 @@ class AController;
  * on startup, assigning roles to players on login, and cleaning up player state on logout.
  */
 UCLASS()
-class PROJECTIRONTABLE_API AGameplayGameMode : public AGameModeBase
+class PROJECTIRONTABLE_API ASessionGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
 

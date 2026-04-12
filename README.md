@@ -58,13 +58,13 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - `CampaignBrowser/` — Campaign browser screen (`UCampaignBrowserScreen`, stub)
 - `CampaignManager/` — Campaign manager widget classes (`UGameTypeButton`, `UCampaignCard`, `UCampaignManagerScreen`)
 - `Chat/` — Chat widget classes (`UChatBox`, `UChatEntry`, `UChatChannel`, `UChatTab`, `UChatChannelListEntry`)
-- `Components/` — Actor component classes (`UGameplayHUDComponent`, `UMainScreenHUDComponent`)
+- `Components/` — Actor component classes (`USessionHUDComponent`, `UMainScreenHUDComponent`)
 - `Dice/` — Dice actors (`ABaseDiceActor`, `ADiceSpawnVolume`) and data assets (`UDiceData`)
 - `GameInstances/` — Game instance class (`USessionInstance`)
-- `GameModes/` — Game mode classes (`AGameplayGameMode`)
+- `GameModes/` — Game mode classes (`ASessionGameMode`)
 - `GameStates/` — Game state classes (`ASessionGameState`)
-- `Pawns/` — Camera pawn (`AGameplayPawn`)
-- `PlayerControllers/` — Player controllers (`AGameplayController`, `AMainScreenController`)
+- `Pawns/` — Camera pawn (`ASessionPawn`)
+- `PlayerControllers/` — Player controllers (`ASessionController`, `AMainScreenController`)
 - `PlayerList/` — Player list widget classes (`UPlayerList`, `UPlayerRow`)
 - `PlayerStates/` — Player state classes (`ASessionPlayerState`)
 - `SaveLoad/` — Save game classes (`UPanelLayoutSave`, `UCameraSettingsSave`, `UCampaignManagerSave`, `USessionSave`)
@@ -74,22 +74,22 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - `Utility/` — Blueprint function libraries (`UFunctionLibrary`, `UDelegateLibrary`)
 
 ### Content (`Content/`)
-- `Blueprints/Core/GameModes/` — Game mode blueprints (`GM_Testing`, `GM_Gameplay`, `GM_MainScreen`)
-- `Blueprints/Core/PlayerControllers/` — Player controller blueprints (`PC_Testing`, `PC_Gameplay`, `PC_MainScreen`)
-- `Blueprints/Core/Components/` — Actor components (`BP_HUDComponent`, `BP_HomeScreenHUDComponent`)
-- `Blueprints/Pawns/` — Camera pawn Blueprint (`P_GameplayPawn`)
+- `Blueprints/Core/GameModes/` — Game mode blueprints (`GM_Testing`, `GM_Session`, `GM_MainScreen`)
+- `Blueprints/Core/PlayerControllers/` — Player controller blueprints (`PC_Testing`, `PC_Session`, `PC_MainScreen`)
+- `Blueprints/Core/Components/` — Actor components (`BP_SessionHUDComponent`, `BP_HomeScreenHUDComponent`)
+- `Blueprints/Pawns/` — Camera pawn Blueprint (`P_Session`)
 - `Blueprints/Dice/` — Base dice actor Blueprint (`A_BaseDiceActor`)
 - `Blueprints/Dice/DiceActors/` — Individual die blueprints
 - `Blueprints/Utility/` — Utility blueprints
 - `Data/DataAssets/Dice/` — Dice data assets
 - `Levels/Dev/` — Development/test levels (`Dev_` prefix)
 - `Levels/HomeScreen/` — Home screen level (`L_HomeScreen`)
-- `Levels/Gameplay/` — Gameplay levels (`L_Gameplay`)
+- `Levels/Session/` — Session levels (`L_Session`)
 - `Materials/Dice/` — Dice materials
 - `Audio/Dice/` — Dice collision sound assets (Kenney Impact Sounds, CC0)
 - `Meshes/Dice/` — Dice meshes (*Dungeons of Dice* by NNJohn)
 - `Textures/` — Texture assets
-- `Input/Gameplay/` — `IMC_Gameplay`, `IA_CameraMove`, `IA_CameraPan`, `IA_CameraPanReset`, `IA_CameraSprint`, `IA_CameraZoom`, `IA_FocusChat`
+- `Input/Session/` — `IMC_Session`, `IA_CameraMove`, `IA_CameraPan`, `IA_CameraPanReset`, `IA_CameraSprint`, `IA_CameraZoom`, `IA_FocusChat`
 - `Input/Chat/` — `IMC_Chat`, `IA_ExitChat`, `IA_ScrollChat`
 - `UI/Dice/` — Dice widget elements (`WE_DiceSelector`, `WE_DiceSelectorManager`)
 - `UI/Chat/` — Chat widgets (`W_ChatBox`, `WE_ChatChannel`, `WE_ChatTab`, `WE_ChatEntry`)
@@ -97,7 +97,7 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - `UI/Taskbar/` — Taskbar widgets (`W_Taskbar`, `WE_TaskbarButton`)
 - `UI/Utility/` — Reusable utility widgets (`W_DraggablePanel`, `WBP_DragHandle`, `WBP_ResizeHandle`)
 - `UI/CampaignManager/` — Campaign manager widget elements (`WE_GameTypeButton`, `WE_CampaignCard`)
-- `UI/Screens/` — Full screen widgets (`S_GameplayScreen`, `S_HomeScreen`, `S_MainScreen`, `S_SettingsScreen`, `S_CampaignManagerScreen`, `S_CampaignBrowserScreen`, `S_AssetLibraryScreen`)
+- `UI/Screens/` — Full screen widgets (`S_SessionScreen`, `S_HomeScreen`, `S_MainScreen`, `S_SettingsScreen`, `S_CampaignManagerScreen`, `S_CampaignBrowserScreen`, `S_AssetLibraryScreen`)
 - `UI/Settings/` — Settings widget elements (`WE_SettingsSlider`)
 - `UI/Settings/Panels/` — Settings panel widgets (`WE_CameraSettingsPanel`)
 - `UI/Testing/` — Debug/test widgets (`WE_DebugDisplay`)

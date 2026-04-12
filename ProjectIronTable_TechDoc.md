@@ -22,10 +22,10 @@ Source/ProjectIronTable/
 ├── CampaignBrowser/   — Campaign browser screen (CampaignBrowserScreen)
 ├── CampaignManager/   — Campaign manager widget classes (GameTypeButton, CampaignCard, CampaignManagerScreen)
 ├── Chat/              — Chat widget classes (ChatBox, ChatEntry, ChatChannel, ChatTab, ChatChannelListEntry)
-├── Components/        — Actor component classes (GameplayHUDComponent, MainScreenHUDComponent)
+├── Components/        — Actor component classes (SessionHUDComponent, MainScreenHUDComponent)
 ├── Dice/              — Dice actors and data assets
 ├── GameInstances/     — Game instance class (SessionInstance)
-├── GameModes/         — Game mode classes (GameplayGameMode)
+├── GameModes/         — Game mode classes (SessionGameMode)
 ├── GameStates/        — Game state classes (SessionGameState)
 ├── Pawns/             — Pawn classes
 ├── PlayerControllers/ — Player controller classes
@@ -42,24 +42,24 @@ Source/ProjectIronTable/
 Content/
 ├── Blueprints/
 │   ├── Core/
-│   │   ├── GameModes/          — GM_Testing, GM_Gameplay, GM_MainScreen
-│   │   ├── PlayerControllers/  — PC_Testing, PC_Gameplay, PC_MainScreen
-│   │   └── Components/         — BP_HUDComponent, BP_HomeScreenHUDComponent
+│   │   ├── GameModes/          — GM_Testing, GM_Session, GM_MainScreen
+│   │   ├── PlayerControllers/  — PC_Testing, PC_Session, PC_MainScreen
+│   │   └── Components/         — BP_SessionHUDComponent, BP_HomeScreenHUDComponent
 │   ├── Dice/
 │   │   ├── A_BaseDiceActor     — Base dice actor Blueprint
 │   │   └── DiceActors/         — Individual die Blueprints (A_D4, A_D6, etc.)
 │   └── Pawns/
-│       └── P_GameplayPawn      — Camera pawn Blueprint
+│       └── P_Session      — Camera pawn Blueprint
 ├── Data/DataAssets/Dice/       — DA_ prefixed dice data assets
 ├── Input/
-│   ├── Gameplay/               — IMC_Gameplay, IA_CameraMove, IA_CameraPan, IA_CameraPanReset, IA_CameraSprint, IA_CameraZoom, IA_FocusChat
+│   ├── Session/                — IMC_Session, IA_CameraMove, IA_CameraPan, IA_CameraPanReset, IA_CameraSprint, IA_CameraZoom, IA_FocusChat
 │   └── Chat/                   — IMC_Chat, IA_ExitChat, IA_ScrollChat
 ├── UI/
 │   ├── Dice/                   — WE_DiceSelector, W_DiceSelectorManager
 │   ├── Chat/                   — W_ChatBox, WE_ChatChannel, WE_ChatTab, WE_ChatEntry
 │   ├── PlayerList/             — W_PlayerList, WE_PlayerRow
 │   ├── CampaignManager/        — WE_GameTypeButton, WE_CampaignCard
-│   ├── Screens/                — S_GameplayScreen, S_HomeScreen, S_MainScreen, S_SettingsScreen, S_CampaignManagerScreen, S_CampaignBrowserScreen, S_AssetLibraryScreen
+│   ├── Screens/                — S_SessionScreen, S_HomeScreen, S_MainScreen, S_SettingsScreen, S_CampaignManagerScreen, S_CampaignBrowserScreen, S_AssetLibraryScreen
 │   ├── Settings/               — WE_SettingsSlider
 │   │   └── Panels/             — WE_CameraSettingsPanel
 │   ├── HUD/                    — W_Taskbar, WE_TaskbarButton
@@ -100,7 +100,7 @@ Content/
 #### ADiceSpawnVolume
 **Type:** `AActor` | **Place in level:** yes (one instance)
 
-Defines the spawn area for dice. `UGameplayHUDComponent` finds it at runtime and passes it to `UDiceSelectorManager`.
+Defines the spawn area for dice. `USessionHUDComponent` finds it at runtime and passes it to `UDiceSelectorManager`.
 
 **Components:** `SpawnArea` (`UBoxComponent`, root — visible/resizable in viewport)
 
@@ -424,7 +424,7 @@ Per-session save file. One instance per game session. `UCampaignManagerSave` is 
 #### USessionInstance
 **Type:** `UGameInstance` | **Set in:** Project Settings → Maps & Modes → Game Instance Class
 
-Persistent game instance that survives level transitions. Carries the minimum session context needed to bootstrap `AGameplayGameMode` on the gameplay level. Set before calling `ServerTravel`; read in `InitGame`.
+Persistent game instance that survives level transitions. Carries the minimum session context needed to bootstrap `ASessionGameMode` on the gameplay level. Set before calling `ServerTravel`; read in `InitGame`.
 
 **Fields:**
 | Field | Type | Notes |
@@ -439,9 +439,9 @@ Persistent game instance that survives level transitions. Carries the minimum se
 ### GameStates/
 
 #### ASessionGameState
-**Type:** `AGameStateBase` | **Assigned in:** `GM_Gameplay`
+**Type:** `AGameStateBase` | **Assigned in:** `GM_Session`
 
-Runtime session state replicated to all clients. Mirrors `USessionSave` at runtime — loaded from disk on session start by `AGameplayGameMode::InitGame`, written back on save. Server is authoritative; all fields have public getters and setters.
+Runtime session state replicated to all clients. Mirrors `USessionSave` at runtime — loaded from disk on session start by `ASessionGameMode::InitGame`, written back on save. Server is authoritative; all fields have public getters and setters.
 
 **Fields:**
 | Field | Type | Replicated | Notes |
@@ -461,7 +461,7 @@ Runtime session state replicated to all clients. Mirrors `USessionSave` at runti
 ### PlayerStates/
 
 #### ASessionPlayerState
-**Type:** `APlayerState` | **Assigned in:** `GM_Gameplay`
+**Type:** `APlayerState` | **Assigned in:** `GM_Session`
 
 Per-player runtime state replicated to all clients. Holds role flags derived from `ASessionGameState` — set by the server in `PostLogin`. Not persisted to disk; repopulated each session from `USessionSave`.
 
@@ -482,7 +482,7 @@ Per-player runtime state replicated to all clients. Holds role flags derived fro
 
 ### GameModes/
 
-#### AGameplayGameMode
+#### ASessionGameMode
 **Type:** `AGameModeBase` | **Blueprint:** *(pending)*
 
 Server authority hub for gameplay sessions. Manages session init, player login/logout, and role assignment.
@@ -529,14 +529,14 @@ Handles screen-level navigation only. Creates the root `S_MainScreen` widget, ge
 
 ---
 
-#### UGameplayHUDComponent
+#### USessionHUDComponent
 **Type:** `UActorComponent` | **Replicated:** yes
-**Owner:** `AGameplayController`
+**Owner:** `ASessionController`
 
-Manages the gameplay HUD lifecycle and all chat networking.
+Manages the session HUD lifecycle and all chat networking.
 
 **Config:**
-- `GameplayScreenClass` (`TSubclassOf<UUserWidget>`)
+- `SessionScreenClass` (`TSubclassOf<UUserWidget>`)
 
 **Widget names it searches for (must match):** `DiceSelectorManager`, `ChatBox`, `PlayerList`, `Taskbar`, `DicePanel`, `ChatPanel`, `PlayersPanel`
 
@@ -674,7 +674,7 @@ Manages all dice selectors and initiates rolls.
 
 **Bound Widgets:** `D4`–`D100` (`UDiceSelector`), `NormalRollButton`, `AdvantageRollButton`, `DisadvantageRollButton`, `RollButton` (`UButton`)
 
-**Config:** `SpawnVolume` (set at runtime by `UGameplayHUDComponent`), `Impulse`, `AngularImpulse`, `ImpulseRange`, `AngularImpulseRange`, `TimeBeforeDestroyingDice` (5s)
+**Config:** `SpawnVolume` (set at runtime by `USessionHUDComponent`), `Impulse`, `AngularImpulse`, `ImpulseRange`, `AngularImpulseRange`, `TimeBeforeDestroyingDice` (5s)
 
 **Roll Modes:** Normal / Advantage / Disadvantage — mode buttons enabled only when exactly one selector has `DiceCount == 1`. Advantage/Disadvantage spawn 2 dice and keep only the higher/lower result; losing die gets `bWasKept = false`.
 
@@ -736,14 +736,14 @@ Labeled slider paired with an editable text field. Supports optional pairing wit
 
 ### Pawns/
 
-#### AGameplayPawn
-**Type:** `APawn` | **Blueprint:** `P_GameplayPawn`
+#### ASessionPawn
+**Type:** `APawn` | **Blueprint:** `P_Session`
 
 Top-down camera rig.
 
 **Component hierarchy:** `Root (USceneComponent) → Sphere (UStaticMeshComponent) → SpringArm → Camera`
 
-All components are public so `AGameplayController` can access `SpringArm->TargetArmLength`.
+All components are public so `ASessionController` can access `SpringArm->TargetArmLength`.
 
 ---
 
@@ -760,12 +760,12 @@ UI-only controller for the main screen. No camera pawn, no Enhanced Input.
 
 ---
 
-#### AGameplayController
-**Type:** `APlayerController` | **Blueprint:** `PC_Gameplay`
+#### ASessionController
+**Type:** `APlayerController` | **Blueprint:** `PC_Session`
 
 Central hub for all player input and HUD management.
 
-**Constructor:** `CreateDefaultSubobject<UGameplayHUDComponent>("HUDComponent")`
+**Constructor:** `CreateDefaultSubobject<USessionHUDComponent>("HUDComponent")`
 
 **Input (bound in `OnPossess`):**
 
@@ -836,7 +836,7 @@ Holds shared delegate type declarations used across multiple screens and systems
 #### AEnvironmentManager
 **Type:** `AActor` (Replicated) | **Place in level:** yes (one instance)
 
-Controls time of day and weather. `UGameplayHUDComponent` finds it at BeginPlay via `GetActorOfClass`.
+Controls time of day and weather. `USessionHUDComponent` finds it at BeginPlay via `GetActorOfClass`.
 
 **Replicated properties:** `CurrentTimeOfDay` (float, 0–24), `CurrentWeatherType` (`EWeatherType`), `WeatherIntensity` (float, 0–1) — each has an OnRep function that applies the change locally.
 
@@ -858,7 +858,7 @@ Controls time of day and weather. `UGameplayHUDComponent` finds it at BeginPlay 
 #### UEnvironmentControlPanel
 **Type:** `UUserWidget` | **Blueprint:** `WE_EnvironmentControlPanel`
 
-GM panel for setting time of day and weather. Registered with `UTaskbar` as a `UDraggablePanel` via `UGameplayHUDComponent`.
+GM panel for setting time of day and weather. Registered with `UTaskbar` as a `UDraggablePanel` via `USessionHUDComponent`.
 
 **Controls:** Time slider (0–24, with formatted label e.g. `"14:30"`), weather type button row (one per `EWeatherType`), intensity slider (0–1, disabled when weather = Clear).
 
@@ -986,14 +986,14 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 ### Phase 2 — Core Game Setup (In Progress)
 
 - [x] Test and production game modes / player controllers
-- [x] `AGameplayController` — all input, HUD component, camera movement
-- [x] `AGameplayPawn` — top-down camera rig
+- [x] `ASessionController` — all input, HUD component, camera movement
+- [x] `ASessionPawn` — top-down camera rig
 - [x] Camera movement — pan, zoom, sprint, pan reset, editor property validation
 - [x] `AMainScreenController` + `UMainScreenHUDComponent` — main screen flow
 - [x] `S_MainScreen` — `WidgetSwitcher` root; `S_HomeScreen` index 0, `S_SettingsScreen` index 1
 - [x] **Runtime camera settings menu** (`USaveGame`-based)
   - [x] `UCameraSettingsSave` — save class with all 9 camera fields
-  - [x] `AGameplayController` save/load/validate — `ValidateCameraSettings`, `ApplyCameraSettings`, `SaveCameraSettings`; loads on `BeginPlay`
+  - [x] `ASessionController` save/load/validate — `ValidateCameraSettings`, `ApplyCameraSettings`, `SaveCameraSettings`; loads on `BeginPlay`
   - [x] `USettingsSlider` — reusable slider+text widget with paired min/max clamping
   - [x] `WE_SettingsSlider` — Blueprint widget layout
   - [x] `S_SettingsScreen` — 9 sliders wired and grouped; Apply, Reset, Back buttons added
@@ -1004,7 +1004,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - [x] Draggable and resizable panels — `UDraggablePanel`, `UDragHandle`, `UResizeHandle`
 - [x] Close and reopen private chat tabs
 - [x] Home screen → Campaign Manager navigation (Play button replaced with Campaign Manager button; CampaignBrowser and AssetLibrary stub screens added)
-- [~] Session management (start, load, save) — `USessionInstance`, `USessionSave`, `ASessionGameState`, `ASessionPlayerState`, `AGameplayGameMode` all implemented; `InitGame`/`PostLogin`/`Logout` logic complete; one known gap: `SessionPlayerID` not yet passed via login options — role checks will silently fail until that flow is built
+- [~] Session management (start, load, save) — `USessionInstance`, `USessionSave`, `ASessionGameState`, `ASessionPlayerState`, `ASessionGameMode` all implemented; `InitGame`/`PostLogin`/`Logout` logic complete; one known gap: `SessionPlayerID` not yet passed via login options — role checks will silently fail until that flow is built
 - [ ] Session save/load — full snapshot (map, tokens, fog of war, initiative, chat, sheets, notes, inventory); sessions stored as `"Session_{SessionID}"` slots indexed by `UCampaignManagerSave`; manual save + autosave (configurable interval); auto-save on session close
 - [ ] GM permissions system
 - [ ] Session player cap (default 8, removable)
@@ -1086,9 +1086,9 @@ The Campaign Manager is the primary hub between the home screen and an active se
 
 - [ ] `EWeatherType` enum (Environment/) — Clear, Overcast, Rain, HeavyRain, Snow, Blizzard, Wind, Sandstorm
 - [ ] `AEnvironmentManager` — replicated level actor; controls `ADirectionalLight` (sun angle → Sky Atmosphere), `ASkyLight`, `AExponentialHeightFog`, `AWindDirectionalSourceComponent`, and `ANiagaraActor`s per weather type. Server RPCs: `Server_SetTimeOfDay(float)`, `Server_SetWeather(EWeatherType, float Intensity)`. Replicated properties with OnRep apply logic.
-- [ ] `UEnvironmentControlPanel` — `UUserWidget`; time slider (0–24 + formatted label), weather type button row, intensity slider. Calls RPCs on `AEnvironmentManager`. Registered with `Taskbar` as a `UDraggablePanel` via `UGameplayHUDComponent`.
-- [ ] Wire into `UGameplayHUDComponent` — find `AEnvironmentManager` at BeginPlay via `GetActorOfClass`; call `FindAndRegisterPanel` for EnvironmentPanel
-- [ ] Blueprint side — place `AEnvironmentManager` in `L_Gameplay`, wire light/fog/Niagara refs in BP, build `WE_EnvironmentControlPanel`
+- [ ] `UEnvironmentControlPanel` — `UUserWidget`; time slider (0–24 + formatted label), weather type button row, intensity slider. Calls RPCs on `AEnvironmentManager`. Registered with `Taskbar` as a `UDraggablePanel` via `USessionHUDComponent`.
+- [ ] Wire into `USessionHUDComponent` — find `AEnvironmentManager` at BeginPlay via `GetActorOfClass`; call `FindAndRegisterPanel` for EnvironmentPanel
+- [ ] Blueprint side — place `AEnvironmentManager` in `L_Session`, wire light/fog/Niagara refs in BP, build `WE_EnvironmentControlPanel`
 
 ---
 
@@ -1237,11 +1237,11 @@ This approach keeps all save I/O within UE's native save game system and makes a
 
 ---
 
-*Last updated: 2026-04-11* — `USessionInstance` added (`GameInstances/`). `AGameplayGameMode` fully implemented: `InitGame` loads `USessionSave` into `ASessionGameState`; `PostLogin` assigns role flags and adds player to correct list; `Logout` removes player from list. `ASessionPlayerState` gained `SessionPlayerID` (Replicated FGuid) with full accessors. `ASessionGameState` gained full getter/setter API for all fields. `GameInstances/` folder added to source tree and Build.cs. Known gap documented: `SessionPlayerID` not yet set via login options.
+*Last updated: 2026-04-11* — `USessionInstance` added (`GameInstances/`). `ASessionGameMode` fully implemented: `InitGame` loads `USessionSave` into `ASessionGameState`; `PostLogin` assigns role flags and adds player to correct list; `Logout` removes player from list. `ASessionPlayerState` gained `SessionPlayerID` (Replicated FGuid) with full accessors. `ASessionGameState` gained full getter/setter API for all fields. `GameInstances/` folder added to source tree and Build.cs. Known gap documented: `SessionPlayerID` not yet set via login options.
 
 *2026-04-10 (updated 2)* — Folder structure corrected: `GameModes/`, `GameStates/`, `PlayerStates/` added to source tree overview; `SessionSave` added to SaveLoad line.
 
-*2026-04-10 (updated 1)* — `USessionSave` implemented (SaveLoad/). `ASessionGameState` and `ASessionPlayerState` implemented with replication. `AGameplayGameMode` stub added (GameModes/). `GM_Gameplay` updated: Game State Class → `ASessionGameState`, Player State Class → `ASessionPlayerState`. Build.cs updated: `GameStates`, `PlayerStates`, `GameModes` added to `PublicIncludePaths`. Roadmap session management item marked in-progress.
+*2026-04-10 (updated 1)* — `USessionSave` implemented (SaveLoad/). `ASessionGameState` and `ASessionPlayerState` implemented with replication. `ASessionGameMode` stub added (GameModes/). `GM_Session` updated: Game State Class → `ASessionGameState`, Player State Class → `ASessionPlayerState`. Build.cs updated: `GameStates`, `PlayerStates`, `GameModes` added to `PublicIncludePaths`. Roadmap session management item marked in-progress.
 
 *2026-04-10 (updated)* — GM role finalized: multiple GMs supported per session, role is transferable, default GM = campaign creator. `USessionSave` role fields added: `HostPlayerID`, `GMPlayerIDs`, `PlayerIDs`. Save disk layout replaced with slot-name model: sessions stored as `"Session_{SessionID}"` save slots; `UCampaignManagerSave` is the authoritative campaign→session index via `FCampaignRecord.SessionIDs`. No custom file I/O.
 
@@ -1265,41 +1265,43 @@ This approach keeps all save I/O within UE's native save game system and makes a
 
 *2026-04-02* — `UFunctionLibrary::GetTypedWidgetFromName<T>` added (replaces all `Cast<T>(Widget->GetWidgetFromName(...))` calls). `UMainScreenHUDComponent` settings wiring mostly complete: all refs cached, `OnSettingsClicked`/`OnBackClicked`/`OnResetClicked` wired, `SettingsSliders` TArray added. `OnApplyClicked` and slider init from saved values still pending.
 
-*2026-04-01 (updated 2)* — Camera settings system partially implemented: `UCameraSettingsSave`, `AGameplayController` save/load/validate, `USettingsSlider` widget class. `S_Settings` Blueprint and `UHomeScreenHUDComponent` settings integration are next. Two new gotchas added (`BindWidget` type and slider recursion guard).
+*2026-04-01 (updated 2)* — Camera settings system partially implemented: `UCameraSettingsSave`, `ASessionController` save/load/validate, `USettingsSlider` widget class. `S_Settings` Blueprint and `UHomeScreenHUDComponent` settings integration are next. Two new gotchas added (`BindWidget` type and slider recursion guard).
 
-*2026-04-01 (updated 1)* — Home screen implemented: `AHomeScreenController`, `UHomeScreenHUDComponent`, `GM_HomeScreen`, `PC_HomeScreen`, `S_HomeScreen`, `L_HomeScreen`. Scene/controller management complete. Level naming convention added (L_ = final, Dev_ = dev/test). `UGameplayHUDComponent` input mode and cursor now owned by `AGameplayController`.
+*2026-04-01 (updated 1)* — Home screen implemented: `AHomeScreenController`, `UHomeScreenHUDComponent`, `GM_HomeScreen`, `PC_HomeScreen`, `S_HomeScreen`, `L_HomeScreen`. Scene/controller management complete. Level naming convention added (L_ = final, Dev_ = dev/test). `USessionHUDComponent` input mode and cursor now owned by `ASessionController`.
 
 *2026-04-01 (updated)* — Dice collision SFX implemented. Added home screen and scene/controller management to Phase 2. Fleshed out Phase 7 with `UAssetImporter` architecture, asset library screen design, import flow (type selector → dialog or drag-and-drop), and supported formats (PNG/JPG, WAV; mesh deferred).
 
-*2026-04-01* — Added private dice roll initiation: `UChatBox::TrySendPrivateRollMessage`, `UDiceSelectorManager::OnRollInitiated` delegate, `UGameplayHUDComponent::OnRollInitiated` handler. Fixed `ExitChat` to preserve input field on click-away. `SwitchToChannel` now clears input on channel switch. Fixed `ReopenChannel` missing `UFUNCTION()`. Added two new gotchas. Earlier this session: added `SaveLoad/` folder, `UPanelLayoutSave`/`FPanelLayoutData`, panel layout persistence across all three panels.
+*2026-04-01* — Added private dice roll initiation: `UChatBox::TrySendPrivateRollMessage`, `UDiceSelectorManager::OnRollInitiated` delegate, `USessionHUDComponent::OnRollInitiated` handler. Fixed `ExitChat` to preserve input field on click-away. `SwitchToChannel` now clears input on channel switch. Fixed `ReopenChannel` missing `UFUNCTION()`. Added two new gotchas. Earlier this session: added `SaveLoad/` folder, `UPanelLayoutSave`/`FPanelLayoutData`, panel layout persistence across all three panels.
 
 *2026-03-31 (updated)* — Added `UChatChannelListEntry`. Updated `UChatTab` with close button, `OnTabClosed` delegate, and `SetCloseable`. Updated `UChatBox` with close/reopen channel logic, closed channel list panel (`ClosedChannelContainer`, `ChannelListButton`), `ClosedChannels` set, `CloseChannel`, `ReopenChannel`, `RefreshChannelList`, `OnChannelListButtonClicked`, and auto-reopen on incoming message. Checked off close/reopen tabs roadmap item. Added tab renaming to Phase 2 roadmap; noted `UChatChannel::DisplayName` is safe to rename per-user since routing uses `Participants`. Added `UButton` style padding gotcha.
 
-*2026-03-31* — Added `UDraggablePanel`, `UDragHandle`, `UResizeHandle` classes. Updated `UGameplayHUDComponent` to document input mode initialization, `FindAndRegisterPanel` helper, and panel refs (`ChatPanel`, `DicePanel`, `PlayersPanel`). Updated `UChatBox` for private channel auto-routing, `NativeOnMouseButtonDown` passthrough fix, `SwitchToChannel` tab interactability, and cursor restoration in `ExitChat`. Updated `UChatTab` to document `SetInteractable`. Added `UI/Utility/` to content structure. Checked off draggable/resizable roadmap item. Added 10 new gotchas covering panel dragging, canvas slot anchoring, input mode setup, UMG fill sizing, taskbar panel registration, and private channel routing.
+*2026-03-31* — Added `UDraggablePanel`, `UDragHandle`, `UResizeHandle` classes. Updated `USessionHUDComponent` to document input mode initialization, `FindAndRegisterPanel` helper, and panel refs (`ChatPanel`, `DicePanel`, `PlayersPanel`). Updated `UChatBox` for private channel auto-routing, `NativeOnMouseButtonDown` passthrough fix, `SwitchToChannel` tab interactability, and cursor restoration in `ExitChat`. Updated `UChatTab` to document `SetInteractable`. Added `UI/Utility/` to content structure. Checked off draggable/resizable roadmap item. Added 10 new gotchas covering panel dragging, canvas slot anchoring, input mode setup, UMG fill sizing, taskbar panel registration, and private channel routing.
 
-*2026-03-29* — Added `UTaskbarButton` and `UTaskbar` classes. Updated `UGameplayHUDComponent` to document `TaskbarRef` and `RegisterWidget` calls for Chat, Dice, and Players. Added taskbar minimize sub-item to Phase 6 roadmap. Added two new gotchas: taskbar toggle visibility check and Blueprint widget variant placement.
+*2026-03-29* — Added `UTaskbarButton` and `UTaskbar` classes. Updated `USessionHUDComponent` to document `TaskbarRef` and `RegisterWidget` calls for Chat, Dice, and Players. Added taskbar minimize sub-item to Phase 6 roadmap. Added two new gotchas: taskbar toggle visibility check and Blueprint widget variant placement.
 
 *2026-03-27 (updated)* — Participants bug fixed in `SendChatMessageOnServer`: now builds a full `Participants` list (sender + all recipients) before calling `AddChatMessageOnOwningClient`, so channels on recipients' clients include all parties. `UChatBox::GetActiveChannelParticipants()` added. `AddRollResultToChat` updated to route dice rolls to the active channel via `GetActiveChannelParticipants()`. New gotcha added: `Participants` must include the sender. All 30 source files fully documented with summary comments; headers reorganized into logical groups.
 
-*2026-03-27* — Private messaging + tabbed chat + player list complete. `UChatBox` refactored to full tabbed container with `@`-syntax parsing. `UGameplayHUDComponent` `SendChatMessageOnServer` / `AddChatMessageOnOwningClient` updated with `Recipients` routing. `UPlayerRow` and `UPlayerList` added (`PlayerList/` folder). `UGameplayHUDComponent` binds `PlayerList->OnAddressClicked` → `ChatBoxRef->AppendToInput`. New gotchas added: `SwitchToChannel` UFUNCTION requirement, `PopulateList` on toggle, channel `Num()` guard.
+*2026-03-27* — Private messaging + tabbed chat + player list complete. `UChatBox` refactored to full tabbed container with `@`-syntax parsing. `USessionHUDComponent` `SendChatMessageOnServer` / `AddChatMessageOnOwningClient` updated with `Recipients` routing. `UPlayerRow` and `UPlayerList` added (`PlayerList/` folder). `USessionHUDComponent` binds `PlayerList->OnAddressClicked` → `ChatBoxRef->AppendToInput`. New gotchas added: `SwitchToChannel` UFUNCTION requirement, `PopulateList` on toggle, channel `Num()` guard.
 
-*2026-03-26 (updated 1)* — UChatBox refactor complete. UChatBox is now a full tabbed chat container with `CreateChannel`, `SwitchToChannel`, and `AddChatMessage(Message, Participants, bIsSender)`. Scroll logic moved from UChatBox into UChatChannel (`Scroll(bool bUp)`, `ScrollMultiplier`). Next: update UGameplayHUDComponent to add recipients parameter to `AddChatMessageOnOwningClient`.
+*2026-03-26 (updated 1)* — UChatBox refactor complete. UChatBox is now a full tabbed chat container with `CreateChannel`, `SwitchToChannel`, and `AddChatMessage(Message, Participants, bIsSender)`. Scroll logic moved from UChatBox into UChatChannel (`Scroll(bool bUp)`, `ScrollMultiplier`). Next: update USessionHUDComponent to add recipients parameter to `AddChatMessageOnOwningClient`.
 
 *2026-03-26 (updated)* — Chat folder created. Moved `UChatBox` and `UChatEntry` from `UI/` to new `Chat/` folder; added `Chat/` to `Build.cs`. Added `UChatChannel` and `UChatTab` classes (Chat/) as part of the tabbed private messaging system in progress. Phase 1 roadmap reordered: private rolls → sound → visuals → custom dice → physics tuning.
 
-*2026-03-26* — Dice spawn volume implemented. Added `ADiceSpawnVolume` class (Dice/). Updated `UDiceSelectorManager` (replaced `StartingLocation` with `SpawnVolume`, dice now spawn at random points within the volume via `FMath::RandPointInBox`, null guard on `SpawnVolume`). Updated `UGameplayHUDComponent` (finds `ADiceSpawnVolume` in level via `GetActorOfClass` and assigns to manager in `BeginPlay`). Added two new gotchas: spawn volume must be in the level, and widget properties referencing level actors must be assigned at runtime.
+*2026-03-26* — Dice spawn volume implemented. Added `ADiceSpawnVolume` class (Dice/). Updated `UDiceSelectorManager` (replaced `StartingLocation` with `SpawnVolume`, dice now spawn at random points within the volume via `FMath::RandPointInBox`, null guard on `SpawnVolume`). Updated `USessionHUDComponent` (finds `ADiceSpawnVolume` in level via `GetActorOfClass` and assigns to manager in `BeginPlay`). Added two new gotchas: spawn volume must be in the level, and widget properties referencing level actors must be assigned at runtime.
 
-*2026-03-25* — Advantage/disadvantage roll mode implemented and checked off. Updated `ABaseDiceActor` (bWasKept, FRollResult.DiceActor), `UDiceSelectorManager` (EDiceRollMode, three mode buttons, advantage logic, bRollInProgress order fix), and `UGameplayHUDComponent` (AddRollResultToChat now takes EDiceRollMode, chat message reflects mode). Added two new gotchas: bRollInProgress timing and USTRUCT UObject pointer UPROPERTY requirement.
+*2026-03-25* — Advantage/disadvantage roll mode implemented and checked off. Updated `ABaseDiceActor` (bWasKept, FRollResult.DiceActor), `UDiceSelectorManager` (EDiceRollMode, three mode buttons, advantage logic, bRollInProgress order fix), and `USessionHUDComponent` (AddRollResultToChat now takes EDiceRollMode, chat message reflects mode). Added two new gotchas: bRollInProgress timing and USTRUCT UObject pointer UPROPERTY requirement.
 
-*2026-03-20 (updated 1)* — Full camera system implemented: WASD movement along pawn forward/right vectors, middle-mouse pan (yaw + clamped pitch), scroll zoom, sprint multiplier, pan reset. Editor property validation via PostEditChangeProperty. Added IA_CameraPanReset, IA_CameraSprint. AGameplayController description updated.
+*2026-03-20 (updated 1)* — Full camera system implemented: WASD movement along pawn forward/right vectors, middle-mouse pan (yaw + clamped pitch), scroll zoom, sprint multiplier, pan reset. Editor property validation via PostEditChangeProperty. Added IA_CameraPanReset, IA_CameraSprint. ASessionController description updated.
 
-*2026-03-20 (updated)* — Chat input system overhauled: click-to-focus, stay-in-chat after send, click-outside/Escape to exit. Switched from hard-coded BindKey to Enhanced Input (IMC_Gameplay, IMC_Chat, four IAs). GameplayHUDComponent now caches PlayerControllerRef and InputSubsystemRef. EnhancedInput added to Build.cs. Added Content/Input/ folder structure.
+*2026-03-20 (updated)* — Chat input system overhauled: click-to-focus, stay-in-chat after send, click-outside/Escape to exit. Switched from hard-coded BindKey to Enhanced Input (IMC_Session, IMC_Chat, four IAs). GameplayHUDComponent now caches PlayerControllerRef and InputSubsystemRef. EnhancedInput added to Build.cs. Added Content/Input/ folder structure.
 
 *2026-03-20* — Added roadmap items: dice physics tuning (Phase 1) and custom UI art assets (Phase 6).
 
+*2026-04-12* — Renamed all "Gameplay"-prefixed classes to "Session": `AGameplayGameMode` → `ASessionGameMode`, `AGameplayController` → `ASessionController`, `UGameplayHUDComponent` → `USessionHUDComponent`, `AGameplayPawn` → `ASessionPawn`. All Blueprint assets reparented accordingly (GM_Session, PC_Session, P_Session, BP_SessionHUDComponent). Input folder renamed `Input/Gameplay/` → `Input/Session/`. Known gap documented: `SessionPlayerID` never set before `PostLogin` — `UPlayerSave` + login options flow needed. Chat bug logged: second message can't be entered after first send.
+
 *2026-03-19* — Roll results display in chat complete. Dice physics improved (PhysicalMaterial, angular impulse, post-settle lock). Failsafe destroy system added with chat notification. DiceSelector count display resets correctly after rolling.
 
-*2026-03-18* — Chat system complete (UChatBox, UChatEntry, UGameplayHUDComponent fully converted from Blueprint to C++, networking RPCs working).
+*2026-03-18* — Chat system complete (UChatBox, UChatEntry, USessionHUDComponent fully converted from Blueprint to C++, networking RPCs working).
 
 ---
 

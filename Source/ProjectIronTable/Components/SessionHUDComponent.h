@@ -4,7 +4,7 @@
 #include "Components/ActorComponent.h"
 #include "BaseDiceActor.h"
 #include "DiceSelectorManager.h"
-#include "GameplayHUDComponent.generated.h"
+#include "SessionHUDComponent.generated.h"
 
 class UChatBox;
 class UTaskbar;
@@ -13,17 +13,17 @@ class UPanelLayoutSave;
 class UPlayerList;
 
 /**
- * Actor component attached to AGameplayController that owns and manages all gameplay UI.
+ * Actor component attached to ASessionController that owns and manages all gameplay UI.
  * Handles widget creation, dice result routing, and replicated chat messaging.
  */
 UCLASS(Blueprintable, ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
-class PROJECTIRONTABLE_API UGameplayHUDComponent : public UActorComponent
+class PROJECTIRONTABLE_API USessionHUDComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:
 	/** Disables tick and enables replication so server RPCs function correctly. */
-	UGameplayHUDComponent();
+	USessionHUDComponent();
 
 protected:
 	/** Creates and adds the gameplay screen widget, then caches widget references and wires up delegates. */

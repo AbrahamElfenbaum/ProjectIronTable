@@ -11,7 +11,7 @@
 #include "ChatTab.h"
 #include "ChatChannel.h"
 #include "ChatChannelListEntry.h"
-#include "GameplayHUDComponent.h"
+#include "SessionHUDComponent.h"
 
 // Caches the HUD component reference, binds the text committed delegate, and creates the default server channel.
 void UChatBox::NativeConstruct()
@@ -21,11 +21,11 @@ void UChatBox::NativeConstruct()
 	APlayerController* PC = Cast<APlayerController>(GetOwningPlayer());
 	if (IsValid(PC))
 	{
-		HUDComponentRef = Cast<UGameplayHUDComponent>(
-			PC->GetComponentByClass(UGameplayHUDComponent::StaticClass()));
+		HUDComponentRef = Cast<USessionHUDComponent>(
+			PC->GetComponentByClass(USessionHUDComponent::StaticClass()));
 		if (!IsValid(HUDComponentRef))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("UChatBox::NativeConstruct — Failed to find GameplayHUDComponent on PlayerController"));
+			UE_LOG(LogTemp, Warning, TEXT("UChatBox::NativeConstruct — Failed to find SessionHUDComponent on PlayerController"));
 		}
 	}
 	else

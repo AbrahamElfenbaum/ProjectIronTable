@@ -6,7 +6,7 @@
 
 /**
  * Persistent game instance that survives level transitions. Carries the minimum session context
- * needed to bootstrap AGameplayGameMode on the gameplay level — specifically the SessionID used
+ * needed to bootstrap ASessionGameMode on the gameplay level — specifically the SessionID used
  * to locate and load USessionSave, and the CampaignID for campaign context.
  */
 UCLASS()

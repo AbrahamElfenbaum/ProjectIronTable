@@ -9,7 +9,7 @@ class UHorizontalBox;
 class UVerticalBox;
 class UWidgetSwitcher;
 class UButton;
-class UGameplayHUDComponent;
+class USessionHUDComponent;
 class UChatEntry;
 class UChatChannel;
 class UChatTab;
@@ -53,7 +53,7 @@ private:
 #pragma region Runtime References
 	/** Reference to the owning HUD component, used to send chat messages to the server. */
 	UPROPERTY()
-	TObjectPtr<UGameplayHUDComponent> HUDComponentRef;
+	TObjectPtr<USessionHUDComponent> HUDComponentRef;
 #pragma endregion
 
 #pragma region Widget References
