@@ -4,6 +4,46 @@
 #include "GameFramework/SaveGame.h"
 #include "SessionSave.generated.h"
 
+/** A single saved chat message, storing the sender's name and message body. */
+USTRUCT(BlueprintType)
+struct FChatMessageRecord
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FString SenderName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FString Message;
+
+	FChatMessageRecord():
+		SenderName(TEXT("")),
+		Message(TEXT(""))
+	{
+	}
+
+	FChatMessageRecord(const FString& InSenderName, const FString& InMessage) :
+		SenderName(InSenderName),
+		Message(InMessage)
+	{
+	}
+};
+
+/** All saved messages for a single chat channel, keyed in USessionSave::ChatLog by participant string. */
+USTRUCT(BlueprintType)
+struct FChatLogRecord
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<FChatMessageRecord> Messages;
+
+	FChatLogRecord():
+		Messages()
+	{
+	}
+};
+
 /**
  * Per-session save file. One instance per game session, stored under slot "Session_{SessionID}".
  * UCampaignManagerSave is the authoritative index — FCampaignRecord.SessionIDs lists all sessions
@@ -46,4 +86,8 @@ public:
 	/** Timestamp of the last save. Used to sort sessions when loading a campaign (most recent first). */
 	UPROPERTY()
 	FDateTime LastSaved;
+
+	/** Saved chat history keyed by sorted pipe-joined participant names (e.g. "Alice|Bob"). Public server channel key is "". */
+	UPROPERTY()
+	TMap<FString, FChatLogRecord> ChatLog;
 };

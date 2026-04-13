@@ -54,7 +54,6 @@ FReply UChatBox::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPoi
 	if (!bChatFocused)
 	{
 		FocusChat();
-		//return FReply::Handled();
 	}
 
 	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
@@ -63,14 +62,14 @@ FReply UChatBox::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPoi
 // Delegates scroll to the active channel.
 void UChatBox::Scroll(bool bUp)
 {
-	if (ActiveChannel) ActiveChannel->Scroll(bUp);
+	if (IsValid(ActiveChannel)) ActiveChannel->Scroll(bUp);
 }
 
 // Sets keyboard focus on the editable text field and switches to UI-only input mode.
 void UChatBox::FocusChat()
 {
 	APlayerController* PC = Cast<APlayerController>(GetOwningPlayer());
-	if (PC)
+	if (IsValid(PC))
 	{
 		EditableText->SetUserFocus(PC);
 		bChatFocused = true;
@@ -85,7 +84,7 @@ void UChatBox::ExitChat()
 	bChatFocused = false;
 	EditableText->SetIsEnabled(false);
 	APlayerController* PC = Cast<APlayerController>(GetOwningPlayer());
-	if (PC)
+	if (IsValid(PC))
 	{
 		PC->SetInputMode(FInputModeGameAndUI());
 		PC->bShowMouseCursor = true;
@@ -148,7 +147,7 @@ UChatChannel* UChatBox::CreateChannel(const TArray<FString>& Participants)
 // Makes the given channel visible in the switcher and clears its unread notification.
 void UChatBox::SwitchToChannel(UChatChannel* Channel)
 {
-	if (ActiveChannel)
+	if (IsValid(ActiveChannel))
 	{
 		ChannelTabMap[ActiveChannel]->SetInteractable(true);
 	}
@@ -162,33 +161,7 @@ void UChatBox::SwitchToChannel(UChatChannel* Channel)
 // Routes the message to the matching channel (creating one if needed), switching to it if the local player sent it.
 void UChatBox::AddChatMessage(const FString& Message, const TArray<FString>& Participants, bool bIsSender)
 {
-	UChatChannel* CurrentChannel = nullptr;
-
-	for (UChatChannel* Channel : Channels)
-	{
-		bool bChannelFound = true;
-		if (Channel->Participants.Num() == Participants.Num())
-		{
-			for (const FString& Participant : Participants)
-			{
-				if (!Channel->Participants.Contains(Participant))
-				{
-					bChannelFound = false;
-					break;
-				}
-			}
-			if (bChannelFound)
-			{
-				CurrentChannel = Channel;
-				break;
-			}
-		}
-	}
-
-	if (!CurrentChannel)
-	{
-		CurrentChannel = CreateChannel(Participants);
-	}
+	UChatChannel* CurrentChannel = FindOrCreateChannel(Participants);
 
 	CurrentChannel->AddChatMessage(Message);
 
@@ -216,7 +189,7 @@ void UChatBox::AppendToInput(const FString& Text)
 // Returns the participant list of the active channel, or an empty array if no channel is active.
 TArray<FString> UChatBox::GetActiveChannelParticipants()
 {
-	if (ActiveChannel)
+	if (IsValid(ActiveChannel))
 	{
 		return ActiveChannel->Participants;
 	}
@@ -233,7 +206,7 @@ void UChatBox::TrySendPrivateRollMessage()
 	FString Message = EditableText->GetText().ToString();
 
 	APlayerController* PC = Cast<APlayerController>(GetOwningPlayer());
-	if (IsValid(PC) && PC->PlayerState)
+	if (IsValid(PC) && IsValid(PC->PlayerState))
 	{
 		TArray<FString> Words;
 		Message.ParseIntoArray(Words, TEXT(" "), 1);
@@ -282,6 +255,40 @@ void UChatBox::TrySendPrivateRollMessage()
 	}
 }
 
+// Searches existing channels for a participant-list match; creates and returns a new channel if none is found.
+UChatChannel* UChatBox::FindOrCreateChannel(const TArray<FString>& Participants)
+{
+	UChatChannel* CurrentChannel = nullptr;
+
+	for (UChatChannel* Channel : Channels)
+	{
+		bool bChannelFound = true;
+		if (Channel->Participants.Num() == Participants.Num())
+		{
+			for (const FString& Participant : Participants)
+			{
+				if (!Channel->Participants.Contains(Participant))
+				{
+					bChannelFound = false;
+					break;
+				}
+			}
+			if (bChannelFound)
+			{
+				CurrentChannel = Channel;
+				break;
+			}
+		}
+	}
+
+	if (!CurrentChannel)
+	{
+		CurrentChannel = CreateChannel(Participants);
+	}
+
+	return CurrentChannel;
+}
+
 // On Enter: parses @mentions from the message and sends it to the server. On focus loss: exits chat.
 void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod)
 {
@@ -292,7 +299,7 @@ void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod
 		if (!Message.IsEmpty())
 		{
 			APlayerController* PC = Cast<APlayerController>(GetOwningPlayer());
-			if (IsValid(PC) && PC->PlayerState)
+			if (IsValid(PC) && IsValid(PC->PlayerState))
 			{
 				TArray<FString> Words;
 				Message.ParseIntoArray(Words, TEXT(" "), 1);
@@ -337,13 +344,22 @@ void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod
 
 			EditableText->SetText(FText::GetEmpty());
 
+			bPendingRefocus = true;
 			FocusChat();
 		}
 	}
 	else if (CommitMethod == ETextCommit::OnUserMovedFocus ||
 		CommitMethod == ETextCommit::OnCleared)
 	{
-		ExitChat();
+		if (bPendingRefocus)
+		{
+			bPendingRefocus = false;
+			FocusChat();
+		}
+		else
+		{
+			ExitChat();
+		}
 	}
 }
 

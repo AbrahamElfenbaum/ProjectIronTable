@@ -5,16 +5,14 @@
 
 #include "ChatEntry.h"
 
-// Called when the channel widget is constructed.
-void UChatChannel::NativeConstruct()
-{
-	Super::NativeConstruct();
-}
-
 // Creates a UChatEntry widget with the given message, appends it to the scroll box, and scrolls to the bottom.
 void UChatChannel::AddChatMessage(const FString& Message)
 {
-	if (!ChatEntryClass) return;
+	if (!ChatEntryClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UChatChannel::AddChatMessage — ChatEntryClass is null; cannot create message entry"));
+		return;
+	}
 	UChatEntry* ChatEntry = CreateWidget<UChatEntry>(GetWorld(), ChatEntryClass);
 	ChatEntry->Message = Message;
 	ScrollBox->AddChild(ChatEntry);
@@ -36,4 +34,18 @@ void UChatChannel::Scroll(bool bUp)
 			ScrollBox->GetScrollOffset() + (ScrollMultiplier * ScrollDirection),
 			0.0f,
 			ScrollBox->GetScrollOffsetOfEnd()));
+}
+
+// Appends a previously saved message directly to the scroll box without triggering any routing or notification logic.
+void UChatChannel::RestoreMessage(const FString& SenderName, const FString& Message)
+{
+	if (!ChatEntryClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UChatChannel::RestoreMessage — ChatEntryClass is null; cannot restore message entry"));
+		return;
+	}
+	UChatEntry* ChatEntry = CreateWidget<UChatEntry>(GetWorld(), ChatEntryClass);
+	ChatEntry->Message = FString::Printf(TEXT("%s: %s"), *SenderName, *Message);
+	ScrollBox->AddChild(ChatEntry);
+	ScrollBox->ScrollToEnd();
 }

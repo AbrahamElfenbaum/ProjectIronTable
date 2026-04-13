@@ -50,12 +50,6 @@ protected:
 
 private:
 
-#pragma region Runtime References
-	/** Reference to the owning HUD component, used to send chat messages to the server. */
-	UPROPERTY()
-	TObjectPtr<USessionHUDComponent> HUDComponentRef;
-#pragma endregion
-
 #pragma region Widget References
 	/** Horizontal box that holds all channel tab widgets. */
 	UPROPERTY(meta = (BindWidget))
@@ -94,6 +88,9 @@ private:
 	/** True while the chat input is focused and accepting keyboard input. */
 	bool bChatFocused;
 
+	/** Set before calling FocusChat() on Enter commit to absorb the OnUserMovedFocus Slate fires immediately after. */
+	bool bPendingRefocus;
+
 	/** Set of channels that have been closed and hidden from the tab bar. */
 	UPROPERTY()
 	TSet<UChatChannel*> ClosedChannels;
@@ -114,10 +111,6 @@ public:
 	/** Creates a new channel for the given participant list, adds it to the tab bar, and returns it. */
 	UChatChannel* CreateChannel(const TArray<FString>& Participants);
 
-	/** Makes the given channel active in the switcher and clears its notification. */
-	UFUNCTION()
-	void SwitchToChannel(UChatChannel* Channel);
-
 	/** Routes a message to the correct channel (creating one if needed) and shows a notification if not active. */
 	void AddChatMessage(const FString& Message, const TArray<FString>& Participants, bool bIsSender);
 
@@ -129,9 +122,23 @@ public:
 
 	/** If the current input starts with a private message command, sends it and clears the input. */
 	void TrySendPrivateRollMessage();
+
+	/** Returns the channel matching the given participant list, creating one if none exists. */
+	UChatChannel* FindOrCreateChannel(const TArray<FString>& Participants);
 #pragma endregion
 
 private:
+
+#pragma region Runtime References
+	/** Reference to the owning HUD component, used to send chat messages to the server. */
+	UPROPERTY()
+	TObjectPtr<USessionHUDComponent> HUDComponentRef;
+#pragma endregion
+
+#pragma region Event Handlers
+	/** Makes the given channel active in the switcher and clears its notification. */
+	UFUNCTION()
+	void SwitchToChannel(UChatChannel* Channel);
 
 	/** Sends the typed message to the server on Enter, or exits chat on focus loss. */
 	UFUNCTION()
@@ -151,4 +158,5 @@ private:
 
 	/** Clears and repopulates the closed channel list panel from the current ClosedChannels set. */
 	void RefreshChannelList();
+#pragma endregion
 };

@@ -168,8 +168,9 @@ Tabbed chat container. Manages channels, routing, and input.
 
 **Key Methods:**
 - `CreateChannel(TArray<FString> Participants)` — creates channel + tab, wires delegates, returns channel. Empty participants = Server tab (not closeable).
+- `FindOrCreateChannel(TArray<FString> Participants)` — searches existing channels for a participant-list match (Num() check first); calls `CreateChannel` if none found. Used by both `AddChatMessage` and the chat log restore loop.
 - `SwitchToChannel(UChatChannel*)` — activates channel, clears notification and input
-- `AddChatMessage(Message, Participants, bIsSender)` — routes to correct channel (creates if needed); auto-reopens closed channels on incoming message; shows notification if not active
+- `AddChatMessage(Message, Participants, bIsSender)` — routes to correct channel via `FindOrCreateChannel`; auto-reopens closed channels on incoming message; shows notification if not active
 - `FocusChat()` / `ExitChat()` — manage input mode. `ExitChat` does **not** clear the input field.
 - `AppendToInput(FString)` — appends text to current input value
 - `GetActiveChannelParticipants()` — returns active channel's participants, or `{}` for Server
@@ -180,6 +181,8 @@ Tabbed chat container. Manages channels, routing, and input.
 > **Note:** `SwitchToChannel` must be `UFUNCTION()` for `AddDynamic` to work.
 >
 > **Note:** `ExitChat` must not clear the input — players type `@Names` before clicking Roll.
+>
+> **Note:** Slate fires `OnEnter` then immediately `OnUserMovedFocus` after the player hits Enter. The `bPendingRefocus` flag absorbs the spurious focus-loss event so `ExitChat` isn't called right after `FocusChat`.
 
 ---
 
@@ -190,10 +193,13 @@ Represents one channel/tab's message list.
 
 **Bound Widgets:** `ScrollBox` (`UScrollBox`)
 
-**Config:** `ChatEntryClass`, `DisplayName` (client-local label — safe to rename; routing uses `Participants`), `Participants` (`TArray<FString>`), `ScrollMultiplier` (default 60)
+**Config (EditAnywhere):** `ChatEntryClass`, `ScrollMultiplier` (default 60)
+
+**State (VisibleAnywhere):** `DisplayName` (client-local label — safe to rename; routing uses `Participants`), `Participants` (`TArray<FString>`)
 
 **Key Methods:**
-- `AddChatMessage(FString)` — creates and appends a `UChatEntry`
+- `AddChatMessage(FString)` — creates and appends a `UChatEntry`; logs warning if `ChatEntryClass` is null
+- `RestoreMessage(SenderName, Message)` — recreates a saved message entry directly in the scroll box, bypassing routing and notification logic. Used by `USessionHUDComponent` to restore chat log on session load.
 - `Scroll(bool bUp)` — adjusts scroll offset by `ScrollMultiplier`
 
 ---
@@ -428,6 +434,9 @@ Per-session save file. One instance per game session. `UCampaignManagerSave` is 
 | `GMPlayerIDs` | `TArray<FGuid>` | — | All active GMs. Multiple supported; transferable; default = campaign creator |
 | `PlayerIDs` | `TArray<FGuid>` | — | All non-GM players |
 | `LastSaved` | `FDateTime` | — | Used to sort sessions when loading a campaign (most recent first) |
+| `ChatLog` | `TMap<FString, FChatLogRecord>` | — | Keyed by sorted, pipe-joined participant names (e.g. `"Alice\|Bob"`). Empty string key = Server channel. `FChatLogRecord` wraps `TArray<FChatMessageRecord>`; each record holds `SenderName` and `Message` body. |
+
+`FChatMessageRecord` and `FChatLogRecord` are declared in `SessionSave.h`.
 
 ---
 
@@ -559,8 +568,10 @@ Manages the session HUD lifecycle and all chat networking.
 - `OnRollInitiated()` — calls `TrySendPrivateRollMessage` before dice spawn
 
 **RPCs:**
-- `SendChatMessageOnServer` (Server, Reliable) — resolves sender name, builds participant list, routes to each player's HUD
+- `SendChatMessageOnServer` (Server, Reliable) — resolves sender name, builds participant list, routes to each player's HUD component via `AddChatMessageOnOwningClient`. After routing, also persists the message to `USessionSave`: parses sender/body from the formatted message string, builds a sorted pipe-joined participant key, and saves the record via `FindOrAdd` on `ChatLog`.
 - `AddChatMessageOnOwningClient` (Client, Reliable) — delivers message to `ChatBoxRef`
+
+**Chat log restore (BeginPlay):** After `ChatBoxRef` is initialized, loads `USessionSave` and iterates `ChatLog`. For each entry, splits the key on `|` to recover the participant list, calls `ChatBoxRef->FindOrCreateChannel(Recipients)`, then calls `Channel->RestoreMessage` for each saved message. This runs only for the local player controller.
 
 > **Note:** Always place the Blueprint variant (`W_Taskbar`, etc.) in the screen widget — placing the raw C++ class causes null `BindWidget` crashes on first access.
 
@@ -1020,7 +1031,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - [ ] GM permissions system
 - [ ] Session player cap (default 8, removable)
 - [ ] Tab renaming (client-local)
-- [ ] Chat log persistence
+- [x] Chat log persistence
 - [ ] Shared notes (rich-text: headers, bullets, bold, italic; real-time collaborative editing; persists across sessions; accessible outside active session via Campaign Manager)
 - [ ] Pre-session lobby (waiting room; pre-game chat; character sheet accessible while waiting; Host sees connection status and launches when ready)
 - [ ] Session discovery and join flow
@@ -1247,6 +1258,8 @@ Sessions are stored using Unreal's built-in save slot system — no custom file 
 This approach keeps all save I/O within UE's native save game system and makes a future dedicated-server migration straightforward — the index and session slots move to wherever the server runs, no path logic to change.
 
 ---
+
+*Last updated: 2026-04-12 (updated)* — Chat log persistence implemented. `USessionSave` gains `FChatMessageRecord`, `FChatLogRecord`, and `ChatLog` (`TMap<FString, FChatLogRecord>`). `UChatChannel` gains `RestoreMessage`. `UChatBox` gains `FindOrCreateChannel` (extracted from `AddChatMessage`; shared with restore loop). `USessionHUDComponent::BeginPlay` restores chat log on load; `SendChatMessageOnServer` saves each message after routing. `bPendingRefocus` flag added to `UChatBox` to fix Enter double-fire bug (Slate fires `OnUserMovedFocus` immediately after `OnEnter`). Roadmap: chat log persistence checked off.
 
 *Last updated: 2026-04-11* — `USessionInstance` added (`GameInstances/`). `ASessionGameMode` fully implemented: `InitGame` loads `USessionSave` into `ASessionGameState`; `PostLogin` assigns role flags and adds player to correct list; `Logout` removes player from list. `ASessionPlayerState` gained `SessionPlayerID` (Replicated FGuid) with full accessors. `ASessionGameState` gained full getter/setter API for all fields. `GameInstances/` folder added to source tree and Build.cs. Known gap documented: `SessionPlayerID` not yet set via login options.
 

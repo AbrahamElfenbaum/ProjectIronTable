@@ -89,20 +89,6 @@ public:
 	void AddChatMessageOnOwningClient(const FString& Message, const TArray<FString>& Recipients, bool bIsSender);
 #pragma endregion
 
-#pragma region Event Handlers
-	/** Converts dice roll results into a formatted chat message and sends it to the server. */
-	UFUNCTION()
-	void AddRollResultToChat(TArray<FRollResult> Results, EDiceRollMode RollMode);
-
-	/** Sends a chat message noting that a die of the given type was lost to the failsafe. */
-	UFUNCTION()
-	void OnDiceFailsafeHandler(EDiceType DiceType);
-
-	/** Appends the clicked player's name as an @mention in the chat input field. */
-	UFUNCTION()
-	void OnPlayerAddressClicked(const FString& PlayerName);
-#pragma endregion
-
 #pragma region Chat Passthrough Methods
 	/** Focuses the chat input box and switches to UI-only input mode. */
 	void FocusChat();
@@ -115,16 +101,31 @@ public:
 #pragma endregion
 
 private:
+
+#pragma region Event Handlers
+	/** Converts dice roll results into a formatted chat message and sends it to the server. */
+	UFUNCTION()
+	void AddRollResultToChat(TArray<FRollResult> Results, EDiceRollMode RollMode);
+
+	/** Sends a chat message noting that a die of the given type was lost to the failsafe. */
+	UFUNCTION()
+	void OnDiceFailsafeHandler(EDiceType DiceType);
+
+	/** Appends the clicked player's name as an @mention in the chat input field. */
+	UFUNCTION()
+	void OnPlayerAddressClicked(const FString& PlayerName);
+
+	/** Called when a roll is initiated; forwards to the chat box to send a private roll message if recipients are present in the input. */
+	UFUNCTION()
+	void OnRollInitiated();
+#pragma endregion
+
 	/** Finds a DraggablePanel by widget name, registers it with the Taskbar, and returns it. Logs a warning if not found. */
 	UDraggablePanel* FindAndRegisterPanel(const FName& WidgetName, const FString& Label);
 
 	/** Saves the current layout of all draggable panels to a save game object. Called when a panel is dragged, resized, or toggled. */
 	UFUNCTION()
 	void SavePanelLayout();
-
-	/** Called when a roll is initiated; forwards to the chat box to send a private roll message if recipients are present in the input. */
-	UFUNCTION()
-	void OnRollInitiated();
 
 	/** Loads the saved layout of all draggable panels from a save game object and applies it. Called on HUD initialization. */
 	void LoadPanelLayout();

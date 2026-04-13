@@ -607,7 +607,9 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 
 ---
 
-*Last updated: 2026-04-10 (updated)* — GM role finalized: multiple simultaneous GMs supported, role is transferable, default GM = campaign creator. Player Roles section consolidated (Host and GM merged into single GM section). Session Save model updated: each session is a separate file; sessions grouped into campaigns via `UCampaignManagerSave` index; slot-name storage, no custom file I/O. Open questions #27 and #28 resolved.
+*Last updated: 2026-04-12* — Chat log persistence implemented. `USessionSave` now holds the full chat log (`ChatLog` field). `USessionHUDComponent` saves each message server-side and restores the log on session load. Open question #6 ("Does the chat log persist across saves?") was already marked resolved; implementation is now complete.
+
+*2026-04-10 (updated)* — GM role finalized: multiple simultaneous GMs supported, role is transferable, default GM = campaign creator. Player Roles section consolidated (Host and GM merged into single GM section). Session Save model updated: each session is a separate file; sessions grouped into campaigns via `UCampaignManagerSave` index; slot-name storage, no custom file I/O. Open questions #27 and #28 resolved.
 
 *2026-04-10* — Session lifecycle fully designed (server startup, join, lobby, session start, late join) and added to Multiplayer section. Campaign sorting behaviour added (active sessions pinned to top). Save file inventory defined. Campaign Manager GM/Player mode toggle added. Server model confirmed as listen server (open question #2 resolved).
 

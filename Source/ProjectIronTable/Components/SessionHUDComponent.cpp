@@ -7,6 +7,7 @@
 #include "Kismet/GameplayStatics.h"
 
 #include "ChatBox.h"
+#include "ChatChannel.h"
 #include "DiceSelectorManager.h"
 #include "PlayerList.h"
 #include "DiceSpawnVolume.h"
@@ -15,6 +16,8 @@
 #include "TaskbarButton.h"
 #include "PanelLayoutSave.h"
 #include "FunctionLibrary.h"
+#include "SessionInstance.h"
+#include "SessionSave.h"
 
 // Disables tick and enables replication so server RPCs function correctly.
 USessionHUDComponent::USessionHUDComponent()
@@ -70,7 +73,42 @@ void USessionHUDComponent::BeginPlay()
 			UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::BeginPlay — DiceSelectorManager not found"));
 		}
 
-		if (!IsValid(ChatBoxRef))
+		if (IsValid(ChatBoxRef))
+		{
+			USessionInstance* SessionInstance = GetOwner()->GetGameInstance<USessionInstance>();
+
+			if (IsValid(SessionInstance))
+			{
+				USessionSave* SessionSave = Cast<USessionSave>(UGameplayStatics::LoadGameFromSlot(FString::Printf(TEXT("Session_%s"), 
+																								  *SessionInstance->GetSessionID().ToString()), 0));
+
+				if (IsValid(SessionSave))
+				{
+					for (const TPair<FString, FChatLogRecord>& ChatLog : SessionSave->ChatLog)
+					{
+						TArray<FString> Recipients;
+						ChatLog.Key.ParseIntoArray(Recipients, TEXT("|"), 1);
+
+						UChatChannel* Channel = ChatBoxRef->FindOrCreateChannel(Recipients);
+
+						const TArray<FChatMessageRecord>& Messages = ChatLog.Value.Messages;
+						for (const FChatMessageRecord& Message : Messages)
+						{
+							Channel->RestoreMessage(Message.SenderName, Message.Message);
+						}
+					}
+				}
+				else
+				{
+					UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::BeginPlay — Failed to load session save; chat log will not be restored"));
+				}
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::BeginPlay — SessionInstance is null; chat log will not be restored"));
+			}
+		}
+		else
 		{
 			UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::BeginPlay — ChatBox not found"));
 		}
@@ -87,7 +125,7 @@ void USessionHUDComponent::BeginPlay()
 		if (IsValid(TaskbarRef))
 		{
 			DicePanel = FindAndRegisterPanel(TEXT("DicePanel"), TEXT("Dice"));
-			ChatPanel = FindAndRegisterPanel(TEXT("ChatPanel"), TEXT("Chat"));;
+			ChatPanel = FindAndRegisterPanel(TEXT("ChatPanel"), TEXT("Chat"));
 			PlayersPanel = FindAndRegisterPanel(TEXT("PlayersPanel"), TEXT("Players"));
 			//Register other widgets as needed
 			LoadPanelLayout();
@@ -132,7 +170,7 @@ UDraggablePanel* USessionHUDComponent::FindAndRegisterPanel(const FName& WidgetN
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Taskbar not found, cannot register %s panel"), *Label);
+		UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::FindAndRegisterPanel — Panel '%s' not found in gameplay screen"), *Label);
 		return nullptr;
 	}
 
@@ -172,7 +210,7 @@ void USessionHUDComponent::LoadPanelLayout()
 	if (UGameplayStatics::DoesSaveGameExist(UPanelLayoutSave::SaveSlotName, 0))
 	{
 		UPanelLayoutSave* LoadedLayout = Cast<UPanelLayoutSave>(UGameplayStatics::LoadGameFromSlot(UPanelLayoutSave::SaveSlotName, 0));
-		if (LoadedLayout)
+		if (IsValid(LoadedLayout))
 		{
 			ApplyPanelLayout(DicePanel, LoadedLayout);
 			ApplyPanelLayout(ChatPanel, LoadedLayout);
@@ -181,32 +219,32 @@ void USessionHUDComponent::LoadPanelLayout()
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Failed to load panel layout save"));
+			UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::LoadPanelLayout — Failed to load panel layout save"));
 		}
 	}
 	else
 	{
-		UE_LOG(LogTemp, Display, TEXT("No existing panel layout save found"));
+		UE_LOG(LogTemp, Display, TEXT("USessionHUDComponent::LoadPanelLayout — No existing panel layout save found"));
 	}
 }
 
 // Adds the panel's current position, size, and visibility to the save object under its PanelID key.
 void USessionHUDComponent::SavePanelLayout(const UDraggablePanel* Panel, UPanelLayoutSave* LayoutSave)
 {
-	if (Panel)
+	if (IsValid(Panel))
 	{
 		LayoutSave->PanelLayouts.Add(Panel->GetPanelID(), Panel->GetPanelLayoutData());
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Panel not found, cannot apply layout"));
+		UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::SavePanelLayout — Panel is null; layout data will not be saved"));
 	}
 }
 
 // Looks up the panel's saved layout by PanelID and applies position, size, and visibility if found.
 void USessionHUDComponent::ApplyPanelLayout(UDraggablePanel* Panel, UPanelLayoutSave* LoadedLayout)
 {
-	if (Panel)
+	if (IsValid(Panel))
 	{
 		if (const FPanelLayoutData* Data = LoadedLayout->PanelLayouts.Find(Panel->GetPanelID()))
 		{
@@ -259,10 +297,47 @@ void USessionHUDComponent::SendChatMessageOnServer_Implementation(const FString&
 
 		USessionHUDComponent* HUDComp = Cast<USessionHUDComponent>(
 			Play->GetPlayerController()->GetComponentByClass(USessionHUDComponent::StaticClass()));
-		if (HUDComp)
+		if (IsValid(HUDComp))
 		{
 			HUDComp->AddChatMessageOnOwningClient(Message, Participants, Play->GetPlayerName() == SenderName);
 		}
+	}
+
+	int32 ColonIndex = Message.Find(TEXT(": "));
+	FString Body = Message.RightChop(ColonIndex + 2);
+
+	FString sParticipants;
+	Participants.Sort();
+	for (const FString& Participant : Participants)
+	{
+		sParticipants.Append(Participant);
+		sParticipants.Append("|");
+	}
+	sParticipants = sParticipants.LeftChop(1);
+
+	FChatMessageRecord MessageRecord = { SenderName , Body };
+
+	USessionInstance* SessionInstance = GetOwner()->GetGameInstance<USessionInstance>();
+
+	if (IsValid(SessionInstance))
+	{
+		USessionSave* SessionSave = Cast<USessionSave>(UGameplayStatics::LoadGameFromSlot(FString::Printf(TEXT("Session_%s"),
+			*SessionInstance->GetSessionID().ToString()), 0));
+
+		if (IsValid(SessionSave))
+		{
+			FChatLogRecord& LogRecord = SessionSave->ChatLog.FindOrAdd(sParticipants);
+			LogRecord.Messages.Add(MessageRecord);
+			UGameplayStatics::SaveGameToSlot(SessionSave, FString::Printf(TEXT("Session_%s"), *SessionInstance->GetSessionID().ToString()), 0);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::SendChatMessageOnServer — Failed to load session save; message will not be persisted"));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::SendChatMessageOnServer — SessionInstance is null; message will not be persisted"));
 	}
 }
 
