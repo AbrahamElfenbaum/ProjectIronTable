@@ -8,7 +8,6 @@
 void UTaskbarButton::NativeConstruct()
 {
 	Super::NativeConstruct();
-	// -- Bind Events --
 	if (ToggleButton)
 	{
 		ToggleButton->OnClicked.AddDynamic(this, &UTaskbarButton::OnToggleClicked);
@@ -19,9 +18,13 @@ void UTaskbarButton::NativeConstruct()
 void UTaskbarButton::SetTrackedWidget(UUserWidget* Widget, const FString& Label)
 {
 	TrackedWidget = Widget;
-	WidgetLabel->SetText(FText::FromString(Label));
+	if (WidgetLabel)
+	{
+		WidgetLabel->SetText(FText::FromString(Label));
+	}
 }
 
+// Returns the widget being tracked by this button.
 UUserWidget* UTaskbarButton::GetTrackedWidget() const
 {
 	return TrackedWidget;

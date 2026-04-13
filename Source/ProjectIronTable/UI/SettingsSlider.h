@@ -2,11 +2,11 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Components/EditableText.h"
 #include "SettingsSlider.generated.h"
 
 class UTextBlock;
 class USlider;
+class UEditableText;
 
 /** A labeled slider widget paired with an editable text field. Supports optional pairing with another slider to enforce a min/max gap. */
 UCLASS()

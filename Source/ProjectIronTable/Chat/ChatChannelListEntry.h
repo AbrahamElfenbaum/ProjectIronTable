@@ -40,9 +40,11 @@ protected:
 
 private:
 
+#pragma region Event Handlers
 	/** Broadcasts OnEntryClicked with the stored channel pointer. */
 	UFUNCTION()
 	void OnEntryButtonClicked();
+#pragma endregion
 
 public:
 

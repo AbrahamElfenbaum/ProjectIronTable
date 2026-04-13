@@ -14,12 +14,13 @@ class PROJECTIRONTABLE_API UCameraSettingsPanel : public UUserWidget
 	GENERATED_BODY()
 
 public:
+
 	/** Populates the sliders array, binds button delegates, and loads saved camera settings (or resets to defaults if no save exists). */
 	void Init();
 
 private:
 
-#pragma region Settings Sliders
+#pragma region Widget References
 	/** Slider controlling the maximum camera movement speed. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<USettingsSlider> MaxCamSpeed;
@@ -56,12 +57,6 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<USettingsSlider> ZoomSpeed;
 
-	/** All 9 settings sliders � used for batch operations like reset. */
-	UPROPERTY()
-	TArray<USettingsSlider*> SettingsSliders;
-#pragma endregion
-
-#pragma region Buttons
 	/** Button that applies and saves the current slider values. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> ApplyButton;
@@ -69,6 +64,12 @@ private:
 	/** Button that resets all sliders to their defaults. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> ResetButton;
+#pragma endregion
+
+#pragma region State
+	/** All 9 settings sliders — used for batch operations like reset. */
+	UPROPERTY()
+	TArray<TObjectPtr<USettingsSlider>> SettingsSliders;
 #pragma endregion
 
 #pragma region Event Handlers

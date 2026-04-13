@@ -13,9 +13,10 @@ UCLASS()
 class PROJECTIRONTABLE_API USessionInstance : public UGameInstance
 {
 	GENERATED_BODY()
-	
+
 protected:
 
+#pragma region State
 	/** ID of the campaign this session belongs to. */
 	UPROPERTY()
 	FGuid CampaignID;
@@ -27,12 +28,14 @@ protected:
 	/** Persistent player identity loaded from UPlayerSave on startup. Passed via login options to the server on travel. */
 	UPROPERTY()
 	FGuid PlayerID;
+#pragma endregion
 
 	/** Loads or generates the persistent PlayerID from UPlayerSave. Called once on game startup. */
-	void Init() override;
+	virtual void Init() override;
 
 public:
 
+#pragma region Public Methods
 	/** Returns the ID of the campaign associated with the pending session. */
 	FGuid GetCampaignID() const;
 
@@ -50,4 +53,5 @@ public:
 
 	/** Sets the player ID. Should not be needed outside of testing — PlayerID is set from UPlayerSave in Init. */
 	void SetPlayerID(const FGuid& InPlayerID);
+#pragma endregion
 };

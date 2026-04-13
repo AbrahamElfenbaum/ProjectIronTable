@@ -33,13 +33,20 @@ void UDiceSelectorManager::RollDice()
 {
 	if (!IsValid(SpawnVolume))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("DiceSelectorManager: SpawnVolume is not set!"));
+		UE_LOG(LogTemp, Warning, TEXT("UDiceSelectorManager::RollDice — SpawnVolume is not set."));
 		bRollInProgress = false;
 		return;
 	}
 
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UDiceSelectorManager::RollDice — GetWorld() returned null."));
+		return;
+	}
+
 	// Cancel any pending destroy timer from a previous roll
-	GetWorld()->GetTimerManager().ClearTimer(DestroyDiceTimerHandle);
+	World->GetTimerManager().ClearTimer(DestroyDiceTimerHandle);
 
 	// Destroy any dice still in the world from a previous roll
 	for (auto Dice : SpawnedDice)
@@ -78,7 +85,7 @@ void UDiceSelectorManager::RollDice()
 				);
 
 				//Spawn the die
-				ABaseDiceActor* SpawnedDie = GetWorld()->SpawnActor<ABaseDiceActor>(Selector->DiceClass, T);
+				ABaseDiceActor* SpawnedDie = World->SpawnActor<ABaseDiceActor>(Selector->DiceClass, T);
 
 				if (SpawnedDie)
 				{
@@ -163,12 +170,15 @@ void UDiceSelectorManager::OnDiceRolledHandler(FRollResult Result)
 		UpdateAdvantageButtonState();
 
 		//Destroy all spawned dice after a delay of TimeBeforeDestroyingDice seconds
-		GetWorld()->GetTimerManager().SetTimer(
-			DestroyDiceTimerHandle,
-			this,
-			&UDiceSelectorManager::DestroyDice,
-			TimeBeforeDestroyingDice,
-			false);
+		if (UWorld* TimerWorld = GetWorld())
+		{
+			TimerWorld->GetTimerManager().SetTimer(
+				DestroyDiceTimerHandle,
+				this,
+				&UDiceSelectorManager::DestroyDice,
+				TimeBeforeDestroyingDice,
+				false);
+		}
 
 		// Clear arrays for the next roll
 		PendingResults.Empty();
@@ -203,12 +213,15 @@ void UDiceSelectorManager::OnDiceFailsafeHandler(EDiceType DiceType)
 		UpdateRollButtonState();
 		UpdateAdvantageButtonState();
 
-		GetWorld()->GetTimerManager().SetTimer(
-			DestroyDiceTimerHandle,
-			this,
-			&UDiceSelectorManager::DestroyDice,
-			TimeBeforeDestroyingDice,
-			false);
+		if (UWorld* TimerWorld = GetWorld())
+		{
+			TimerWorld->GetTimerManager().SetTimer(
+				DestroyDiceTimerHandle,
+				this,
+				&UDiceSelectorManager::DestroyDice,
+				TimeBeforeDestroyingDice,
+				false);
+		}
 
 		PendingResults.Empty();
 		ExpectedDiceCount = 0;

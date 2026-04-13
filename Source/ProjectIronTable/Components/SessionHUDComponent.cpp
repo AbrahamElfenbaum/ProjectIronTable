@@ -8,6 +8,7 @@
 
 #include "ChatBox.h"
 #include "ChatChannel.h"
+#include "ChatTab.h"
 #include "DiceSelectorManager.h"
 #include "PlayerList.h"
 #include "DiceSpawnVolume.h"
@@ -43,7 +44,12 @@ void USessionHUDComponent::BeginPlay()
 		PlayerControllerRef->IsLocalPlayerController() &&
 		GameplayScreenClass)
 	{
-		GameplayScreenRef = CreateWidget<UUserWidget>(GetWorld(), GameplayScreenClass);
+		GameplayScreenRef = CreateWidget<UUserWidget>(PlayerControllerRef, GameplayScreenClass);
+		if (!IsValid(GameplayScreenRef))
+		{
+			UE_LOG(LogTemp, Error, TEXT("USessionHUDComponent::BeginPlay — Failed to create GameplayScreen widget"));
+			return;
+		}
 		GameplayScreenRef->AddToViewport();
 
 		DiceSelectorManagerRef = UFunctionLibrary::GetTypedWidgetFromName<UDiceSelectorManager>(GameplayScreenRef, TEXT("DiceSelectorManager"));
@@ -79,8 +85,8 @@ void USessionHUDComponent::BeginPlay()
 
 			if (IsValid(SessionInstance))
 			{
-				USessionSave* SessionSave = Cast<USessionSave>(UGameplayStatics::LoadGameFromSlot(FString::Printf(TEXT("Session_%s"), 
-																								  *SessionInstance->GetSessionID().ToString()), 0));
+				USessionSave* SessionSave = Cast<USessionSave>(UGameplayStatics::LoadGameFromSlot(FString::Printf(TEXT("Session_%s"),
+					*SessionInstance->GetSessionID().ToString()), 0));
 
 				if (IsValid(SessionSave))
 				{
@@ -97,10 +103,31 @@ void USessionHUDComponent::BeginPlay()
 							Channel->RestoreMessage(Message.SenderName, Message.Message);
 						}
 					}
+
+					APlayerController* PC = Cast<APlayerController>(GetOwner());
+					if (IsValid(PC) && IsValid(PC->PlayerState))
+					{
+						FString PlayerName = PC->PlayerState->GetPlayerName();
+						for (const TPair <FString, FString>& ChatTabName : SessionSave->ChatTabNames)
+						{
+							TArray<FString> Names;
+							ChatTabName.Key.ParseIntoArray(Names, TEXT("|"), 1);
+							Names.Remove(PlayerName);
+							if (!Names.IsEmpty())
+							{
+								UChatChannel* Channel = ChatBoxRef->FindOrCreateChannel(Names);
+								UChatTab* Tab = ChatBoxRef->GetTabForChannel(Channel);
+								if (IsValid(Tab))
+								{
+									Tab->SetLabel(ChatTabName.Value);
+								}
+							}
+						}
+					}
 				}
 				else
 				{
-					UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::BeginPlay — Failed to load session save; chat log will not be restored"));
+					UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::BeginPlay — Failed to load session save; chat log and tab names will not be restored"));
 				}
 			}
 			else
@@ -269,7 +296,7 @@ void USessionHUDComponent::SendChatMessageOnServer_Implementation(const FString&
 {
 	//Get sender's player name for prefixing the message. If we can't get it for some reason, default to "Unknown"
 	APlayerController* SenderPC = Cast<APlayerController>(GetOwner());
-	FString SenderName = SenderPC && SenderPC->PlayerState ? SenderPC->PlayerState->GetPlayerName() : TEXT("Unknown");
+	FString SenderName = IsValid(SenderPC) && IsValid(SenderPC->PlayerState) ? SenderPC->PlayerState->GetPlayerName() : TEXT("Unknown");
 
 	//Build full participants list (sender + recipients). Empty Recipients means broadcast, keep it empty.
 	TArray<FString> Participants;
@@ -280,7 +307,13 @@ void USessionHUDComponent::SendChatMessageOnServer_Implementation(const FString&
 	}
 
 	//Get the game state to access the player array
-	AGameStateBase* GS = GetWorld()->GetGameState<AGameStateBase>();
+	UWorld* World = GetWorld();
+	if (!IsValid(World))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::SendChatMessageOnServer — World is null"));
+		return;
+	}
+	AGameStateBase* GS = World->GetGameState<AGameStateBase>();
 	if (!IsValid(GS))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::SendChatMessageOnServer — GameState is null"));
@@ -306,14 +339,8 @@ void USessionHUDComponent::SendChatMessageOnServer_Implementation(const FString&
 	int32 ColonIndex = Message.Find(TEXT(": "));
 	FString Body = Message.RightChop(ColonIndex + 2);
 
-	FString sParticipants;
 	Participants.Sort();
-	for (const FString& Participant : Participants)
-	{
-		sParticipants.Append(Participant);
-		sParticipants.Append("|");
-	}
-	sParticipants = sParticipants.LeftChop(1);
+	FString sParticipants = FString::Join(Participants, TEXT("|"));
 
 	FChatMessageRecord MessageRecord = { SenderName , Body };
 
@@ -345,7 +372,7 @@ void USessionHUDComponent::SendChatMessageOnServer_Implementation(const FString&
 void USessionHUDComponent::AddRollResultToChat(TArray<FRollResult> Results, EDiceRollMode RollMode)
 {
 	//Message starts with the player name
-	FString Message = PlayerControllerRef && PlayerControllerRef->PlayerState ? PlayerControllerRef->PlayerState->GetPlayerName() : TEXT("Unknown");
+	FString Message = IsValid(PlayerControllerRef) && IsValid(PlayerControllerRef->PlayerState) ? PlayerControllerRef->PlayerState->GetPlayerName() : TEXT("Unknown");
 
 	if (RollMode == EDiceRollMode::Advantage)
 	{
@@ -380,7 +407,7 @@ void USessionHUDComponent::AddRollResultToChat(TArray<FRollResult> Results, EDic
 // Sends a chat message to the server noting that a die of the given type was lost to the failsafe timer.
 void USessionHUDComponent::OnDiceFailsafeHandler(EDiceType DiceType)
 {
-	FString PlayerName = PlayerControllerRef && PlayerControllerRef->PlayerState ? PlayerControllerRef->PlayerState->GetPlayerName() : TEXT("Unknown");
+	FString PlayerName = IsValid(PlayerControllerRef) && IsValid(PlayerControllerRef->PlayerState) ? PlayerControllerRef->PlayerState->GetPlayerName() : TEXT("Unknown");
 
 	FString DiceTypeName = UEnum::GetValueAsString(DiceType);
 	DiceTypeName = DiceTypeName.RightChop(DiceTypeName.Find(TEXT("::")) + 2);

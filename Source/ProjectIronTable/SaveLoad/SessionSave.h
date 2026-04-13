@@ -10,9 +10,11 @@ struct FChatMessageRecord
 {
 	GENERATED_BODY()
 
+	/** Name of the player who sent the message. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString SenderName;
 
+	/** Text body of the chat message. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Message;
 
@@ -35,6 +37,7 @@ struct FChatLogRecord
 {
 	GENERATED_BODY()
 
+	/** Ordered list of saved chat messages for this channel. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FChatMessageRecord> Messages;
 
@@ -90,4 +93,8 @@ public:
 	/** Saved chat history keyed by sorted pipe-joined participant names (e.g. "Alice|Bob"). Public server channel key is "". */
 	UPROPERTY()
 	TMap<FString, FChatLogRecord> ChatLog;
+
+	/** Per-player saved tab display names, keyed by sorted pipe-joined participant names. Populated on first channel creation; updated on rename. */
+	UPROPERTY()
+	TMap<FString, FString> ChatTabNames;
 };

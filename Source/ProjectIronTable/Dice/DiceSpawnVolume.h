@@ -13,6 +13,7 @@ class PROJECTIRONTABLE_API ADiceSpawnVolume : public AActor
 	GENERATED_BODY()
 
 public:
+
 	/** Creates the box component and sets it as the root. */
 	ADiceSpawnVolume();
 
@@ -21,8 +22,6 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Components)
 	TObjectPtr<UBoxComponent> SpawnArea;
 #pragma endregion
-
-public:
 
 	/** Returns the world-space axis-aligned bounding box of the spawn area. */
 	FBox GetSpawnBox() const;

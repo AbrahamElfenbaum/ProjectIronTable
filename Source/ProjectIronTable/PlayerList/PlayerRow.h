@@ -56,7 +56,9 @@ public:
 
 private:
 
+#pragma region Event Handlers
 	/** Broadcasts OnAddressClicked with the stored player name. */
 	UFUNCTION()
 	void OnAddressButtonClicked();
+#pragma endregion
 };

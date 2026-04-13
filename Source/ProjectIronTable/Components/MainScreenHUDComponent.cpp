@@ -28,7 +28,7 @@ void UMainScreenHUDComponent::BeginPlay()
 		PlayerControllerRef->IsLocalPlayerController() &&
 		MainScreenClass)
 	{
-		MainScreenRef = CreateWidget<UUserWidget>(GetWorld(), MainScreenClass);
+		MainScreenRef = CreateWidget<UUserWidget>(PlayerControllerRef, MainScreenClass);
 		if (!IsValid(MainScreenRef))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("UMainScreenHUDComponent::BeginPlay — Failed to create MainScreen widget"));

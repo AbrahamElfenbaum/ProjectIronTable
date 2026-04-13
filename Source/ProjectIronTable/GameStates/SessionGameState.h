@@ -19,6 +19,7 @@ protected:
 	/** Registers replicated properties with the Unreal replication system. */
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+#pragma region State
 	/** Game system this session belongs to (e.g. "DnD5e"). Matches the key used in UCampaignManagerSave. */
 	UPROPERTY(Replicated)
 	FString GameTypeID;
@@ -46,9 +47,11 @@ protected:
 	/** Timestamp of the last save. Used to sort sessions when loading a campaign (most recent first). */
 	UPROPERTY()
 	FDateTime LastSaved;
+#pragma endregion
 
 public:
 
+#pragma region Public Methods
 	/** Returns the game system identifier for this session (e.g. "DnD5e"). */
 	FString GetGameTypeID() const;
 
@@ -90,4 +93,5 @@ public:
 
 	/** Sets the timestamp of the last save. */
 	void SetLastSaved(const FDateTime& InLastSaved);
+#pragma endregion
 };

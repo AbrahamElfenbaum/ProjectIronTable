@@ -124,18 +124,18 @@ private:
 
 	/** Flat array of all selector widgets for iteration. */
 	UPROPERTY()
-	TArray<UDiceSelector*> Selectors;
+	TArray<TObjectPtr<UDiceSelector>> Selectors;
 
 	/** All dice actors currently in the world from the most recent roll. */
 	UPROPERTY()
-	TArray<ABaseDiceActor*> SpawnedDice;
+	TArray<TObjectPtr<ABaseDiceActor>> SpawnedDice;
 
 	/** Results collected as individual dice finish rolling. */
 	TArray<FRollResult> PendingResults;
 
 	/** The three advantage-mode buttons, kept together for bulk enable/disable. */
 	UPROPERTY()
-	TArray<UButton*> AdvantageButtons;
+	TArray<TObjectPtr<UButton>> AdvantageButtons;
 
 	/** Number of dice spawned for the current roll; used to detect when all results are in. */
 	int32 ExpectedDiceCount = 0;

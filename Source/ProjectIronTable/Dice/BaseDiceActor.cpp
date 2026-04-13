@@ -125,7 +125,14 @@ void ABaseDiceActor::Roll(FVector Impulse, FVector AngularImpulse)
 				FMath::FRandRange(-AngularImpulseRange, AngularImpulseRange)));
 	}
 
-	GetWorld()->GetTimerManager().SetTimer(FailsafeTimerHandle,
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ABaseDiceActor::Roll — GetWorld() returned null."));
+		return;
+	}
+
+	World->GetTimerManager().SetTimer(FailsafeTimerHandle,
 		this,
 		&ABaseDiceActor::FailsafeDestroy,
 		FailSafeTime,

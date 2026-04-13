@@ -20,6 +20,7 @@ protected:
 	/** Registers replicated properties with the Unreal replication system. */
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+#pragma region State
 	/** Persistent player identity GUID. Used to look up role assignments in ASessionGameState. */
 	UPROPERTY(Replicated)
 	FGuid SessionPlayerID;
@@ -31,9 +32,11 @@ protected:
 	/** True if this player is the Server Owner (host machine). Set by the server; derived from ASessionGameState::HostPlayerID. */
 	UPROPERTY(Replicated)
 	bool bIsHost;
+#pragma endregion
 
 public:
 
+#pragma region Public Methods
 	/** Returns this player's persistent session identity GUID. */
 	FGuid GetSessionPlayerID() const;
 
@@ -51,4 +54,5 @@ public:
 
 	/** Sets the host flag. Should only be called by the server. */
 	void SetIsHost(bool bInIsHost);
+#pragma endregion
 };

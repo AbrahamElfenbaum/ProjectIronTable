@@ -36,15 +36,23 @@ private:
 	TObjectPtr<UButton> ResetButton;
 #pragma endregion
 
-protected:
-	virtual void NativeConstruct() override;
-
 public:
+
+#pragma region Public Methods
 	/** Creates a TaskbarButton for the given widget and adds it to the taskbar. */
 	UTaskbarButton* RegisterWidget(UUserWidget* Widget, const FString& Label);
+#pragma endregion
 
-	/** Resets all panels to their default sizes and positions */
+protected:
+
+	/** Binds the reset button click event. */
+	virtual void NativeConstruct() override;
+
+private:
+
+#pragma region Event Handlers
+	/** Resets all panels to their default sizes and positions. */
 	UFUNCTION()
 	void ResetLayout();
-
+#pragma endregion
 };

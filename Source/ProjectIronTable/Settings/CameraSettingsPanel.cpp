@@ -51,7 +51,7 @@ void UCameraSettingsPanel::Init()
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Failed to cast loaded save to UCameraSettingsSave"));
+			UE_LOG(LogTemp, Warning, TEXT("UCameraSettingsPanel::Init — Failed to cast loaded save to UCameraSettingsSave."));
 		}
 	}
 	else

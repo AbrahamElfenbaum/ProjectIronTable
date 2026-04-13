@@ -11,7 +11,6 @@ class UCampaignBrowserScreen;
 class UAssetLibraryScreen;
 class USettingsScreen;
 
-
 /** Actor component attached to AMainScreenController that owns and manages all main screen UI. */
 UCLASS(Blueprintable, ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class PROJECTIRONTABLE_API UMainScreenHUDComponent : public UActorComponent

@@ -24,7 +24,7 @@ public:
 
 private:
 
-#pragma region Buttons
+#pragma region Widget References
 	/** Button that opens the campaign manager screen. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> CampaignManagerButton;
@@ -48,6 +48,7 @@ private:
 
 public:
 
+#pragma region Events
 	/** Broadcasts when the user requests to open the campaign manager screen. */
 	UPROPERTY(BlueprintAssignable)
 	FOnCampaignManagerRequested OnCampaignManagerRequested;
@@ -63,10 +64,11 @@ public:
 	/** Broadcasts when the user requests to open the settings screen. */
 	UPROPERTY(BlueprintAssignable)
 	FOnSettingsRequested OnSettingsRequested;
+#pragma endregion
 
 private:
 
-#pragma region Event Functions
+#pragma region Event Handlers
 	/** Broadcasts OnCampaignManagerRequested. */
 	UFUNCTION()
 	void OnCampaignManagerClicked();
@@ -87,6 +89,4 @@ private:
 	UFUNCTION()
 	void OnQuitClicked();
 #pragma endregion
-
-
 };

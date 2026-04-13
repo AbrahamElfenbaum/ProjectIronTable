@@ -4,6 +4,9 @@
 #include "GameFramework/Pawn.h"
 #include "SessionPawn.generated.h"
 
+class USpringArmComponent;
+class UCameraComponent;
+
 /** Top-down camera pawn. Owns the spring arm and camera used for the gameplay view. */
 UCLASS()
 class PROJECTIRONTABLE_API ASessionPawn : public APawn
@@ -11,10 +14,9 @@ class PROJECTIRONTABLE_API ASessionPawn : public APawn
 	GENERATED_BODY()
 
 public:
+
 	/** Sets up component hierarchy with root, sphere, spring arm, and camera. */
 	ASessionPawn();
-
-public:
 
 #pragma region Components
 	/** Invisible sphere mesh used as the pawn root for movement. */
@@ -23,10 +25,10 @@ public:
 
 	/** Spring arm that controls camera distance and pitch. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Components)
-	TObjectPtr<class USpringArmComponent> SpringArm;
+	TObjectPtr<USpringArmComponent> SpringArm;
 
 	/** The gameplay camera attached to the spring arm. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Components)
-	TObjectPtr<class UCameraComponent> Camera;
+	TObjectPtr<UCameraComponent> Camera;
 #pragma endregion
 };

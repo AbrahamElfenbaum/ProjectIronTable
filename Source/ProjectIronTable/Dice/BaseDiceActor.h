@@ -24,7 +24,7 @@ struct FRollResult
 
 	/** The dice actor instance that produced this result. */
 	UPROPERTY(BlueprintReadOnly)
-	ABaseDiceActor* DiceActor = nullptr;
+	TObjectPtr<ABaseDiceActor> DiceActor;
 
 	FRollResult()
 		:Value(0),
@@ -179,11 +179,14 @@ private:
 	/** Returns the value of the face whose normal is most aligned with world up for the given mesh and data asset. */
 	int32 GetFaceValue(UStaticMeshComponent* Mesh, UDiceData* DiceFaces) const;
 
+
+#pragma region State
 	/** Timer handle for the failsafe destroy. */
 	FTimerHandle FailsafeTimerHandle;
 
 	/** World time of the last collision sound played; used to throttle hit sounds. */
 	float LastHitTime = 0.f;
+#pragma endregion
 
 	/** Destroys the actor if it has not fully settled, broadcasting OnFailsafeDestroy first. */
 	void FailsafeDestroy();

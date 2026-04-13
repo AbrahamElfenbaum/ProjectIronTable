@@ -7,7 +7,10 @@
 void UPlayerRow::NativeConstruct()
 {
 	Super::NativeConstruct();
-	AddressButton->OnClicked.AddDynamic(this, &UPlayerRow::OnAddressButtonClicked);
+	if (AddressButton)
+	{
+		AddressButton->OnClicked.AddDynamic(this, &UPlayerRow::OnAddressButtonClicked);
+	}
 }
 
 // Stores the name and updates the name label text.

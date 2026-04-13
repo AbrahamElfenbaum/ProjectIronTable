@@ -3,6 +3,7 @@
 
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
+#include "Components/EditableTextBox.h"
 
 #include "ChatChannel.h"
 
@@ -20,6 +21,26 @@ void UChatTab::NativeConstruct()
 	{
 		CloseButton->OnClicked.AddDynamic(this, &UChatTab::OnCloseButtonClicked);
 	}
+
+	if (EditLabel)
+	{
+		EditLabel->OnTextCommitted.AddDynamic(this, &UChatTab::OnTabRenamedCompleted);
+		EditLabel->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+// Detects right-click to broadcast OnTabRightClicked; falls through to Super for all other inputs.
+FReply UChatTab::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+	{
+		OnTabButtonRightClicked();
+	}
+	else
+	{
+		Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+	}
+	return FReply::Handled();
 }
 
 // Stores the channel reference used when broadcasting tab click events.
@@ -58,6 +79,26 @@ void UChatTab::OnCloseButtonClicked()
 	OnTabClosed.Broadcast(Channel);
 }
 
+// Broadcasts OnTabRightClicked with the stored channel pointer.
+void UChatTab::OnTabButtonRightClicked()
+{
+	OnTabRightClicked.Broadcast(Channel);
+}
+
+void UChatTab::OnTabRenamedCompleted(const FText& Text, ETextCommit::Type CommitMethod)
+{
+	if (!EditLabel || !TabLabel) return;
+
+	EditLabel->SetVisibility(ESlateVisibility::Collapsed);
+	TabLabel->SetVisibility(ESlateVisibility::Visible);
+
+	if (CommitMethod == ETextCommit::OnEnter && !Text.IsEmpty())
+	{
+		TabLabel->SetText(Text);
+		OnTabRenamed.Broadcast(this, Text.ToString());
+	}
+}
+
 // Enables or disables the tab button.
 void UChatTab::SetInteractable(bool bInteractable)
 {
@@ -75,4 +116,14 @@ void UChatTab::SetCloseable(bool bShowButton)
 	{
 		CloseButton->SetVisibility(ESlateVisibility::Collapsed);
 	}
+}
+
+void UChatTab::EnterRenameMode()
+{
+	if (!EditLabel || !TabLabel) return;
+
+	EditLabel->SetText(FText::FromString(TabLabel->GetText().ToString()));
+	TabLabel->SetVisibility(ESlateVisibility::Collapsed);
+	EditLabel->SetVisibility(ESlateVisibility::Visible);
+	EditLabel->SetKeyboardFocus();
 }

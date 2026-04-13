@@ -1,17 +1,22 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "ChatBox.h"
 
+#include "Kismet/GameplayStatics.h"
+
 #include "GameFramework/PlayerState.h"
 #include "Components/HorizontalBox.h"
 #include "Components/VerticalBox.h"
 #include "Components/WidgetSwitcher.h"
 #include "Components/Button.h"
+#include "Components/EditableText.h"
 
 #include "ChatEntry.h"
 #include "ChatTab.h"
 #include "ChatChannel.h"
 #include "ChatChannelListEntry.h"
 #include "SessionHUDComponent.h"
+#include "SessionInstance.h"
+#include "SessionSave.h"
 
 // Caches the HUD component reference, binds the text committed delegate, and creates the default server channel.
 void UChatBox::NativeConstruct()
@@ -43,7 +48,10 @@ void UChatBox::NativeConstruct()
 		EditableText->OnTextCommitted.AddDynamic(this, &UChatBox::OnTextCommitted);
 	}
 
-	ClosedChannelContainer->SetVisibility(ESlateVisibility::Collapsed);
+	if (ClosedChannelContainer)
+	{
+		ClosedChannelContainer->SetVisibility(ESlateVisibility::Collapsed);
+	}
 
 	SwitchToChannel(CreateChannel({}));
 }
@@ -97,21 +105,24 @@ UChatChannel* UChatBox::CreateChannel(const TArray<FString>& Participants)
 	//Build the label based on the participants
 	FString Label;
 
-	if (Participants.IsEmpty())
+	TArray<FString> SortedParticipants = Participants;
+	SortedParticipants.Sort();
+
+	if (SortedParticipants.IsEmpty())
 	{
 		Label = TEXT("Server");
 	}
-	else if (Participants.Num() == 1)
+	else if (SortedParticipants.Num() == 1)
 	{
-		Label = TEXT("@") + Participants[0];
+		Label = TEXT("@") + SortedParticipants[0];
 	}
 	else
 	{
-		Label = FString::Printf(TEXT("@%s +%d"), *Participants[0], Participants.Num() - 1);
+		Label = FString::Printf(TEXT("@%s +%d"), *SortedParticipants[0], SortedParticipants.Num() - 1);
 	}
 
 	//Channel widget creation and setup
-	UChatChannel* Channel = CreateWidget<UChatChannel>(GetOwningPlayer(), ChannelClass);
+	UChatChannel* Channel = CreateWidget<UChatChannel>(this, ChannelClass);
 	if (!IsValid(Channel))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("UChatBox::CreateChannel — Failed to create ChatChannel widget"));
@@ -119,13 +130,13 @@ UChatChannel* UChatBox::CreateChannel(const TArray<FString>& Participants)
 	}
 	Channel->ChatEntryClass = ChatEntryClass;
 	Channel->DisplayName = Label;
-	Channel->Participants = Participants;
+	Channel->Participants = SortedParticipants;
 
 	Channels.Add(Channel);
 	ChannelContainer->AddChild(Channel);
 
 	//Tab widget creation and setup
-	UChatTab* Tab = CreateWidget<UChatTab>(GetOwningPlayer(), TabClass);
+	UChatTab* Tab = CreateWidget<UChatTab>(this, TabClass);
 	if (!IsValid(Tab))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("UChatBox::CreateChannel — Failed to create ChatTab widget"));
@@ -135,11 +146,38 @@ UChatChannel* UChatBox::CreateChannel(const TArray<FString>& Participants)
 	Tab->SetLabel(Label);
 	Tab->OnTabClicked.AddDynamic(this, &UChatBox::SwitchToChannel);
 	Tab->OnTabClosed.AddDynamic(this, &UChatBox::CloseChannel);
-	Tab->SetCloseable(!Participants.IsEmpty());
+	Tab->SetCloseable(!SortedParticipants.IsEmpty());
 
 	ChannelTabMap.Add(Channel, Tab);
 
 	TabBar->AddChild(Tab);
+
+	FString sSortedParticipants = FString::Join(SortedParticipants, TEXT("|"));
+
+	USessionInstance* SessionInstance = GetGameInstance<USessionInstance>();
+	if (IsValid(SessionInstance))
+	{
+		USessionSave* SessionSave = Cast<USessionSave>(UGameplayStatics::LoadGameFromSlot(FString::Printf(TEXT("Session_%s"),
+			*SessionInstance->GetSessionID().ToString()), 0));
+
+		if (IsValid(SessionSave))
+		{
+			auto ChannelName = SessionSave->ChatTabNames.Find(sSortedParticipants);
+			if (!ChannelName)
+			{
+				ChannelName = &SessionSave->ChatTabNames.Add(sSortedParticipants, Label);
+			}
+			UGameplayStatics::SaveGameToSlot(SessionSave, FString::Printf(TEXT("Session_%s"), *SessionInstance->GetSessionID().ToString()), 0);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("UChatBox::CreateChannel — Failed to load session save; message will not be persisted"));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UChatBox::CreateChannel — SessionInstance is null; message will not be persisted"));
+	}
 
 	return Channel;
 }
@@ -289,6 +327,13 @@ UChatChannel* UChatBox::FindOrCreateChannel(const TArray<FString>& Participants)
 	return CurrentChannel;
 }
 
+// Looks up and returns the tab for the given channel, or nullptr if not found.
+UChatTab* UChatBox::GetTabForChannel(UChatChannel* Channel) const
+{
+	UChatTab* const* Tab = ChannelTabMap.Find(Channel);
+	return Tab ? *Tab : nullptr;
+}
+
 // On Enter: parses @mentions from the message and sends it to the server. On focus loss: exits chat.
 void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod)
 {
@@ -411,7 +456,12 @@ void UChatBox::RefreshChannelList()
 	ClosedChannelContainer->ClearChildren();
 	for (UChatChannel* Channel : ClosedChannels)
 	{
-		UChatChannelListEntry* Entry = CreateWidget<UChatChannelListEntry>(GetOwningPlayer(), ChannelListEntryClass);
+		UChatChannelListEntry* Entry = CreateWidget<UChatChannelListEntry>(this, ChannelListEntryClass);
+		if (!IsValid(Entry))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("UChatBox::RefreshChannelList — Failed to create ChannelListEntry widget"));
+			continue;
+		}
 		Entry->SetChannel(Channel);
 		Entry->OnEntryClicked.AddDynamic(this, &UChatBox::ReopenChannel);
 		ClosedChannelContainer->AddChild(Entry);

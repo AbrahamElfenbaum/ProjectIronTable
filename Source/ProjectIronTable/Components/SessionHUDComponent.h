@@ -3,10 +3,10 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "BaseDiceActor.h"
-#include "DiceSelectorManager.h"
 #include "SessionHUDComponent.generated.h"
 
 class UChatBox;
+class UDiceSelectorManager;
 class UTaskbar;
 class UDraggablePanel;
 class UPanelLayoutSave;
@@ -118,14 +118,14 @@ private:
 	/** Called when a roll is initiated; forwards to the chat box to send a private roll message if recipients are present in the input. */
 	UFUNCTION()
 	void OnRollInitiated();
-#pragma endregion
-
-	/** Finds a DraggablePanel by widget name, registers it with the Taskbar, and returns it. Logs a warning if not found. */
-	UDraggablePanel* FindAndRegisterPanel(const FName& WidgetName, const FString& Label);
 
 	/** Saves the current layout of all draggable panels to a save game object. Called when a panel is dragged, resized, or toggled. */
 	UFUNCTION()
 	void SavePanelLayout();
+#pragma endregion
+
+	/** Finds a DraggablePanel by widget name, registers it with the Taskbar, and returns it. Logs a warning if not found. */
+	UDraggablePanel* FindAndRegisterPanel(const FName& WidgetName, const FString& Label);
 
 	/** Loads the saved layout of all draggable panels from a save game object and applies it. Called on HUD initialization. */
 	void LoadPanelLayout();

@@ -6,26 +6,57 @@
 #include "Components/ScrollBox.h"
 #include "Components/Button.h"
 
+#include "PlayerRow.h"
+
 // Binds the toggle button, populates the list, and collapses the scroll box initially.
 void UPlayerList::NativeConstruct()
 {
 	Super::NativeConstruct();
-	ToggleButton->OnClicked.AddDynamic(this, &UPlayerList::OnToggleButtonClicked);
+	if (ToggleButton)
+	{
+		ToggleButton->OnClicked.AddDynamic(this, &UPlayerList::OnToggleButtonClicked);
+	}
 	PopulateList();
-	ScrollBox->SetVisibility(ESlateVisibility::Collapsed);
+	if (ScrollBox)
+	{
+		ScrollBox->SetVisibility(ESlateVisibility::Collapsed);
+	}
 }
 
 // Clears the scroll box and rebuilds it from the current game state's player array.
 void UPlayerList::PopulateList()
 {
+	if (!ScrollBox)
+	{
+		return;
+	}
 	ScrollBox->ClearChildren();
 
-	AGameStateBase* GS = GetWorld()->GetGameState<AGameStateBase>();
-	if (!GS || !PlayerRowClass) return;
-
-	for (auto Player : GS->PlayerArray)
+	UWorld* World = GetWorld();
+	if (!World)
 	{
-		UPlayerRow* PlayerRow = CreateWidget<UPlayerRow>(GetWorld(), PlayerRowClass);
+		UE_LOG(LogTemp, Warning, TEXT("UPlayerList::PopulateList — GetWorld() returned null."));
+		return;
+	}
+
+	AGameStateBase* GS = World->GetGameState<AGameStateBase>();
+	if (!IsValid(GS) || !PlayerRowClass)
+	{
+		return;
+	}
+
+	for (APlayerState* Player : GS->PlayerArray)
+	{
+		if (!IsValid(Player))
+		{
+			continue;
+		}
+		UPlayerRow* PlayerRow = CreateWidget<UPlayerRow>(this, PlayerRowClass);
+		if (!IsValid(PlayerRow))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("UPlayerList::PopulateList — Failed to create PlayerRow."));
+			continue;
+		}
 		PlayerRow->SetPlayerName(Player->GetPlayerName());
 		PlayerRow->OnAddressClicked.AddDynamic(this, &UPlayerList::OnPlayerAddressClicked);
 		ScrollBox->AddChild(PlayerRow);
@@ -40,7 +71,10 @@ void UPlayerList::OnToggleButtonClicked()
 	{
 		PopulateList();
 	}
-	ScrollBox->SetVisibility(bIsExpanded ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	if (ScrollBox)
+	{
+		ScrollBox->SetVisibility(bIsExpanded ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	}
 }
 
 // Forwards the player name upward through OnAddressClicked.

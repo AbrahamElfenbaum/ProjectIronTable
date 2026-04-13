@@ -8,11 +8,22 @@ void UDiceSelector::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	TypeText->SetText(UEnum::GetDisplayValueAsText(DiceType));
-	CountText->SetText(FText::AsNumber(DiceCount));
-
-	IncreaseButton->OnClicked.AddDynamic(this, &UDiceSelector::IncreaseDiceCount);
-	DecreaseButton->OnClicked.AddDynamic(this, &UDiceSelector::DecreaseDiceCount);
+	if (TypeText)
+	{
+		TypeText->SetText(UEnum::GetDisplayValueAsText(DiceType));
+	}
+	if (CountText)
+	{
+		CountText->SetText(FText::AsNumber(DiceCount));
+	}
+	if (IncreaseButton)
+	{
+		IncreaseButton->OnClicked.AddDynamic(this, &UDiceSelector::IncreaseDiceCount);
+	}
+	if (DecreaseButton)
+	{
+		DecreaseButton->OnClicked.AddDynamic(this, &UDiceSelector::DecreaseDiceCount);
+	}
 }
 
 // Increments the count, refreshes the label, and broadcasts the change.

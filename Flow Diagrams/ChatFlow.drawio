@@ -161,6 +161,51 @@
         <mxCell id="a44" style="edgeStyle=orthogonalEdgeStyle;dashed=1;" edge="1" source="44" target="40" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="a45" style="edgeStyle=orthogonalEdgeStyle;dashed=1;" edge="1" source="45" target="42" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
 
+        <!-- TAB RENAME FLOW -->
+        <mxCell id="s4" value="TAB RENAME" style="text;html=1;fontStyle=1;fontSize=13;fillColor=#e1d5e7;strokeColor=#9673a6;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="20" width="180" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="50" value="Player right-clicks UChatTab&#xa;NativeOnMouseButtonDown" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="80" width="200" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="51" value="OnTabRightClicked.Broadcast(Channel)&#xa;→ UChatBox::OnTabRightClickedHandler" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="160" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="52" value="Skip if Server tab&#xa;(Participants.IsEmpty())" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="250" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="53" value="Dismiss ActiveContextMenu&#xa;Spawn UContextMenu&#xa;Build FContextMenuOption &quot;Rename&quot;&#xa;→ Tab-&gt;EnterRenameMode()&#xa;SetMenuOptions → AddToViewport&#xa;Position at mouse cursor" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="340" width="200" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="54" value="Player clicks Rename&#xa;UContextMenu closes&#xa;UChatTab::EnterRenameMode()&#xa;TabLabel → Collapsed&#xa;EditLabel → Visible + Focused" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="480" width="200" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="55" value="Player presses Enter&#xa;OnTabRenamedCompleted&#xa;CommitMethod == OnEnter &amp;&amp; !Empty?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="600" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="56" value="TabLabel updated&#xa;OnTabRenamed.Broadcast(Tab, NewName)&#xa;→ UChatBox::OnTabRenamedHandler&#xa;Load SessionSave&#xa;ChatTabNames[key] = NewName&#xa;Save SessionSave" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="700" width="200" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="57" value="Cancel (focus loss/Escape)&#xa;EditLabel → Collapsed&#xa;TabLabel → Visible&#xa;No broadcast" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1690" y="600" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a50" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="50" target="51" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a51" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="51" target="52" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a52" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="52" target="53" parent="1"><mxGeometry relative="1" as="geometry" /><Array as="values"><mxPoint /><mxCell value="non-Server tab" /></Array></mxCell>
+        <mxCell id="a53" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="53" target="54" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a54" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="54" target="55" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a55" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="55" target="56" parent="1"><mxGeometry relative="1" as="geometry" /><Array as="values"><mxPoint /><mxCell value="yes" /></Array></mxCell>
+        <mxCell id="a56" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="55" target="57" parent="1"><mxGeometry relative="1" as="geometry" /><Array as="values"><mxPoint /><mxCell value="no" /></Array></mxCell>
+
       </root>
     </mxGraphModel>
   </diagram>

@@ -44,6 +44,34 @@ void ASessionGameMode::InitGame(const FString& MapName, const FString& Options, 
 	SessionGameState->SetLastSaved(SessionSave->LastSaved);
 }
 
+// Reject the connection if the session is already at capacity
+void ASessionGameMode::PreLogin(const FString& Options, const FString& Address, const FUniqueNetIdRepl& UniqueId, FString& ErrorMessage)
+{
+	Super::PreLogin(Options, Address, UniqueId, ErrorMessage);
+
+	if (!ErrorMessage.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ASessionGameMode::PreLogin — PreLogin failed with error: %s"), *ErrorMessage);
+		return;
+	}
+
+	ASessionGameState* SessionGameState = GetGameState<ASessionGameState>();
+	if (!IsValid(SessionGameState))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ASessionGameMode::PreLogin — SessionGameState is null; cannot determine if session is full"));
+		return;
+	}
+	
+	int32 CurrentPlayers = SessionGameState->PlayerArray.Num();
+	if (CurrentPlayers >= MaxPlayers)
+	{
+		ErrorMessage = TEXT("Session is full");
+		UE_LOG(LogTemp, Warning, TEXT("ASessionGameMode::PreLogin — Player rejected because session is full (current: %d, max: %d)"), CurrentPlayers, MaxPlayers);
+		return;
+	}
+
+}
+
 // Assign role flags to the player's SessionPlayerState on login
 void ASessionGameMode::PostLogin(APlayerController* NewPlayer)
 {
@@ -63,7 +91,7 @@ void ASessionGameMode::PostLogin(APlayerController* NewPlayer)
 		return;
 	}
 
-	FString sPlayerID = UGameplayStatics::ParseOption(OptionsString, "PlayerID");
+	FString sPlayerID = UGameplayStatics::ParseOption(OptionsString, TEXT("PlayerID"));
 	if (sPlayerID.IsEmpty())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("ASessionGameMode::PostLogin — PlayerID not found in options string; role assignment will fail"));

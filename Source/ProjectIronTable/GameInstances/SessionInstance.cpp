@@ -13,9 +13,14 @@ void USessionInstance::Init()
 	UPlayerSave* PlayerSave = Cast<UPlayerSave>(UGameplayStatics::LoadGameFromSlot(UPlayerSave::SaveSlotName, 0));
 	if (!IsValid(PlayerSave))
 	{
-		UE_LOG(LogTemp, Display, TEXT("USessionInstance::Init - No PlayerSave found; creating new one"));
+		UE_LOG(LogTemp, Display, TEXT("USessionInstance::Init — No PlayerSave found; creating new one."));
 		PlayerID = FGuid::NewGuid();
 		PlayerSave = Cast<UPlayerSave>(UGameplayStatics::CreateSaveGameObject(UPlayerSave::StaticClass()));
+		if (!IsValid(PlayerSave))
+		{
+			UE_LOG(LogTemp, Error, TEXT("USessionInstance::Init — Failed to create UPlayerSave object."));
+			return;
+		}
 		PlayerSave->PlayerID = PlayerID;
 		UGameplayStatics::SaveGameToSlot(PlayerSave, UPlayerSave::SaveSlotName, 0);
 	}

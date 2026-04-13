@@ -26,6 +26,14 @@ void UChatChannelListEntry::OnEntryButtonClicked()
 // Stores the channel reference and updates the label to the channel's display name.
 void UChatChannelListEntry::SetChannel(UChatChannel* InChannel)
 {
+	if (!IsValid(InChannel))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UChatChannelListEntry::SetChannel — InChannel is null."));
+		return;
+	}
 	Channel = InChannel;
-	EntryLabel->SetText(FText::FromString(Channel->DisplayName));
+	if (EntryLabel)
+	{
+		EntryLabel->SetText(FText::FromString(Channel->DisplayName));
+	}
 }

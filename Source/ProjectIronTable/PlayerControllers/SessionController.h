@@ -33,23 +33,13 @@ protected:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
-protected:
-
-#pragma region Runtime References
-	/** The HUD component owned by this controller, responsible for all UI widgets. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TObjectPtr<USessionHUDComponent> HUDComponent;
-
-	/** Cached reference to the possessed session pawn. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TObjectPtr<ASessionPawn> SessionPawnRef;
-
-	/** Reference to the Enhanced Input subsystem for managing mapping contexts. */
-	UPROPERTY()
-	TObjectPtr<UEnhancedInputLocalPlayerSubsystem> InputSubsystemRef;
-#pragma endregion
-
 public:
+
+#pragma region Components
+	/** The HUD component owned by this controller, responsible for all UI widgets. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USessionHUDComponent> HUDComponent;
+#pragma endregion
 
 #pragma region Camera State
 	/** When false, panning input is active and WASD movement is suppressed. */
@@ -93,13 +83,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
 	float ZoomSpeed = 50.f;
 #pragma endregion
-
-private:
-
-	/** Active speed multiplier; 1.0 normally, CameraSpeedMultiplier while sprinting. */
-	float CurrentCameraSpeedMultiplier = 1.f;
-
-public:
 
 #pragma region Session Input
 	/** Input mapping context active during normal gameplay. */
@@ -145,8 +128,7 @@ public:
 	TObjectPtr<UInputAction> IA_ScrollChat;
 #pragma endregion
 
-public:
-
+#pragma region Public Methods
 	/** Clamps all camera config properties to valid ranges. Called at runtime and in the editor. */
 	void ValidateCameraSettings();
 
@@ -155,6 +137,7 @@ public:
 
 	/** Writes current camera config properties to a new save object and saves to slot "CameraSettings". */
 	void SaveCameraSettings();
+#pragma endregion
 
 protected:
 
@@ -162,8 +145,22 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Camera")
 	float CalculateCameraMovementSpeed() const;
 
+	/** Cached reference to the possessed session pawn. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<ASessionPawn> SessionPawnRef;
+
+	/** Reference to the Enhanced Input subsystem for managing mapping contexts. */
+	UPROPERTY()
+	TObjectPtr<UEnhancedInputLocalPlayerSubsystem> InputSubsystemRef;
+
 private:
 
+#pragma region State
+	/** Active speed multiplier; 1.0 normally, CameraSpeedMultiplier while sprinting. */
+	float CurrentCameraSpeedMultiplier = 1.f;
+#pragma endregion
+
+#pragma region Input Handlers
 	/** Translates the pawn on the XY plane based on WASD input. */
 	void Input_CameraMove(const FInputActionValue& Value);
 
@@ -187,4 +184,5 @@ private:
 
 	/** Forwards scroll direction to the HUD chat scroll handler. */
 	void Input_ScrollChat(const FInputActionValue& Value);
+#pragma endregion
 };

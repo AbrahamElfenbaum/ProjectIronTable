@@ -13,11 +13,7 @@ class PROJECTIRONTABLE_API UBaseScreen : public UUserWidget
 {
 	GENERATED_BODY()
 
-protected:
-	/** Binds the back button click delegate. */
-	virtual void NativeConstruct() override;
-
-protected:
+private:
 
 #pragma region Widget References
 	/** Button that returns to the home screen. */
@@ -37,6 +33,11 @@ public:
 	/** Override in subclasses to perform screen-specific setup. */
 	virtual void Init() {}
 #pragma endregion
+
+protected:
+
+	/** Binds the back button click delegate. */
+	virtual void NativeConstruct() override;
 
 private:
 

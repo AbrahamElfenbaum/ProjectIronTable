@@ -13,10 +13,18 @@ void UChatChannel::AddChatMessage(const FString& Message)
 		UE_LOG(LogTemp, Warning, TEXT("UChatChannel::AddChatMessage — ChatEntryClass is null; cannot create message entry"));
 		return;
 	}
-	UChatEntry* ChatEntry = CreateWidget<UChatEntry>(GetWorld(), ChatEntryClass);
+	UChatEntry* ChatEntry = CreateWidget<UChatEntry>(this, ChatEntryClass);
+	if (!IsValid(ChatEntry))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UChatChannel::AddChatMessage — Failed to create ChatEntry widget"));
+		return;
+	}
 	ChatEntry->Message = Message;
-	ScrollBox->AddChild(ChatEntry);
-	ScrollBox->ScrollToEnd();
+	if (ScrollBox)
+	{
+		ScrollBox->AddChild(ChatEntry);
+		ScrollBox->ScrollToEnd();
+	}
 }
 
 // Sets the entry class used when creating new message widgets.
@@ -28,6 +36,8 @@ void UChatChannel::SetChatEntryClass(TSubclassOf<UChatEntry> EntryClass)
 // Adjusts the scroll offset by ScrollMultiplier in the requested direction, clamped to valid range.
 void UChatChannel::Scroll(bool bUp)
 {
+	if (!ScrollBox) return;
+
 	int32 ScrollDirection = bUp ? 1 : -1;
 	ScrollBox->SetScrollOffset(
 		FMath::Clamp(
@@ -44,8 +54,16 @@ void UChatChannel::RestoreMessage(const FString& SenderName, const FString& Mess
 		UE_LOG(LogTemp, Warning, TEXT("UChatChannel::RestoreMessage — ChatEntryClass is null; cannot restore message entry"));
 		return;
 	}
-	UChatEntry* ChatEntry = CreateWidget<UChatEntry>(GetWorld(), ChatEntryClass);
+	UChatEntry* ChatEntry = CreateWidget<UChatEntry>(this, ChatEntryClass);
+	if (!IsValid(ChatEntry))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UChatChannel::RestoreMessage — Failed to create ChatEntry widget"));
+		return;
+	}
 	ChatEntry->Message = FString::Printf(TEXT("%s: %s"), *SenderName, *Message);
-	ScrollBox->AddChild(ChatEntry);
-	ScrollBox->ScrollToEnd();
+	if (ScrollBox)
+	{
+		ScrollBox->AddChild(ChatEntry);
+		ScrollBox->ScrollToEnd();
+	}
 }

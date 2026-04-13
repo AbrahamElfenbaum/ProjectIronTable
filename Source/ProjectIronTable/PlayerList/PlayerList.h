@@ -60,6 +60,7 @@ public:
 
 private:
 
+#pragma region Event Handlers
 	/** Toggles list visibility and repopulates when expanding. */
 	UFUNCTION()
 	void OnToggleButtonClicked();
@@ -67,4 +68,5 @@ private:
 	/** Forwards the address click event upward to OnAddressClicked. */
 	UFUNCTION()
 	void OnPlayerAddressClicked(const FString& PlayerName);
+#pragma endregion
 };

@@ -2,10 +2,10 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Components/EditableText.h"
 #include "ChatBox.generated.h"
 
 class UHorizontalBox;
+class UEditableText;
 class UVerticalBox;
 class UWidgetSwitcher;
 class UButton;
@@ -75,7 +75,7 @@ private:
 #pragma region State
 	/** All channels that have been created, including the default server channel. */
 	UPROPERTY()
-	TArray<UChatChannel*> Channels;
+	TArray<TObjectPtr<UChatChannel>> Channels;
 
 	/** Maps each channel to its corresponding tab widget. */
 	UPROPERTY()
@@ -93,7 +93,7 @@ private:
 
 	/** Set of channels that have been closed and hidden from the tab bar. */
 	UPROPERTY()
-	TSet<UChatChannel*> ClosedChannels;
+	TSet<TObjectPtr<UChatChannel>> ClosedChannels;
 #pragma endregion
 
 public:
@@ -125,6 +125,9 @@ public:
 
 	/** Returns the channel matching the given participant list, creating one if none exists. */
 	UChatChannel* FindOrCreateChannel(const TArray<FString>& Participants);
+
+	/** Returns the tab associated with the given channel, or nullptr if not found. */
+	UChatTab* GetTabForChannel(UChatChannel* Channel) const;
 #pragma endregion
 
 private:

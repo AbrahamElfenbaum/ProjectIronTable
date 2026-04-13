@@ -63,7 +63,7 @@ Content/
 │   ├── Settings/               — WE_SettingsSlider
 │   │   └── Panels/             — WE_CameraSettingsPanel
 │   ├── HUD/                    — W_Taskbar, WE_TaskbarButton
-│   ├── Utility/                — W_DraggablePanel, WE_DragHandle, WE_ResizeHandle
+│   ├── Utility/                — W_DraggablePanel, WE_DragHandle, WE_ResizeHandle, WE_ContextMenu, WE_ContextMenuButton
 │   └── Testing/                — WE_DebugDisplay
 └── Physics/Materials/          — PM_Dice
 ```
@@ -207,16 +207,19 @@ Represents one channel/tab's message list.
 #### UChatTab
 **Type:** `UUserWidget` | **Blueprint:** `WE_ChatTab`
 
-Clickable tab button in the tab bar.
+Clickable tab button in the tab bar. Supports left-click to switch channel, right-click to open a context menu, and inline rename via `UEditableTextBox`.
 
-**Bound Widgets:** `TabButton`, `CloseButton` (`UButton`), `TabLabel` (`UTextBlock`), `NotificationIndicator` (`UWidget`)
+**Bound Widgets:** `TabButton`, `CloseButton` (`UButton`), `TabLabel` (`UTextBlock`), `EditLabel` (`UEditableTextBox`), `NotificationIndicator` (`UWidget`)
 
 **Key Methods:**
 - `SetInteractable(bool)` — enables/disables `TabButton` (active tab is disabled so it can't be re-clicked)
 - `SetCloseable(bool)` — shows/hides `CloseButton` (Server tab passes `false`)
 - `ShowNotification()` / `ClearNotification()`
+- `EnterRenameMode()` — hides `TabLabel`, shows and focuses `EditLabel` pre-populated with the current label text. Commit via Enter saves the name; any other commit method (focus loss, Escape) cancels.
 
-**Delegates:** `OnTabClicked` (→`UChatChannel*`), `OnTabClosed` (→`UChatChannel*`)
+**Delegates:** `OnTabClicked` (→`UChatChannel*`), `OnTabClosed` (→`UChatChannel*`), `OnTabRightClicked` (→`UChatChannel*`), `OnTabRenamed` (→`UChatTab*, FString NewName`)
+
+> **Note:** `OnTabRenamedCompleted` only broadcasts `OnTabRenamed` if `CommitMethod == OnEnter && !Text.IsEmpty()` — focus loss or Escape cancels silently.
 
 ---
 
@@ -853,6 +856,39 @@ Holds shared delegate type declarations used across multiple screens and systems
 
 ---
 
+#### FContextMenuOption
+**Type:** `USTRUCT`
+
+Data for a single context menu item. Holds a `ButtonName` (`FString`) and `OnClicked` (`TDelegate<void()>`, non-dynamic — supports `BindLambda`).
+
+---
+
+#### UContextMenuButton
+**Type:** `UUserWidget` | **Blueprint:** `WE_ContextMenuButton`
+
+Single button row inside a `UContextMenu`. **Bound Widget:** `OptionButton` (`UButton`). `SetOption(FContextMenuOption)` sets the label text and binds the click delegate.
+
+---
+
+#### UContextMenu
+**Type:** `UUserWidget` | **Blueprint:** `WE_ContextMenu`
+
+Generic floating context menu. Add to viewport, position manually, auto-dismisses on any click.
+
+**Bound Widgets:** `MenuOptionsBox` (`UVerticalBox`)
+
+**Config (EditAnywhere):** `ContextMenuButtonClass` (`TSubclassOf<UContextMenuButton>`)
+
+**Key Methods:**
+- `SetMenuOptions(TArray<FContextMenuOption>)` — clears existing buttons, spawns one `UContextMenuButton` per option. Wraps each option's `OnClicked` delegate in a lambda that calls `CloseMenu()` before the original callback, so buttons also dismiss the menu.
+- `CloseMenu()` — calls `RemoveFromParent()`.
+
+`NativeOnMouseButtonDown` calls `CloseMenu()` and returns `FReply::Handled()` (no `Super::`) — any click that reaches the widget root (i.e. not consumed by a child button) closes the menu.
+
+> **Blueprint requirement:** The `WE_ContextMenu` Blueprint root must be full-screen with a transparent (0 opacity) background so that clicks outside the visible button area are captured and trigger dismissal.
+
+---
+
 ### Environment/ *(planned — not yet implemented)*
 
 #### AEnvironmentManager
@@ -1030,7 +1066,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - [ ] Session save/load — full snapshot (map, tokens, fog of war, initiative, chat, sheets, notes, inventory); sessions stored as `"Session_{SessionID}"` slots indexed by `UCampaignManagerSave`; manual save + autosave (configurable interval); auto-save on session close
 - [ ] GM permissions system
 - [ ] Session player cap (default 8, removable)
-- [ ] Tab renaming (client-local)
+- [~] Tab renaming (client-local) — `UContextMenu`, `UContextMenuButton`, `UChatTab::EnterRenameMode`, right-click delegate all done; `UChatBox` wiring (spawn menu, bind handlers, persist name) is the remaining step
 - [x] Chat log persistence
 - [ ] Shared notes (rich-text: headers, bullets, bold, italic; real-time collaborative editing; persists across sessions; accessible outside active session via Campaign Manager)
 - [ ] Pre-session lobby (waiting room; pre-game chat; character sheet accessible while waiting; Host sees connection status and launches when ready)
@@ -1258,6 +1294,8 @@ Sessions are stored using Unreal's built-in save slot system — no custom file 
 This approach keeps all save I/O within UE's native save game system and makes a future dedicated-server migration straightforward — the index and session slots move to wherever the server runs, no path logic to change.
 
 ---
+
+*Last updated: 2026-04-13* — Chat tab rename infrastructure complete. `UChatTab` gains `EditLabel` (`UEditableTextBox` BindWidget), `EnterRenameMode()`, `OnTabRightClicked` and `OnTabRenamed` delegates. `UContextMenu` and `UContextMenuButton` added to `Utility/` — generic floating context menu with auto-dismiss on click-outside and on button click (lambda wrapping in `SetMenuOptions`). `UContextMenu::NativeOnMouseButtonDown` consumes all clicks reaching the root without `Super::`. `UChatBox` wiring (Step 3) is the only remaining rename step. Format-all pass complete across all 90+ source files. 15 recurring code patterns catalogued in `memory/project_pattern_analysis.md`.
 
 *Last updated: 2026-04-12 (updated)* — Chat log persistence implemented. `USessionSave` gains `FChatMessageRecord`, `FChatLogRecord`, and `ChatLog` (`TMap<FString, FChatLogRecord>`). `UChatChannel` gains `RestoreMessage`. `UChatBox` gains `FindOrCreateChannel` (extracted from `AddChatMessage`; shared with restore loop). `USessionHUDComponent::BeginPlay` restores chat log on load; `SendChatMessageOnServer` saves each message after routing. `bPendingRefocus` flag added to `UChatBox` to fix Enter double-fire bug (Slate fires `OnUserMovedFocus` immediately after `OnEnter`). Roadmap: chat log persistence checked off.
 

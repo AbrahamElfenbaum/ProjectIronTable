@@ -27,10 +27,10 @@ void ASessionController::OnPossess(APawn* InPawn)
 	if (IsLocalController())
 	{
 		ULocalPlayer* LP = GetLocalPlayer();
-		if (LP)
+		if (IsValid(LP))
 		{
 			InputSubsystemRef = LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
-			if (InputSubsystemRef)
+			if (IsValid(InputSubsystemRef))
 			{
 				InputSubsystemRef->AddMappingContext(IMC_Session, 0);
 			}
@@ -77,7 +77,11 @@ void ASessionController::ValidateCameraSettings()
 // Copies all values from the save object into camera config properties, then validates.
 void ASessionController::ApplyCameraSettings(const UCameraSettingsSave* Settings)
 {
-	if (!Settings) return;
+	if (!Settings)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ASessionController::ApplyCameraSettings — Settings was null"));
+		return;
+	}
 
 	MinCameraMovementSpeed = Settings->MinCameraMovementSpeed;
 	MaxCameraMovementSpeed = Settings->MaxCameraMovementSpeed;
@@ -138,6 +142,7 @@ void ASessionController::BeginPlay()
 		if (!IsValid(LoadedSettings))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("ASessionController::BeginPlay — Failed to load camera settings save"));
+			return;
 		}
 		ApplyCameraSettings(LoadedSettings);
 	}
@@ -148,7 +153,7 @@ void ASessionController::Input_CameraMove(const FInputActionValue& Value)
 {
 	FVector2D MoveInput = Value.Get<FVector2D>();
 
-	if (SessionPawnRef && bCanCameraMove)
+	if (IsValid(SessionPawnRef) && bCanCameraMove)
 	{
 		float Speed = CalculateCameraMovementSpeed() * CurrentCameraSpeedMultiplier;
 		FVector Delta = (SessionPawnRef->GetActorRightVector() * MoveInput.X
@@ -163,7 +168,7 @@ void ASessionController::Input_CameraPan(const FInputActionValue& Value)
 {
 	bCanCameraMove = !Value.Get<bool>();
 
-	if (!bCanCameraMove && SessionPawnRef)
+	if (!bCanCameraMove && IsValid(SessionPawnRef))
 	{
 		float DeltaX, DeltaY;
 		GetInputMouseDelta(DeltaX, DeltaY);
@@ -178,7 +183,7 @@ void ASessionController::Input_CameraPan(const FInputActionValue& Value)
 // Resets the pawn pitch to -15 degrees while preserving yaw and roll.
 void ASessionController::Input_CameraPanReset()
 {
-	if (SessionPawnRef)
+	if (IsValid(SessionPawnRef))
 	{
 		FRotator CurrentRotation = SessionPawnRef->GetActorRotation();
 		SessionPawnRef->SetActorRotation(FRotator(-15.f, CurrentRotation.Yaw, CurrentRotation.Roll));
@@ -194,7 +199,7 @@ void ASessionController::Input_CameraSprint(const FInputActionValue& Value)
 // Adjusts the spring arm length by ZoomSpeed in the direction of the scroll input, clamped to min/max.
 void ASessionController::Input_CameraZoom(const FInputActionValue& Value)
 {
-	if (SessionPawnRef)
+	if (IsValid(SessionPawnRef))
 	{
 		float CurrentArmLength = SessionPawnRef->SpringArm->TargetArmLength;
 		SessionPawnRef->SpringArm->TargetArmLength = FMath::Clamp(
@@ -207,15 +212,15 @@ void ASessionController::Input_CameraZoom(const FInputActionValue& Value)
 // Adds the chat input mapping context and tells the HUD to focus the chat box.
 void ASessionController::Input_FocusChat()
 {
-	if (InputSubsystemRef) InputSubsystemRef->AddMappingContext(IMC_Chat, 1);
-	if (HUDComponent) HUDComponent->FocusChat();
+	if (IsValid(InputSubsystemRef)) InputSubsystemRef->AddMappingContext(IMC_Chat, 1);
+	if (IsValid(HUDComponent)) HUDComponent->FocusChat();
 }
 
 // Removes the chat input mapping context and tells the HUD to exit chat.
 void ASessionController::Input_ExitChat()
 {
-	if (InputSubsystemRef) InputSubsystemRef->RemoveMappingContext(IMC_Chat);
-	if (HUDComponent) HUDComponent->ExitChat();
+	if (IsValid(InputSubsystemRef)) InputSubsystemRef->RemoveMappingContext(IMC_Chat);
+	if (IsValid(HUDComponent)) HUDComponent->ExitChat();
 }
 
 // Forwards the scroll direction (positive = up) to the HUD chat scroll handler.
@@ -223,13 +228,13 @@ void ASessionController::Input_ScrollChat(const FInputActionValue& Value)
 {
 	float ScrollInput = Value.Get<float>();
 
-	if (HUDComponent) HUDComponent->ScrollChat(ScrollInput > 0);
+	if (IsValid(HUDComponent)) HUDComponent->ScrollChat(ScrollInput > 0);
 }
 
 // Returns movement speed proportional to spring arm length, clamped between min and max.
 float ASessionController::CalculateCameraMovementSpeed() const
 {
-	if (SessionPawnRef)
+	if (IsValid(SessionPawnRef))
 	{
 		return FMath::Clamp(SessionPawnRef->SpringArm->TargetArmLength / 100.f,
 							MinCameraMovementSpeed,

@@ -5,8 +5,14 @@
 // Activates drag mode, notifies the parent panel of the starting mouse position, and captures the mouse.
 FReply UDragHandle::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
+	UDraggablePanel* Panel = GetTypedOuter<UDraggablePanel>();
+	if (!Panel)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UDragHandle::NativeOnMouseButtonDown — outer UDraggablePanel not found."));
+		return FReply::Unhandled();
+	}
 	bActive = true;
-	GetTypedOuter<UDraggablePanel>()->StartDrag(InMouseEvent.GetScreenSpacePosition());
+	Panel->StartDrag(InMouseEvent.GetScreenSpacePosition());
 	return FReply::Handled().CaptureMouse(TakeWidget());
 }
 
@@ -15,7 +21,13 @@ FReply UDragHandle::NativeOnMouseMove(const FGeometry& InGeometry, const FPointe
 {
 	if (bActive)
 	{
-		GetTypedOuter<UDraggablePanel>()->UpdateDrag(InMouseEvent.GetScreenSpacePosition());
+		UDraggablePanel* Panel = GetTypedOuter<UDraggablePanel>();
+		if (!Panel)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("UDragHandle::NativeOnMouseMove — outer UDraggablePanel not found."));
+			return FReply::Unhandled();
+		}
+		Panel->UpdateDrag(InMouseEvent.GetScreenSpacePosition());
 		return FReply::Handled();
 	}
 	else
@@ -27,7 +39,13 @@ FReply UDragHandle::NativeOnMouseMove(const FGeometry& InGeometry, const FPointe
 // Deactivates drag mode, notifies the parent panel, and releases mouse capture.
 FReply UDragHandle::NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
+	UDraggablePanel* Panel = GetTypedOuter<UDraggablePanel>();
+	if (!Panel)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UDragHandle::NativeOnMouseButtonUp — outer UDraggablePanel not found."));
+		return FReply::Unhandled();
+	}
 	bActive = false;
-	GetTypedOuter<UDraggablePanel>()->StopDrag();
+	Panel->StopDrag();
 	return FReply::Handled().ReleaseMouseCapture();
 }

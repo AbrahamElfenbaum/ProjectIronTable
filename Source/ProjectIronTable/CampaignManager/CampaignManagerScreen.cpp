@@ -37,7 +37,7 @@ void UCampaignManagerScreen::Init()
 	bool bGridPopulated = false;
 	for (const TPair<FString, FCampaignList>& Game : CampaignData->CampaignRecords)
 	{
-		UGameTypeButton* TypeButton = CreateWidget<UGameTypeButton>(GetWorld(), GameTypeButtonClass);
+		UGameTypeButton* TypeButton = CreateWidget<UGameTypeButton>(this, GameTypeButtonClass);
 		if (!IsValid(TypeButton))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("UCampaignManagerScreen::Init — Failed to create GameTypeButton for %s"), *Game.Key);
@@ -77,7 +77,7 @@ void UCampaignManagerScreen::PopulateCampaigns(const TArray<FCampaignRecord>& Ca
 	CampaignGrid->ClearChildren();
 	for (const FCampaignRecord& Campaign : Campaigns)
 	{
-		UCampaignCard* CampaignCard = CreateWidget<UCampaignCard>(GetWorld(), CampaignCardClass);
+		UCampaignCard* CampaignCard = CreateWidget<UCampaignCard>(this, CampaignCardClass);
 		if (!IsValid(CampaignCard))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("UCampaignManagerScreen::PopulateCampaigns — Failed to create CampaignCard"));
@@ -202,8 +202,14 @@ void UCampaignManagerScreen::OnCampaignSelected(const FGuid& CampaignID, const F
 		return;
 	}
 
-	FString TravelURL = FString::Printf(TEXT("MapName?PlayerID=%s"), *PlayerID.ToString());
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UCampaignManagerScreen::OnCampaignSelected — GetWorld() returned null."));
+		return;
+	}
 
-	GetWorld()->ServerTravel(TravelURL);
+	FString TravelURL = FString::Printf(TEXT("MapName?PlayerID=%s"), *PlayerID.ToString());
+	World->ServerTravel(TravelURL);
 }
 

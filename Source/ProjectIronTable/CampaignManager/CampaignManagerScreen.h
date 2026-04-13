@@ -70,7 +70,7 @@ private:
 
 	/** Cached references to the active game type buttons. */
 	UPROPERTY()
-	TArray<UGameTypeButton*> ActiveButtons;
+	TArray<TObjectPtr<UGameTypeButton>> ActiveButtons;
 #pragma endregion
 
 public:
@@ -82,8 +82,8 @@ public:
 
 private:
 
-#pragma region Event Handlers
-	/** Clears the campaign grid and repopulates it with cards for the given game type. */
+#pragma region Private Methods
+	/** Clears the campaign grid and creates a card for each record in the given list. */
 	void PopulateCampaigns(const TArray<FCampaignRecord>& Campaigns, const FString& GameType);
 
 	/** Updates all active game type buttons — marks the one matching SelectedGameType as selected, all others as unselected. */
@@ -91,7 +91,9 @@ private:
 
 	/** Builds and returns a hardcoded TMap of campaign records for testing the campaign manager UI. */
 	TMap<FString, FCampaignList> BuildFakeData() const;
+#pragma endregion
 
+#pragma region Event Handlers
 	/** Switches the active game type and refreshes the campaign grid. */
 	UFUNCTION()
 	void OnGameTypeSelected(const FString& GameType);

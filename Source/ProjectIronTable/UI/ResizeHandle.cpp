@@ -5,8 +5,14 @@
 // Activates resize mode, notifies the parent panel of the starting mouse position, and captures the mouse.
 FReply UResizeHandle::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
+	UDraggablePanel* Panel = GetTypedOuter<UDraggablePanel>();
+	if (!Panel)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UResizeHandle::NativeOnMouseButtonDown — outer UDraggablePanel not found."));
+		return FReply::Unhandled();
+	}
 	bActive = true;
-	GetTypedOuter<UDraggablePanel>()->StartResize(InMouseEvent.GetScreenSpacePosition());
+	Panel->StartResize(InMouseEvent.GetScreenSpacePosition());
 	return FReply::Handled().CaptureMouse(TakeWidget());
 }
 
@@ -15,7 +21,13 @@ FReply UResizeHandle::NativeOnMouseMove(const FGeometry& InGeometry, const FPoin
 {
 	if (bActive)
 	{
-		GetTypedOuter<UDraggablePanel>()->UpdateResize(InMouseEvent.GetScreenSpacePosition());
+		UDraggablePanel* Panel = GetTypedOuter<UDraggablePanel>();
+		if (!Panel)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("UResizeHandle::NativeOnMouseMove — outer UDraggablePanel not found."));
+			return FReply::Unhandled();
+		}
+		Panel->UpdateResize(InMouseEvent.GetScreenSpacePosition());
 		return FReply::Handled();
 	}
 	else
@@ -27,7 +39,13 @@ FReply UResizeHandle::NativeOnMouseMove(const FGeometry& InGeometry, const FPoin
 // Deactivates resize mode, notifies the parent panel, and releases mouse capture.
 FReply UResizeHandle::NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
+	UDraggablePanel* Panel = GetTypedOuter<UDraggablePanel>();
+	if (!Panel)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UResizeHandle::NativeOnMouseButtonUp — outer UDraggablePanel not found."));
+		return FReply::Unhandled();
+	}
 	bActive = false;
-	GetTypedOuter<UDraggablePanel>()->StopResize();
+	Panel->StopResize();
 	return FReply::Handled().ReleaseMouseCapture();
 }
