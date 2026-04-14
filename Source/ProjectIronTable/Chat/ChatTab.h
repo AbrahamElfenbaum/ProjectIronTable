@@ -7,13 +7,10 @@
 class UChatChannel;
 class UButton;
 class UTextBlock;
-class UEditableTextBox;
+class UEditableText;
 
 /** Fired when the tab button is clicked, passing the channel this tab represents. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTabClicked, UChatChannel*, ClickedChannel);
-
-/** Fired when the close button is clicked, passing the channel this tab represents. */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTabClosed, UChatChannel*, ClickedChannel);
 
 /** Fired when the tab button is right-clicked, passing the channel this tab represents. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTabRightClicked, UChatChannel*, ClickedChannel);
@@ -34,17 +31,13 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> TabButton;
 
-	/** Button the player clicks to close and hide this tab. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> CloseButton;
-
 	/** Label displaying the channel name. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> TabLabel;
 
-	/** */
+	/** Inline text field shown during rename mode; hidden by default. */
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UEditableTextBox> EditLabel;
+	TObjectPtr<UEditableText> EditLabel;
 
 	/** Small indicator widget shown when there are unread messages. */
 	UPROPERTY(meta = (BindWidget))
@@ -58,7 +51,7 @@ private:
 #pragma endregion
 
 protected:
-	/** Binds the tab and close button click delegates. */
+	/** Binds tab button and rename field delegates. */
 	virtual void NativeConstruct() override;
 
 	/** Detects right-click to broadcast OnTabRightClicked; left-click falls through to Super. */
@@ -71,10 +64,6 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnTabClicked OnTabClicked;
 
-	/** Fired when the close button is clicked. */
-	UPROPERTY(BlueprintAssignable)
-	FOnTabClosed OnTabClosed;
-
 	/** Fired when the tab button is right-clicked. */
 	UPROPERTY(BlueprintAssignable)
 	FOnTabRightClicked OnTabRightClicked;
@@ -85,6 +74,9 @@ public:
 #pragma endregion
 
 #pragma region Public Methods
+	/** Returns the channel this tab represents. */
+	UChatChannel* GetChannel() const;
+	
 	/** Assigns the channel this tab represents. */
 	void SetChannel(UChatChannel* InChannel);
 
@@ -100,10 +92,7 @@ public:
 	/** Enables or disables the tab button — used to prevent clicking the active tab. */
 	void SetInteractable(bool bInteractable);
 
-	/** Shows or hides the close button — pass false for the Server tab which cannot be closed. */
-	void SetCloseable(bool bShowButton);
-
-	/** */
+	/** Shows the editable text field and hides the label, placing focus on the field for immediate input. */
 	void EnterRenameMode();
 #pragma endregion
 
@@ -113,10 +102,6 @@ private:
 	/** Broadcasts OnTabClicked with the assigned channel. */
 	UFUNCTION()
 	void OnTabButtonClicked();
-
-	/** Broadcasts OnTabClosed with the assigned channel. */
-	UFUNCTION()
-	void OnCloseButtonClicked();
 
 	/** Broadcasts OnTabRightClicked with the assigned channel. */
 	UFUNCTION()

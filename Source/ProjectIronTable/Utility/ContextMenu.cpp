@@ -1,14 +1,29 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "ContextMenu.h"
+#include "Components/OverlaySlot.h"
 #include "Components/SizeBox.h"
 #include "Components/VerticalBox.h"
 
 #include "ContextMenuButton.h"
 
+// Closes the menu if the click is outside the content box; otherwise passes the event to children.
 FReply UContextMenu::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	CloseMenu();
-	return FReply::Handled();
+	FGeometry BoxGeometry = ContextBox->GetCachedGeometry();
+	FVector2D AbsPos = BoxGeometry.GetAbsolutePosition();
+	FVector2D AbsSize = BoxGeometry.GetAbsoluteSize();
+	FVector2D MousePos = InMouseEvent.GetScreenSpacePosition();
+
+	bool bInsideBox = MousePos.X >= AbsPos.X && MousePos.X <= AbsPos.X + AbsSize.X
+		&& MousePos.Y >= AbsPos.Y && MousePos.Y <= AbsPos.Y + AbsSize.Y;
+
+	if (!bInsideBox)
+	{
+		CloseMenu();
+		return FReply::Handled();
+	}
+
+	return FReply::Unhandled();
 }
 
 // Clears existing buttons and spawns a new button for each provided option.
@@ -49,6 +64,21 @@ void UContextMenu::SetMenuOptions(const TArray<FContextMenuOption>& Options)
 	}
 }
 
+// Offsets the content box within the overlay to place it at the given screen position.
+void UContextMenu::SetMenuPosition(FVector2D Position)
+{
+	UOverlaySlot* OverlaySlot = Cast<UOverlaySlot>(ContextBox->Slot);
+	if (!IsValid(OverlaySlot))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UContextMenu::SetMenuPosition — ContextBox is not in an Overlay slot"));
+		return;
+	}
+	OverlaySlot->SetPadding(FMargin(Position.X, Position.Y, 0.f, 0.f));
+	OverlaySlot->SetHorizontalAlignment(HAlign_Left);
+	OverlaySlot->SetVerticalAlignment(VAlign_Top);
+}
+
+// Removes the menu widget from the viewport.
 void UContextMenu::CloseMenu()
 {
 	RemoveFromParent();

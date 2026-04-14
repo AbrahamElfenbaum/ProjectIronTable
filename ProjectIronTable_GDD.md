@@ -607,7 +607,11 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 
 ---
 
-*Last updated: 2026-04-13* — Chat tab rename infrastructure complete: `UChatTab` supports inline rename via right-click → context menu → `EnterRenameMode()`. Rename is client-local and persisted in `USessionSave::ChatTabNames`. `UContextMenu` and `UContextMenuButton` added as reusable context menu system. `UChatBox` wiring is the remaining step.
+*Last updated: 2026-04-14 (updated)* — Session save/load utilities extracted to `UFunctionLibrary`: `GetSessionSaveSlotName`, `LoadSessionSave`, `GetLocalPlayerName`. No design changes; internal refactor only.
+
+*2026-04-14* — Chat tab rename complete. Right-click on any non-Server tab opens a context menu with Rename and Close options. Close button removed from tabs. Rename is client-local, persisted to `USessionSave::ChatTabNames`.
+
+*2026-04-13* — Chat tab rename infrastructure complete: `UChatTab` supports inline rename via right-click → context menu → `EnterRenameMode()`. Rename is client-local and persisted in `USessionSave::ChatTabNames`. `UContextMenu` and `UContextMenuButton` added as reusable context menu system.
 
 *Last updated: 2026-04-12* — Chat log persistence implemented. `USessionSave` now holds the full chat log (`ChatLog` field). `USessionHUDComponent` saves each message server-side and restores the log on session load. Open question #6 ("Does the chat log persist across saves?") was already marked resolved; implementation is now complete.
 

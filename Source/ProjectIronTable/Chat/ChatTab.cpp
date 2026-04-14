@@ -3,11 +3,11 @@
 
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
-#include "Components/EditableTextBox.h"
+#include "Components/EditableText.h"
 
 #include "ChatChannel.h"
 
-// Binds the tab button click delegate.
+// Binds tab button and rename field delegates.
 void UChatTab::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -15,11 +15,6 @@ void UChatTab::NativeConstruct()
 	if (TabButton)
 	{
 		TabButton->OnClicked.AddDynamic(this, &UChatTab::OnTabButtonClicked);
-	}
-
-	if (CloseButton)
-	{
-		CloseButton->OnClicked.AddDynamic(this, &UChatTab::OnCloseButtonClicked);
 	}
 
 	if (EditLabel)
@@ -41,6 +36,12 @@ FReply UChatTab::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPoi
 		Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 	}
 	return FReply::Handled();
+}
+
+// Returns the channel this tab controls
+UChatChannel* UChatTab::GetChannel() const
+{
+	return Channel;
 }
 
 // Stores the channel reference used when broadcasting tab click events.
@@ -73,18 +74,13 @@ void UChatTab::OnTabButtonClicked()
 	OnTabClicked.Broadcast(Channel);
 }
 
-// Broadcasts OnTabClosed with the stored channel pointer.
-void UChatTab::OnCloseButtonClicked()
-{
-	OnTabClosed.Broadcast(Channel);
-}
-
 // Broadcasts OnTabRightClicked with the stored channel pointer.
 void UChatTab::OnTabButtonRightClicked()
 {
 	OnTabRightClicked.Broadcast(Channel);
 }
 
+// Hides the rename field and updates the tab label if the user committed with Enter.
 void UChatTab::OnTabRenamedCompleted(const FText& Text, ETextCommit::Type CommitMethod)
 {
 	if (!EditLabel || !TabLabel) return;
@@ -105,19 +101,7 @@ void UChatTab::SetInteractable(bool bInteractable)
 	TabButton->SetIsEnabled(bInteractable);
 }
 
-// Shows or hides the close button.
-void UChatTab::SetCloseable(bool bShowButton)
-{
-	if (bShowButton)
-	{
-		CloseButton->SetVisibility(ESlateVisibility::Visible);
-	}
-	else
-	{
-		CloseButton->SetVisibility(ESlateVisibility::Collapsed);
-	}
-}
-
+// Populates the rename field with the current label, hides the label, and focuses the field.
 void UChatTab::EnterRenameMode()
 {
 	if (!EditLabel || !TabLabel) return;

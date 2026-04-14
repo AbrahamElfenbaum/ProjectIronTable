@@ -24,7 +24,8 @@ public:
 
 protected:
 
-	FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	/** Closes the menu if the click lands outside the content box bounds; otherwise passes the event through. */
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 
 private:
 
@@ -50,7 +51,10 @@ public:
 	/** Clears existing buttons and spawns a new button for each provided option. */
 	void SetMenuOptions(const TArray<FContextMenuOption>& Options);
 
-	/** */
+	/** Positions the content box within the overlay at the given screen coordinates. */
+	void SetMenuPosition(FVector2D Position);
+
+	/** Removes the menu from the viewport. */
 	void CloseMenu();
 #pragma endregion
 };

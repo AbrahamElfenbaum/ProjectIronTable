@@ -14,6 +14,8 @@
 #include "ChatTab.h"
 #include "ChatChannel.h"
 #include "ChatChannelListEntry.h"
+#include "ContextMenu.h"
+#include "FunctionLibrary.h"
 #include "SessionHUDComponent.h"
 #include "SessionInstance.h"
 #include "SessionSave.h"
@@ -145,8 +147,9 @@ UChatChannel* UChatBox::CreateChannel(const TArray<FString>& Participants)
 	Tab->SetChannel(Channel);
 	Tab->SetLabel(Label);
 	Tab->OnTabClicked.AddDynamic(this, &UChatBox::SwitchToChannel);
-	Tab->OnTabClosed.AddDynamic(this, &UChatBox::CloseChannel);
-	Tab->SetCloseable(!SortedParticipants.IsEmpty());
+	Tab->OnTabRightClicked.AddDynamic(this, &UChatBox::OnTabRightClickedHandler);
+	Tab->OnTabRenamed.AddDynamic(this, &UChatBox::OnTabRenamedHandler);
+
 
 	ChannelTabMap.Add(Channel, Tab);
 
@@ -154,29 +157,15 @@ UChatChannel* UChatBox::CreateChannel(const TArray<FString>& Participants)
 
 	FString sSortedParticipants = FString::Join(SortedParticipants, TEXT("|"));
 
-	USessionInstance* SessionInstance = GetGameInstance<USessionInstance>();
-	if (IsValid(SessionInstance))
+	USessionSave* SessionSave = UFunctionLibrary::LoadSessionSave(this);
+	if (IsValid(SessionSave))
 	{
-		USessionSave* SessionSave = Cast<USessionSave>(UGameplayStatics::LoadGameFromSlot(FString::Printf(TEXT("Session_%s"),
-			*SessionInstance->GetSessionID().ToString()), 0));
-
-		if (IsValid(SessionSave))
+		auto ChannelName = SessionSave->ChatTabNames.Find(sSortedParticipants);
+		if (!ChannelName)
 		{
-			auto ChannelName = SessionSave->ChatTabNames.Find(sSortedParticipants);
-			if (!ChannelName)
-			{
-				ChannelName = &SessionSave->ChatTabNames.Add(sSortedParticipants, Label);
-			}
-			UGameplayStatics::SaveGameToSlot(SessionSave, FString::Printf(TEXT("Session_%s"), *SessionInstance->GetSessionID().ToString()), 0);
+			SessionSave->ChatTabNames.Add(sSortedParticipants, Label);
 		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("UChatBox::CreateChannel — Failed to load session save; message will not be persisted"));
-		}
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UChatBox::CreateChannel — SessionInstance is null; message will not be persisted"));
+		UGameplayStatics::SaveGameToSlot(SessionSave, UFunctionLibrary::GetSessionSaveSlotName(GetGameInstance<USessionInstance>()), 0);
 	}
 
 	return Channel;
@@ -243,53 +232,41 @@ void UChatBox::TrySendPrivateRollMessage()
 {
 	FString Message = EditableText->GetText().ToString();
 
-	APlayerController* PC = Cast<APlayerController>(GetOwningPlayer());
-	if (IsValid(PC) && IsValid(PC->PlayerState))
+	TArray<FString> Words;
+	Message.ParseIntoArray(Words, TEXT(" "), 1);
+
+	TArray<FString> Recipients;
+	TArray<FString> MessageArray;
+
+	for (const FString& Word : Words)
 	{
-		TArray<FString> Words;
-		Message.ParseIntoArray(Words, TEXT(" "), 1);
-
-		TArray<FString> Recipients;
-		TArray<FString> MessageArray;
-
-		for (const FString& Word : Words)
+		if (Word.StartsWith(TEXT("@")))
 		{
-			if (Word.StartsWith(TEXT("@")))
-			{
-				FString Name = Word.RightChop(1);
-				Recipients.Add(Name);
-			}
-			else
-			{
-				MessageArray.Add(Word);
-			}
-		}
-
-		if (MessageArray.IsEmpty())
-		{
-			Message = TEXT("Rolling...");
+			Recipients.Add(Word.RightChop(1));
 		}
 		else
 		{
-			Message = FString::Join(MessageArray, TEXT(" "));
+			MessageArray.Add(Word);
 		}
+	}
 
-		FString PlayerName = PC->PlayerState->GetPlayerName();
+	Message = MessageArray.IsEmpty() ? TEXT("Rolling...") : FString::Join(MessageArray, TEXT(" "));
 
-		if (!Recipients.IsEmpty())
+	FString PlayerName = UFunctionLibrary::GetLocalPlayerName(this);
+
+	if (!Recipients.IsEmpty())
+	{
+		Recipients.Remove(PlayerName);
+
+		if (!IsValid(HUDComponentRef))
 		{
-			Recipients.Remove(PlayerName);
-
-			if (!IsValid(HUDComponentRef))
-			{
-				UE_LOG(LogTemp, Warning, TEXT("UChatBox::TrySendPrivateRollMessage — HUDComponentRef is null"));
-				return;
-			}
-
-			FString FullMessage = FString::Printf(TEXT("%s: %s"), *PlayerName, *Message);
-			HUDComponentRef->SendChatMessageOnServer(FullMessage, Recipients);
-			EditableText->SetText(FText::GetEmpty());
+			UE_LOG(LogTemp, Warning, TEXT("UChatBox::TrySendPrivateRollMessage — HUDComponentRef is null"));
+			return;
 		}
+
+		FString FullMessage = FString::Printf(TEXT("%s: %s"), *PlayerName, *Message);
+		HUDComponentRef->SendChatMessageOnServer(FullMessage, Recipients);
+		EditableText->SetText(FText::GetEmpty());
 	}
 }
 
@@ -343,49 +320,45 @@ void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod
 
 		if (!Message.IsEmpty())
 		{
-			APlayerController* PC = Cast<APlayerController>(GetOwningPlayer());
-			if (IsValid(PC) && IsValid(PC->PlayerState))
+			TArray<FString> Words;
+			Message.ParseIntoArray(Words, TEXT(" "), 1);
+
+			TArray<FString> Recipients;
+			TArray<FString> MessageArray;
+
+			for (const FString& Word : Words)
 			{
-				TArray<FString> Words;
-				Message.ParseIntoArray(Words, TEXT(" "), 1);
-
-				TArray<FString> Recipients;
-				TArray<FString> MessageArray;
-
-				for (const FString& Word : Words)
+				if (Word.StartsWith(TEXT("@")))
 				{
-					if (Word.StartsWith(TEXT("@")))
-					{
-						Recipients.Add(Word.RightChop(1));
-					}
-					else
-					{
-						MessageArray.Add(Word);
-					}
+					Recipients.Add(Word.RightChop(1));
 				}
-
-				Message = FString::Join(MessageArray, TEXT(" "));
-
-				FString PlayerName = PC->PlayerState->GetPlayerName();
-
-				// If no @recipients were typed but the active channel is private,
-				// automatically route to that channel's participants so replies
-				// don't fall back to the public server channel.
-				if (Recipients.IsEmpty() && ActiveChannel && !ActiveChannel->Participants.IsEmpty())
+				else
 				{
-					Recipients = ActiveChannel->Participants;
-					Recipients.Remove(PlayerName);
+					MessageArray.Add(Word);
 				}
-
-				if (!IsValid(HUDComponentRef))
-				{
-					UE_LOG(LogTemp, Warning, TEXT("UChatBox::OnTextCommitted — HUDComponentRef is null"));
-					return;
-				}
-
-				FString FullMessage = FString::Printf(TEXT("%s: %s"), *PlayerName, *Message);
-				HUDComponentRef->SendChatMessageOnServer(FullMessage, Recipients);
 			}
+
+			Message = FString::Join(MessageArray, TEXT(" "));
+
+			FString PlayerName = UFunctionLibrary::GetLocalPlayerName(this);
+
+			// If no @recipients were typed but the active channel is private,
+			// automatically route to that channel's participants so replies
+			// don't fall back to the public server channel.
+			if (Recipients.IsEmpty() && ActiveChannel && !ActiveChannel->Participants.IsEmpty())
+			{
+				Recipients = ActiveChannel->Participants;
+				Recipients.Remove(PlayerName);
+			}
+
+			if (!IsValid(HUDComponentRef))
+			{
+				UE_LOG(LogTemp, Warning, TEXT("UChatBox::OnTextCommitted — HUDComponentRef is null"));
+				return;
+			}
+
+			FString FullMessage = FString::Printf(TEXT("%s: %s"), *PlayerName, *Message);
+			HUDComponentRef->SendChatMessageOnServer(FullMessage, Recipients);
 
 			EditableText->SetText(FText::GetEmpty());
 
@@ -465,5 +438,71 @@ void UChatBox::RefreshChannelList()
 		Entry->SetChannel(Channel);
 		Entry->OnEntryClicked.AddDynamic(this, &UChatBox::ReopenChannel);
 		ClosedChannelContainer->AddChild(Entry);
+	}
+}
+
+void UChatBox::OnTabRightClickedHandler(UChatChannel* Channel)
+{
+	if (Channel->Participants.IsEmpty())
+	{
+		return;
+	}
+
+	if (IsValid(ActiveContextMenuRef))
+	{
+		ActiveContextMenuRef->CloseMenu();
+	}
+
+	UContextMenu* ContextMenu = CreateWidget<UContextMenu>(this, ContextMenuClass);
+	if (!IsValid(ContextMenu))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UChatBox::OnTabRightClickedHandler — Failed to create ContextMenu widget"));
+		return;
+	}
+
+	FContextMenuOption RenameOption;
+
+	RenameOption.ButtonName = TEXT("Rename");
+	RenameOption.OnClicked.BindLambda([this, Channel]()
+		{
+			GetTabForChannel(Channel)->EnterRenameMode();
+		});
+
+	FContextMenuOption CloseOption;
+
+	CloseOption.ButtonName = TEXT("Close");
+	CloseOption.OnClicked.BindLambda([this, Channel]()
+		{
+			CloseChannel(Channel);
+		});
+
+	ContextMenu->SetMenuOptions({ RenameOption, CloseOption });
+	ContextMenu->AddToViewport();
+
+	APlayerController* PC = Cast<APlayerController>(GetOwningPlayer());
+	if (IsValid(PC))
+	{
+		FVector2D MousePosition;
+		PC->GetMousePosition(MousePosition.X, MousePosition.Y);
+		ContextMenu->SetMenuPosition(MousePosition);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UChatBox::OnTabRightClickedHandler — GetOwningPlayer did not return a PlayerController"));
+	}
+	
+	ActiveContextMenuRef = ContextMenu;
+}
+
+// Updates the session save with the new name for the given tab's channel, using the participant list as the key to persist across sessions.
+void UChatBox::OnTabRenamedHandler(UChatTab* Tab, const FString& NewName)
+{
+	USessionSave* SessionSave = UFunctionLibrary::LoadSessionSave(this);
+	if (IsValid(SessionSave))
+	{
+		UChatChannel* Channel = Tab->GetChannel();
+		FString ParticipantsKey = FString::Join(Channel->Participants, TEXT("|"));
+		SessionSave->ChatTabNames.Add(ParticipantsKey, NewName);
+		UGameplayStatics::SaveGameToSlot(SessionSave, UFunctionLibrary::GetSessionSaveSlotName(GetGameInstance<USessionInstance>()), 0);
 	}
 }

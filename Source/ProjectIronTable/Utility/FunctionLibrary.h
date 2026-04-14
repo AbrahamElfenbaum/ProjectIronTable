@@ -6,6 +6,9 @@
 #include "Blueprint/UserWidget.h"
 #include "FunctionLibrary.generated.h"
 
+class USessionInstance;
+class USessionSave;
+
 /** General-purpose static utility functions exposed to Blueprints. */
 UCLASS()
 class PROJECTIRONTABLE_API UFunctionLibrary : public UBlueprintFunctionLibrary
@@ -33,4 +36,13 @@ public:
 		}
 		return Result;
 	}
+
+	/** Returns the save slot name for the given session instance (e.g. "Session_<guid>"), or an empty string if invalid. */
+	static FString GetSessionSaveSlotName(USessionInstance* SessionInstance);
+
+	/** Loads and returns the USessionSave for the current session using the world context, or nullptr on any failure. */
+	static USessionSave* LoadSessionSave(UObject* WorldContext);
+
+	/** Returns the local player's name from their PlayerState, or "Unknown" if unavailable. */
+	static FString GetLocalPlayerName(UObject* WorldContext);
 };

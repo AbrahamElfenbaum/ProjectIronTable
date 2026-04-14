@@ -98,7 +98,7 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - `UI/Chat/` — Chat widgets (`W_ChatBox`, `WE_ChatChannel`, `WE_ChatTab`, `WE_ChatEntry`)
 - `UI/PlayerList/` — Player list widgets (`W_PlayerList`, `WE_PlayerRow`)
 - `UI/Taskbar/` — Taskbar widgets (`W_Taskbar`, `WE_TaskbarButton`)
-- `UI/Utility/` — Reusable utility widgets (`W_DraggablePanel`, `WBP_DragHandle`, `WBP_ResizeHandle`, `WE_ContextMenu`, `WE_ContextMenuButton`)
+- `UI/Utility/` — Reusable utility widgets (`W_DraggablePanel`, `WBP_DragHandle`, `WBP_ResizeHandle`, `W_ContextMenu`, `WE_ContextMenuButton`)
 - `UI/CampaignManager/` — Campaign manager widget elements (`WE_GameTypeButton`, `WE_CampaignCard`)
 - `UI/Screens/` — Full screen widgets (`S_SessionScreen`, `S_HomeScreen`, `S_MainScreen`, `S_SettingsScreen`, `S_CampaignManagerScreen`, `S_CampaignBrowserScreen`, `S_AssetLibraryScreen`)
 - `UI/Settings/` — Settings widget elements (`WE_SettingsSlider`)

@@ -14,6 +14,7 @@ class UChatEntry;
 class UChatChannel;
 class UChatTab;
 class UChatChannelListEntry;
+class UContextMenu;
 
 /** Root chat widget that manages multiple named channels, a tab bar, and the message input field. */
 UCLASS()
@@ -39,6 +40,10 @@ public:
 	/** Widget class used when creating entries in the closed channel list. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UChatChannelListEntry> ChannelListEntryClass;
+
+	/** Widget class used for the context menu when right-clicking a channel tab. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<UContextMenu> ContextMenuClass;
 #pragma endregion
 
 protected:
@@ -136,6 +141,10 @@ private:
 	/** Reference to the owning HUD component, used to send chat messages to the server. */
 	UPROPERTY()
 	TObjectPtr<USessionHUDComponent> HUDComponentRef;
+
+	/** Cached reference to the currently visible context menu, used to dismiss it before spawning a new one. */
+	UPROPERTY()
+	TObjectPtr<UContextMenu> ActiveContextMenuRef;
 #pragma endregion
 
 #pragma region Event Handlers
@@ -161,5 +170,13 @@ private:
 
 	/** Clears and repopulates the closed channel list panel from the current ClosedChannels set. */
 	void RefreshChannelList();
+
+	/** Spawns a context menu at the cursor position when a non-Server tab is right-clicked. */
+	UFUNCTION()
+	void OnTabRightClickedHandler(UChatChannel* Channel);
+
+	/** Persists the new tab label to the session save when the user commits a rename. */
+	UFUNCTION()
+	void OnTabRenamedHandler(UChatTab* Tab, const FString& NewName);
 #pragma endregion
 };

@@ -162,7 +162,7 @@ Tabbed chat container. Manages channels, routing, and input.
 | `EditableText` | `UEditableText` |
 | `ChannelListButton` | `UButton` |
 
-**Config (EditAnywhere):** `ChannelClass`, `TabClass`, `ChatEntryClass`, `ChannelListEntryClass`
+**Config (EditAnywhere):** `ChannelClass`, `TabClass`, `ChatEntryClass`, `ChannelListEntryClass`, `ContextMenuClass`
 
 **Blueprint layout:** `Border → SizeBox → VerticalBox → [HBox(TabBar, ChannelListButton)], ClosedChannelContainer, ChannelContainer, EditableText`
 
@@ -207,17 +207,17 @@ Represents one channel/tab's message list.
 #### UChatTab
 **Type:** `UUserWidget` | **Blueprint:** `WE_ChatTab`
 
-Clickable tab button in the tab bar. Supports left-click to switch channel, right-click to open a context menu, and inline rename via `UEditableTextBox`.
+Clickable tab button in the tab bar. Supports left-click to switch channel, right-click to open a context menu with Rename and Close options, and inline rename via `UEditableText`.
 
-**Bound Widgets:** `TabButton`, `CloseButton` (`UButton`), `TabLabel` (`UTextBlock`), `EditLabel` (`UEditableTextBox`), `NotificationIndicator` (`UWidget`)
+**Bound Widgets:** `TabButton` (`UButton`), `TabLabel` (`UTextBlock`), `EditLabel` (`UEditableText`), `NotificationIndicator` (`UWidget`)
 
 **Key Methods:**
+- `GetChannel()` — returns the `UChatChannel*` this tab represents
 - `SetInteractable(bool)` — enables/disables `TabButton` (active tab is disabled so it can't be re-clicked)
-- `SetCloseable(bool)` — shows/hides `CloseButton` (Server tab passes `false`)
 - `ShowNotification()` / `ClearNotification()`
 - `EnterRenameMode()` — hides `TabLabel`, shows and focuses `EditLabel` pre-populated with the current label text. Commit via Enter saves the name; any other commit method (focus loss, Escape) cancels.
 
-**Delegates:** `OnTabClicked` (→`UChatChannel*`), `OnTabClosed` (→`UChatChannel*`), `OnTabRightClicked` (→`UChatChannel*`), `OnTabRenamed` (→`UChatTab*, FString NewName`)
+**Delegates:** `OnTabClicked` (→`UChatChannel*`), `OnTabRightClicked` (→`UChatChannel*`), `OnTabRenamed` (→`UChatTab*, FString NewName`)
 
 > **Note:** `OnTabRenamedCompleted` only broadcasts `OnTabRenamed` if `CommitMethod == OnEnter && !Text.IsEmpty()` — focus loss or Escape cancels silently.
 
@@ -438,6 +438,7 @@ Per-session save file. One instance per game session. `UCampaignManagerSave` is 
 | `PlayerIDs` | `TArray<FGuid>` | — | All non-GM players |
 | `LastSaved` | `FDateTime` | — | Used to sort sessions when loading a campaign (most recent first) |
 | `ChatLog` | `TMap<FString, FChatLogRecord>` | — | Keyed by sorted, pipe-joined participant names (e.g. `"Alice\|Bob"`). Empty string key = Server channel. `FChatLogRecord` wraps `TArray<FChatMessageRecord>`; each record holds `SenderName` and `Message` body. |
+| `ChatTabNames` | `TMap<FString, FString>` | — | Keyed by sorted, pipe-joined participant names (same key format as `ChatLog`). Value is the user-assigned display name for that tab. Persisted on rename; restored by `USessionHUDComponent::BeginPlay` after the chat log is restored. |
 
 `FChatMessageRecord` and `FChatLogRecord` are declared in `SessionSave.h`.
 
@@ -841,6 +842,9 @@ General-purpose helper functions accessible from C++ and Blueprint.
 **Functions:**
 - `GetDiceName(EDiceType)` → `FString` — returns display name (e.g. `"D20"`) *(BlueprintPure)*
 - `GetTypedWidgetFromName<T>(UUserWidget* Widget, FName Name)` → `T*` — template; casts result of `GetWidgetFromName`. Logs a warning if `Widget` is null or the cast fails. **C++-only** (no `UFUNCTION` — templates can't be `UFUNCTION`). Use this everywhere instead of `Cast<T>(Widget->GetWidgetFromName(...))`.
+- `GetSessionSaveSlotName(USessionInstance*)` → `FString` — returns `"Session_{SessionID}"` or empty string on null. All session save/load calls go through this; never hardcode the slot name.
+- `LoadSessionSave(UObject* WorldContext)` → `USessionSave*` — gets `USessionInstance` from the world context, resolves the slot name, loads and returns the save object. Returns nullptr (with warning) on any failure. Use this everywhere instead of inline `GetGameInstance` + `LoadGameFromSlot` blocks.
+- `GetLocalPlayerName(UObject* WorldContext)` → `FString` — returns the local player's name from `PlayerState->GetPlayerName()`, or `"Unknown"` on failure. Use this everywhere instead of inline `GetPlayerController(0)` + null-check chains.
 
 > **Note:** The template definition must live entirely in the `.h` — no `.cpp` entry needed. Define it inside the class body (implicit `inline`) or outside with `inline`.
 
@@ -866,26 +870,27 @@ Data for a single context menu item. Holds a `ButtonName` (`FString`) and `OnCli
 #### UContextMenuButton
 **Type:** `UUserWidget` | **Blueprint:** `WE_ContextMenuButton`
 
-Single button row inside a `UContextMenu`. **Bound Widget:** `OptionButton` (`UButton`). `SetOption(FContextMenuOption)` sets the label text and binds the click delegate.
+Single button row inside a `UContextMenu`. **Bound Widgets:** `MenuButton` (`UButton`), `ButtonLabel` (`UTextBlock`). `SetOption(FContextMenuOption)` sets the label text and binds the click delegate.
 
 ---
 
 #### UContextMenu
-**Type:** `UUserWidget` | **Blueprint:** `WE_ContextMenu`
+**Type:** `UUserWidget` | **Blueprint:** `W_ContextMenu`
 
-Generic floating context menu. Add to viewport, position manually, auto-dismisses on any click.
+Generic floating context menu. Add to viewport via `AddToViewport()`, position with `SetMenuPosition`, auto-dismisses on any click outside the content box.
 
-**Bound Widgets:** `MenuOptionsBox` (`UVerticalBox`)
+**Bound Widgets:** `ContextBox` (`USizeBox`), `MenuOptionsBox` (`UVerticalBox`)
 
 **Config (EditAnywhere):** `ContextMenuButtonClass` (`TSubclassOf<UContextMenuButton>`)
 
 **Key Methods:**
-- `SetMenuOptions(TArray<FContextMenuOption>)` — clears existing buttons, spawns one `UContextMenuButton` per option. Wraps each option's `OnClicked` delegate in a lambda that calls `CloseMenu()` before the original callback, so buttons also dismiss the menu.
+- `SetMenuOptions(TArray<FContextMenuOption>)` — clears existing buttons, spawns one `UContextMenuButton` per option. Wraps each option's `OnClicked` in a lambda that calls `CloseMenu()` before the original callback, so buttons also dismiss the menu.
+- `SetMenuPosition(FVector2D)` — offsets `ContextBox` within the root `Overlay` using `UOverlaySlot::SetPadding`. Call after `AddToViewport()`.
 - `CloseMenu()` — calls `RemoveFromParent()`.
 
-`NativeOnMouseButtonDown` calls `CloseMenu()` and returns `FReply::Handled()` (no `Super::`) — any click that reaches the widget root (i.e. not consumed by a child button) closes the menu.
+`NativeOnMouseButtonDown` checks whether the click falls within `ContextBox`'s cached geometry bounds. If outside: calls `CloseMenu()` and returns `FReply::Handled()`. If inside: returns `FReply::Unhandled()` so child buttons receive the event.
 
-> **Blueprint requirement:** The `WE_ContextMenu` Blueprint root must be full-screen with a transparent (0 opacity) background so that clicks outside the visible button area are captured and trigger dismissal.
+> **Blueprint requirement:** The `W_ContextMenu` root must be an `Overlay` that fills the viewport. `ContextBox` and `MenuOptionsBox` should be set to `Not Hit Testable Self Only` so missed clicks pass through to the root and trigger dismissal.
 
 ---
 
@@ -1066,7 +1071,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - [ ] Session save/load — full snapshot (map, tokens, fog of war, initiative, chat, sheets, notes, inventory); sessions stored as `"Session_{SessionID}"` slots indexed by `UCampaignManagerSave`; manual save + autosave (configurable interval); auto-save on session close
 - [ ] GM permissions system
 - [ ] Session player cap (default 8, removable)
-- [~] Tab renaming (client-local) — `UContextMenu`, `UContextMenuButton`, `UChatTab::EnterRenameMode`, right-click delegate all done; `UChatBox` wiring (spawn menu, bind handlers, persist name) is the remaining step
+- [x] Tab renaming (client-local) — right-click opens `UContextMenu` with Rename and Close options; rename persisted to `USessionSave::ChatTabNames`; close button removed from tab in favour of context menu
 - [x] Chat log persistence
 - [ ] Shared notes (rich-text: headers, bullets, bold, italic; real-time collaborative editing; persists across sessions; accessible outside active session via Campaign Manager)
 - [ ] Pre-session lobby (waiting room; pre-game chat; character sheet accessible while waiting; Host sees connection status and launches when ready)
@@ -1295,7 +1300,11 @@ This approach keeps all save I/O within UE's native save game system and makes a
 
 ---
 
-*Last updated: 2026-04-13* — Chat tab rename infrastructure complete. `UChatTab` gains `EditLabel` (`UEditableTextBox` BindWidget), `EnterRenameMode()`, `OnTabRightClicked` and `OnTabRenamed` delegates. `UContextMenu` and `UContextMenuButton` added to `Utility/` — generic floating context menu with auto-dismiss on click-outside and on button click (lambda wrapping in `SetMenuOptions`). `UContextMenu::NativeOnMouseButtonDown` consumes all clicks reaching the root without `Super::`. `UChatBox` wiring (Step 3) is the only remaining rename step. Format-all pass complete across all 90+ source files. 15 recurring code patterns catalogued in `memory/project_pattern_analysis.md`.
+*Last updated: 2026-04-14 (updated)* — `UFunctionLibrary` gains three static helpers extracted from repeated inline patterns: `GetSessionSaveSlotName(USessionInstance*)`, `LoadSessionSave(UObject*)`, `GetLocalPlayerName(UObject*)`. All call sites in `UChatBox` and `USessionHUDComponent` updated to use these. `USessionSave` gains `ChatTabNames` (`TMap<FString, FString>`) for persisting user-assigned tab labels. `UChatBox` Config gains `ContextMenuClass`. (~50 lines of inline boilerplate removed across 4 call sites.)
+
+*2026-04-14* — Chat tab rename complete. `UChatBox` wired: `OnTabRightClickedHandler` spawns `W_ContextMenu` at cursor with Rename and Close options; `OnTabRenamedHandler` persists new name to `USessionSave::ChatTabNames`. Close button removed from `UChatTab` — channel close now lives in the context menu alongside rename. `UChatTab` updated: `CloseButton` BindWidget, `FOnTabClosed` delegate, and `SetCloseable` removed; `EditLabel` type corrected to `UEditableText` (was `UEditableTextBox`); `GetChannel()` accessor added. `UContextMenu` updated: bounds-check approach in `NativeOnMouseButtonDown` replaces backdrop button pattern; `ContextBox` (`USizeBox`) added as BindWidget; `SetMenuPosition(FVector2D)` added (offsets `ContextBox` via `UOverlaySlot`); Blueprint renamed `W_ContextMenu`. `UContextMenuButton` Bound Widgets corrected: `MenuButton` + `ButtonLabel`.
+
+*2026-04-13* — Chat tab rename infrastructure complete. `UChatTab` gains `EditLabel` (`UEditableTextBox` BindWidget), `EnterRenameMode()`, `OnTabRightClicked` and `OnTabRenamed` delegates. `UContextMenu` and `UContextMenuButton` added to `Utility/` — generic floating context menu with auto-dismiss on click-outside and on button click (lambda wrapping in `SetMenuOptions`). `UContextMenu::NativeOnMouseButtonDown` consumes all clicks reaching the root without `Super::`. `UChatBox` wiring (Step 3) is the only remaining rename step. Format-all pass complete across all 90+ source files. 15 recurring code patterns catalogued in `memory/project_pattern_analysis.md`.
 
 *Last updated: 2026-04-12 (updated)* — Chat log persistence implemented. `USessionSave` gains `FChatMessageRecord`, `FChatLogRecord`, and `ChatLog` (`TMap<FString, FChatLogRecord>`). `UChatChannel` gains `RestoreMessage`. `UChatBox` gains `FindOrCreateChannel` (extracted from `AddChatMessage`; shared with restore loop). `USessionHUDComponent::BeginPlay` restores chat log on load; `SendChatMessageOnServer` saves each message after routing. `bPendingRefocus` flag added to `UChatBox` to fix Enter double-fire bug (Slate fires `OnUserMovedFocus` immediately after `OnEnter`). Roadmap: chat log persistence checked off.
 

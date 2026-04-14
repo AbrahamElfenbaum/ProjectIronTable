@@ -81,58 +81,43 @@ void USessionHUDComponent::BeginPlay()
 
 		if (IsValid(ChatBoxRef))
 		{
-			USessionInstance* SessionInstance = GetOwner()->GetGameInstance<USessionInstance>();
-
-			if (IsValid(SessionInstance))
+			USessionSave* SessionSave = UFunctionLibrary::LoadSessionSave(GetOwner());
+			if (IsValid(SessionSave))
 			{
-				USessionSave* SessionSave = Cast<USessionSave>(UGameplayStatics::LoadGameFromSlot(FString::Printf(TEXT("Session_%s"),
-					*SessionInstance->GetSessionID().ToString()), 0));
-
-				if (IsValid(SessionSave))
+				for (const TPair<FString, FChatLogRecord>& ChatLog : SessionSave->ChatLog)
 				{
-					for (const TPair<FString, FChatLogRecord>& ChatLog : SessionSave->ChatLog)
+					TArray<FString> Recipients;
+					ChatLog.Key.ParseIntoArray(Recipients, TEXT("|"), 1);
+
+					UChatChannel* Channel = ChatBoxRef->FindOrCreateChannel(Recipients);
+
+					const TArray<FChatMessageRecord>& Messages = ChatLog.Value.Messages;
+					for (const FChatMessageRecord& Message : Messages)
 					{
-						TArray<FString> Recipients;
-						ChatLog.Key.ParseIntoArray(Recipients, TEXT("|"), 1);
-
-						UChatChannel* Channel = ChatBoxRef->FindOrCreateChannel(Recipients);
-
-						const TArray<FChatMessageRecord>& Messages = ChatLog.Value.Messages;
-						for (const FChatMessageRecord& Message : Messages)
-						{
-							Channel->RestoreMessage(Message.SenderName, Message.Message);
-						}
-					}
-
-					APlayerController* PC = Cast<APlayerController>(GetOwner());
-					if (IsValid(PC) && IsValid(PC->PlayerState))
-					{
-						FString PlayerName = PC->PlayerState->GetPlayerName();
-						for (const TPair <FString, FString>& ChatTabName : SessionSave->ChatTabNames)
-						{
-							TArray<FString> Names;
-							ChatTabName.Key.ParseIntoArray(Names, TEXT("|"), 1);
-							Names.Remove(PlayerName);
-							if (!Names.IsEmpty())
-							{
-								UChatChannel* Channel = ChatBoxRef->FindOrCreateChannel(Names);
-								UChatTab* Tab = ChatBoxRef->GetTabForChannel(Channel);
-								if (IsValid(Tab))
-								{
-									Tab->SetLabel(ChatTabName.Value);
-								}
-							}
-						}
+						Channel->RestoreMessage(Message.SenderName, Message.Message);
 					}
 				}
-				else
+
+				FString PlayerName = UFunctionLibrary::GetLocalPlayerName(GetOwner());
+				for (const TPair <FString, FString>& ChatTabName : SessionSave->ChatTabNames)
 				{
-					UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::BeginPlay — Failed to load session save; chat log and tab names will not be restored"));
+					TArray<FString> Names;
+					ChatTabName.Key.ParseIntoArray(Names, TEXT("|"), 1);
+					Names.Remove(PlayerName);
+					if (!Names.IsEmpty())
+					{
+						UChatChannel* Channel = ChatBoxRef->FindOrCreateChannel(Names);
+						UChatTab* Tab = ChatBoxRef->GetTabForChannel(Channel);
+						if (IsValid(Tab))
+						{
+							Tab->SetLabel(ChatTabName.Value);
+						}
+					}
 				}
 			}
 			else
 			{
-				UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::BeginPlay — SessionInstance is null; chat log will not be restored"));
+				UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::BeginPlay — Failed to load session save; chat log and tab names will not be restored"));
 			}
 		}
 		else
@@ -344,27 +329,16 @@ void USessionHUDComponent::SendChatMessageOnServer_Implementation(const FString&
 
 	FChatMessageRecord MessageRecord = { SenderName , Body };
 
-	USessionInstance* SessionInstance = GetOwner()->GetGameInstance<USessionInstance>();
-
-	if (IsValid(SessionInstance))
+	USessionSave* SessionSave = UFunctionLibrary::LoadSessionSave(GetOwner());
+	if (IsValid(SessionSave))
 	{
-		USessionSave* SessionSave = Cast<USessionSave>(UGameplayStatics::LoadGameFromSlot(FString::Printf(TEXT("Session_%s"),
-			*SessionInstance->GetSessionID().ToString()), 0));
-
-		if (IsValid(SessionSave))
-		{
-			FChatLogRecord& LogRecord = SessionSave->ChatLog.FindOrAdd(sParticipants);
-			LogRecord.Messages.Add(MessageRecord);
-			UGameplayStatics::SaveGameToSlot(SessionSave, FString::Printf(TEXT("Session_%s"), *SessionInstance->GetSessionID().ToString()), 0);
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::SendChatMessageOnServer — Failed to load session save; message will not be persisted"));
-		}
+		FChatLogRecord& LogRecord = SessionSave->ChatLog.FindOrAdd(sParticipants);
+		LogRecord.Messages.Add(MessageRecord);
+		UGameplayStatics::SaveGameToSlot(SessionSave, UFunctionLibrary::GetSessionSaveSlotName(GetOwner()->GetGameInstance<USessionInstance>()), 0);
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::SendChatMessageOnServer — SessionInstance is null; message will not be persisted"));
+		UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::SendChatMessageOnServer — Failed to load session save; message will not be persisted"));
 	}
 }
 
@@ -372,7 +346,7 @@ void USessionHUDComponent::SendChatMessageOnServer_Implementation(const FString&
 void USessionHUDComponent::AddRollResultToChat(TArray<FRollResult> Results, EDiceRollMode RollMode)
 {
 	//Message starts with the player name
-	FString Message = IsValid(PlayerControllerRef) && IsValid(PlayerControllerRef->PlayerState) ? PlayerControllerRef->PlayerState->GetPlayerName() : TEXT("Unknown");
+	FString Message = UFunctionLibrary::GetLocalPlayerName(GetOwner());
 
 	if (RollMode == EDiceRollMode::Advantage)
 	{
@@ -407,7 +381,7 @@ void USessionHUDComponent::AddRollResultToChat(TArray<FRollResult> Results, EDic
 // Sends a chat message to the server noting that a die of the given type was lost to the failsafe timer.
 void USessionHUDComponent::OnDiceFailsafeHandler(EDiceType DiceType)
 {
-	FString PlayerName = IsValid(PlayerControllerRef) && IsValid(PlayerControllerRef->PlayerState) ? PlayerControllerRef->PlayerState->GetPlayerName() : TEXT("Unknown");
+	FString PlayerName = UFunctionLibrary::GetLocalPlayerName(GetOwner());
 
 	FString DiceTypeName = UEnum::GetValueAsString(DiceType);
 	DiceTypeName = DiceTypeName.RightChop(DiceTypeName.Find(TEXT("::")) + 2);
