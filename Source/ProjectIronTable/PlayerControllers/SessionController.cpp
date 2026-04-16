@@ -115,6 +115,19 @@ void ASessionController::SaveCameraSettings()
 	UGameplayStatics::SaveGameToSlot(Save, UCameraSettingsSave::SaveSlotName, 0);
 }
 
+// Validates the world reference and calls ServerTravel with the provided URL.
+void ASessionController::Server_TravelToSession_Implementation(const FString& TravelURL)
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ASessionController::Server_TravelToSession — GetWorld() returned null."));
+		return;
+	}
+
+	World->ServerTravel(TravelURL);
+}
+
 #if WITH_EDITOR
 // Delegates to ValidateCameraSettings so editor and runtime share the same validation logic.
 void ASessionController::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)

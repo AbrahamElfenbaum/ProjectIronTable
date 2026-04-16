@@ -11,6 +11,7 @@ class UTaskbar;
 class UDraggablePanel;
 class UPanelLayoutSave;
 class UPlayerList;
+class USessionNotesPanel;
 
 /**
  * Actor component attached to ASessionController that owns and manages all gameplay UI.
@@ -40,6 +41,10 @@ public:
 private:
 
 #pragma region Runtime References
+	/** Cached reference to the owning player controller. */
+	UPROPERTY()
+	TObjectPtr<APlayerController> PlayerControllerRef;
+
 	/** The instantiated root gameplay screen widget. */
 	UPROPERTY()
 	TObjectPtr<UUserWidget> GameplayScreenRef;
@@ -52,13 +57,13 @@ private:
 	UPROPERTY()
 	TObjectPtr<UChatBox> ChatBoxRef;
 
-	/** Cached reference to the owning player controller. */
-	UPROPERTY()
-	TObjectPtr<APlayerController> PlayerControllerRef;
-
 	/** Reference to the PlayerList widget found inside the gameplay screen. */
 	UPROPERTY()
 	TObjectPtr<UPlayerList> PlayerListRef;
+
+	/** Reference to the SessionNotesPanel widget found inside the gameplay screen. */
+	UPROPERTY()
+	TObjectPtr<USessionNotesPanel> SessionNotesPanelRef;
 
 	/** Reference to the Taskbar widget found inside the gameplay screen. */
 	UPROPERTY()
@@ -75,6 +80,10 @@ private:
 	/** Reference to the DraggablePanel wrapping the PlayerList, registered with the Taskbar for toggling. */
 	UPROPERTY()
 	TObjectPtr<UDraggablePanel> PlayersPanel;
+
+	/** Reference to the DraggablePanel for session notes, registered with the Taskbar for toggling. */
+	UPROPERTY()
+	TObjectPtr<UDraggablePanel> SessionNotesPanel;
 
 	/** Array of all draggable panels in the HUD, used for saving and loading layout. */
 	UPROPERTY()

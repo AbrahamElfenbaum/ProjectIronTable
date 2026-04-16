@@ -26,7 +26,8 @@ public class ProjectIronTable : ModuleRules
             Path.Combine(ModuleDirectory, "GameStates"),
             Path.Combine(ModuleDirectory, "PlayerStates"),
             Path.Combine(ModuleDirectory, "GameModes"),
-            Path.Combine(ModuleDirectory, "GameInstances")
+            Path.Combine(ModuleDirectory, "GameInstances"),
+            Path.Combine(ModuleDirectory, "SessionNotes")
 
         });
 

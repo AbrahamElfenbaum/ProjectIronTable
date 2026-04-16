@@ -7,6 +7,7 @@
 
 #include "GameTypeButton.h"
 #include "CampaignCard.h"
+#include "SessionController.h"
 #include "SessionInstance.h"
 #include "MacroLibrary.h"
 
@@ -192,13 +193,14 @@ void UCampaignManagerScreen::OnCampaignSelected(const FGuid& CampaignID, const F
 	}
 
 	UWorld* World = GetWorld();
-	if (!World)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UCampaignManagerScreen::OnCampaignSelected — GetWorld() returned null."));
-		return;
-	}
+	CHECK_IF_VALID(World, );
 
 	FString TravelURL = FString::Printf(TEXT("MapName?PlayerID=%s"), *PlayerID.ToString());
-	World->ServerTravel(TravelURL);
+
+	GET_OWNING_PC(PC, );
+	ASessionController* SessionPC = Cast<ASessionController>(PC);
+
+	CHECK_IF_VALID(SessionPC, );
+	SessionPC->Server_TravelToSession(TravelURL);
 }
 

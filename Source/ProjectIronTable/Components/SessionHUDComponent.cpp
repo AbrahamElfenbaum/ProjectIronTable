@@ -18,6 +18,7 @@
 #include "PanelLayoutSave.h"
 #include "FunctionLibrary.h"
 #include "SessionInstance.h"
+#include "SessionNotesPanel.h"
 #include "SessionSave.h"
 #include "MacroLibrary.h"
 
@@ -52,6 +53,7 @@ void USessionHUDComponent::BeginPlay()
 		DiceSelectorManagerRef = UFunctionLibrary::GetTypedWidgetFromName<UDiceSelectorManager>(GameplayScreenRef, TEXT("DiceSelectorManager"));
 		ChatBoxRef = UFunctionLibrary::GetTypedWidgetFromName<UChatBox>(GameplayScreenRef, TEXT("ChatBox"));
 		PlayerListRef = UFunctionLibrary::GetTypedWidgetFromName<UPlayerList>(GameplayScreenRef, TEXT("PlayerList"));
+		SessionNotesPanelRef = UFunctionLibrary::GetTypedWidgetFromName<USessionNotesPanel>(GameplayScreenRef, TEXT("SessionNotes"));
 		TaskbarRef = UFunctionLibrary::GetTypedWidgetFromName<UTaskbar>(GameplayScreenRef, TEXT("Taskbar"));
 
 		if (IsValid(DiceSelectorManagerRef))
@@ -131,12 +133,22 @@ void USessionHUDComponent::BeginPlay()
 			UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::BeginPlay — PlayerList not found"));
 		}
 
+		if (IsValid(SessionNotesPanelRef))
+		{
+
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::BeginPlay — SessionNotesPanel not found"));
+		}
+
 		if (IsValid(TaskbarRef))
 		{
 			DicePanel = FindAndRegisterPanel(TEXT("DicePanel"), TEXT("Dice"));
 			ChatPanel = FindAndRegisterPanel(TEXT("ChatPanel"), TEXT("Chat"));
 			PlayersPanel = FindAndRegisterPanel(TEXT("PlayersPanel"), TEXT("Players"));
-			Panels = { DicePanel, ChatPanel, PlayersPanel };
+			SessionNotesPanel = FindAndRegisterPanel(TEXT("SessionNotesPanel"), TEXT("Session Notes"));
+			Panels = { DicePanel, ChatPanel, PlayersPanel, SessionNotesPanel };
 			//Register and add other widgets to Panels array as needed
 			LoadPanelLayout();
 		}

@@ -137,6 +137,10 @@ public:
 
 	/** Writes current camera config properties to a new save object and saves to slot "CameraSettings". */
 	void SaveCameraSettings();
+
+	/** Sends the server a request to call ServerTravel with the given URL, moving all players to the target level. */
+	UFUNCTION(Server, Reliable)
+	void Server_TravelToSession(const FString& TravelURL);
 #pragma endregion
 
 protected:
