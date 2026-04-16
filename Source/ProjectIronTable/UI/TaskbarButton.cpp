@@ -4,6 +4,8 @@
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
 
+#include "MacroLibrary.h"
+
 // Binds the toggle button click event.
 void UTaskbarButton::NativeConstruct()
 {
@@ -33,11 +35,7 @@ UUserWidget* UTaskbarButton::GetTrackedWidget() const
 // Collapses the tracked widget if visible, or restores it if collapsed.
 void UTaskbarButton::OnToggleClicked()
 {
-	if (!IsValid(TrackedWidget))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UTaskbarButton::OnToggleClicked — TrackedWidget is null"));
-		return;
-	}
+	CHECK_IF_VALID(TrackedWidget, );
 
 	if (TrackedWidget->GetVisibility() == ESlateVisibility::Collapsed)
 	{

@@ -6,30 +6,6 @@
 #include "SessionSave.h"
 #include "GameFramework/PlayerState.h"
 
-// Returns the short string name for each EDiceType value.
-FString UFunctionLibrary::GetDiceName(EDiceType Type)
-{
-	switch (Type)
-	{
-	case EDiceType::D4:
-		return TEXT("D4");
-	case EDiceType::D6:
-		return TEXT("D6");
-	case EDiceType::D8:
-		return TEXT("D8");
-	case EDiceType::D10:
-		return TEXT("D10");
-	case EDiceType::D12:
-		return TEXT("D12");
-	case EDiceType::D20:
-		return TEXT("D20");
-	case EDiceType::D100:
-		return TEXT("D100");
-	default:
-		return FString();
-	}
-}
-
 // Returns the session save slot name for the given session instance, or an empty string if the instance is invalid.
 FString UFunctionLibrary::GetSessionSaveSlotName(USessionInstance* SessionInstance)
 {
@@ -77,4 +53,11 @@ FString UFunctionLibrary::GetLocalPlayerName(UObject* WorldContext)
 
 	UE_LOG(LogTemp, Warning, TEXT("UFunctionLibrary::GetLocalPlayerName � Failed to get local player name"));
 	return TEXT("Unknown");
+}
+
+// Sorts participants in place then joins with '|' for a deterministic key regardless of input order.
+FString UFunctionLibrary::MakeParticipantKey(TArray<FString> Participants)
+{
+	Participants.Sort();
+	return FString::Join(Participants, TEXT("|"));
 }

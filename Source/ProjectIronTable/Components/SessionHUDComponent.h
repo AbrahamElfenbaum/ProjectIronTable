@@ -75,6 +75,10 @@ private:
 	/** Reference to the DraggablePanel wrapping the PlayerList, registered with the Taskbar for toggling. */
 	UPROPERTY()
 	TObjectPtr<UDraggablePanel> PlayersPanel;
+
+	/** Array of all draggable panels in the HUD, used for saving and loading layout. */
+	UPROPERTY()
+	TArray<TObjectPtr<UDraggablePanel>> Panels;
 #pragma endregion
 
 public:

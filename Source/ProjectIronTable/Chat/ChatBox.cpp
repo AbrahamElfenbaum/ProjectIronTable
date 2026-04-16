@@ -16,6 +16,7 @@
 #include "ChatChannelListEntry.h"
 #include "ContextMenu.h"
 #include "FunctionLibrary.h"
+#include "MacroLibrary.h"
 #include "SessionHUDComponent.h"
 #include "SessionInstance.h"
 #include "SessionSave.h"
@@ -25,20 +26,7 @@ void UChatBox::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	APlayerController* PC = Cast<APlayerController>(GetOwningPlayer());
-	if (IsValid(PC))
-	{
-		HUDComponentRef = Cast<USessionHUDComponent>(
-			PC->GetComponentByClass(USessionHUDComponent::StaticClass()));
-		if (!IsValid(HUDComponentRef))
-		{
-			UE_LOG(LogTemp, Warning, TEXT("UChatBox::NativeConstruct — Failed to find SessionHUDComponent on PlayerController"));
-		}
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UChatBox::NativeConstruct — GetOwningPlayer did not return a PlayerController"));
-	}
+	GET_OWNING_PC(PC, );
 
 	if (ChannelListButton)
 	{
@@ -78,14 +66,11 @@ void UChatBox::Scroll(bool bUp)
 // Sets keyboard focus on the editable text field and switches to UI-only input mode.
 void UChatBox::FocusChat()
 {
-	APlayerController* PC = Cast<APlayerController>(GetOwningPlayer());
-	if (IsValid(PC))
-	{
-		EditableText->SetUserFocus(PC);
-		bChatFocused = true;
-		EditableText->SetIsEnabled(true);
-		PC->SetInputMode(FInputModeUIOnly());
-	}
+	GET_OWNING_PC(PC, );
+	EditableText->SetUserFocus(PC);
+	bChatFocused = true;
+	EditableText->SetIsEnabled(true);
+	PC->SetInputMode(FInputModeUIOnly());
 }
 
 // Clears and disables the input field and restores game-and-UI input mode.
@@ -93,12 +78,9 @@ void UChatBox::ExitChat()
 {
 	bChatFocused = false;
 	EditableText->SetIsEnabled(false);
-	APlayerController* PC = Cast<APlayerController>(GetOwningPlayer());
-	if (IsValid(PC))
-	{
-		PC->SetInputMode(FInputModeGameAndUI());
-		PC->bShowMouseCursor = true;
-	}
+	GET_OWNING_PC(PC, );
+	PC->SetInputMode(FInputModeGameAndUI());
+	PC->bShowMouseCursor = true;
 }
 
 // Creates and registers a new channel and its corresponding tab, returning the new channel.
@@ -125,11 +107,7 @@ UChatChannel* UChatBox::CreateChannel(const TArray<FString>& Participants)
 
 	//Channel widget creation and setup
 	UChatChannel* Channel = CreateWidget<UChatChannel>(this, ChannelClass);
-	if (!IsValid(Channel))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UChatBox::CreateChannel — Failed to create ChatChannel widget"));
-		return nullptr;
-	}
+	CHECK_IF_VALID(Channel, nullptr);
 	Channel->ChatEntryClass = ChatEntryClass;
 	Channel->DisplayName = Label;
 	Channel->Participants = SortedParticipants;
@@ -139,11 +117,7 @@ UChatChannel* UChatBox::CreateChannel(const TArray<FString>& Participants)
 
 	//Tab widget creation and setup
 	UChatTab* Tab = CreateWidget<UChatTab>(this, TabClass);
-	if (!IsValid(Tab))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UChatBox::CreateChannel — Failed to create ChatTab widget"));
-		return Channel;
-	}
+	CHECK_IF_VALID(Tab, Channel);
 	Tab->SetChannel(Channel);
 	Tab->SetLabel(Label);
 	Tab->OnTabClicked.AddDynamic(this, &UChatBox::SwitchToChannel);
@@ -155,7 +129,7 @@ UChatChannel* UChatBox::CreateChannel(const TArray<FString>& Participants)
 
 	TabBar->AddChild(Tab);
 
-	FString sSortedParticipants = FString::Join(SortedParticipants, TEXT("|"));
+	FString sSortedParticipants = UFunctionLibrary::MakeParticipantKey(SortedParticipants);
 
 	USessionSave* SessionSave = UFunctionLibrary::LoadSessionSave(this);
 	if (IsValid(SessionSave))
@@ -230,27 +204,11 @@ TArray<FString> UChatBox::GetActiveChannelParticipants()
 // used for rolling in private channels without losing context.
 void UChatBox::TrySendPrivateRollMessage()
 {
-	FString Message = EditableText->GetText().ToString();
-
-	TArray<FString> Words;
-	Message.ParseIntoArray(Words, TEXT(" "), 1);
-
+	FString Body;
 	TArray<FString> Recipients;
-	TArray<FString> MessageArray;
+	ParseMentions(EditableText->GetText().ToString(), Recipients, Body);
 
-	for (const FString& Word : Words)
-	{
-		if (Word.StartsWith(TEXT("@")))
-		{
-			Recipients.Add(Word.RightChop(1));
-		}
-		else
-		{
-			MessageArray.Add(Word);
-		}
-	}
-
-	Message = MessageArray.IsEmpty() ? TEXT("Rolling...") : FString::Join(MessageArray, TEXT(" "));
+	if (Body.IsEmpty()) Body = TEXT("Rolling...");
 
 	FString PlayerName = UFunctionLibrary::GetLocalPlayerName(this);
 
@@ -258,13 +216,9 @@ void UChatBox::TrySendPrivateRollMessage()
 	{
 		Recipients.Remove(PlayerName);
 
-		if (!IsValid(HUDComponentRef))
-		{
-			UE_LOG(LogTemp, Warning, TEXT("UChatBox::TrySendPrivateRollMessage — HUDComponentRef is null"));
-			return;
-		}
+		CHECK_IF_VALID(HUDComponentRef, );
 
-		FString FullMessage = FString::Printf(TEXT("%s: %s"), *PlayerName, *Message);
+		FString FullMessage = FString::Printf(TEXT("%s: %s"), *PlayerName, *Body);
 		HUDComponentRef->SendChatMessageOnServer(FullMessage, Recipients);
 		EditableText->SetText(FText::GetEmpty());
 	}
@@ -273,35 +227,16 @@ void UChatBox::TrySendPrivateRollMessage()
 // Searches existing channels for a participant-list match; creates and returns a new channel if none is found.
 UChatChannel* UChatBox::FindOrCreateChannel(const TArray<FString>& Participants)
 {
-	UChatChannel* CurrentChannel = nullptr;
+	FString IncomingKey = UFunctionLibrary::MakeParticipantKey(Participants);
 
 	for (UChatChannel* Channel : Channels)
 	{
-		bool bChannelFound = true;
-		if (Channel->Participants.Num() == Participants.Num())
+		if (UFunctionLibrary::MakeParticipantKey(Channel->Participants) == IncomingKey)
 		{
-			for (const FString& Participant : Participants)
-			{
-				if (!Channel->Participants.Contains(Participant))
-				{
-					bChannelFound = false;
-					break;
-				}
-			}
-			if (bChannelFound)
-			{
-				CurrentChannel = Channel;
-				break;
-			}
+			return Channel;
 		}
 	}
-
-	if (!CurrentChannel)
-	{
-		CurrentChannel = CreateChannel(Participants);
-	}
-
-	return CurrentChannel;
+	return CreateChannel(Participants);	
 }
 
 // Looks up and returns the tab for the given channel, or nullptr if not found.
@@ -320,25 +255,9 @@ void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod
 
 		if (!Message.IsEmpty())
 		{
-			TArray<FString> Words;
-			Message.ParseIntoArray(Words, TEXT(" "), 1);
-
+			FString Body;
 			TArray<FString> Recipients;
-			TArray<FString> MessageArray;
-
-			for (const FString& Word : Words)
-			{
-				if (Word.StartsWith(TEXT("@")))
-				{
-					Recipients.Add(Word.RightChop(1));
-				}
-				else
-				{
-					MessageArray.Add(Word);
-				}
-			}
-
-			Message = FString::Join(MessageArray, TEXT(" "));
+			ParseMentions(EditableText->GetText().ToString(), Recipients, Body);
 
 			FString PlayerName = UFunctionLibrary::GetLocalPlayerName(this);
 
@@ -351,13 +270,9 @@ void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod
 				Recipients.Remove(PlayerName);
 			}
 
-			if (!IsValid(HUDComponentRef))
-			{
-				UE_LOG(LogTemp, Warning, TEXT("UChatBox::OnTextCommitted — HUDComponentRef is null"));
-				return;
-			}
+			CHECK_IF_VALID(HUDComponentRef, );
 
-			FString FullMessage = FString::Printf(TEXT("%s: %s"), *PlayerName, *Message);
+			FString FullMessage = FString::Printf(TEXT("%s: %s"), *PlayerName, *Body);
 			HUDComponentRef->SendChatMessageOnServer(FullMessage, Recipients);
 
 			EditableText->SetText(FText::GetEmpty());
@@ -454,11 +369,7 @@ void UChatBox::OnTabRightClickedHandler(UChatChannel* Channel)
 	}
 
 	UContextMenu* ContextMenu = CreateWidget<UContextMenu>(this, ContextMenuClass);
-	if (!IsValid(ContextMenu))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UChatBox::OnTabRightClickedHandler — Failed to create ContextMenu widget"));
-		return;
-	}
+	CHECK_IF_VALID(ContextMenu, );
 
 	FContextMenuOption RenameOption;
 
@@ -479,18 +390,10 @@ void UChatBox::OnTabRightClickedHandler(UChatChannel* Channel)
 	ContextMenu->SetMenuOptions({ RenameOption, CloseOption });
 	ContextMenu->AddToViewport();
 
-	APlayerController* PC = Cast<APlayerController>(GetOwningPlayer());
-	if (IsValid(PC))
-	{
-		FVector2D MousePosition;
-		PC->GetMousePosition(MousePosition.X, MousePosition.Y);
-		ContextMenu->SetMenuPosition(MousePosition);
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UChatBox::OnTabRightClickedHandler — GetOwningPlayer did not return a PlayerController"));
-	}
-	
+	GET_OWNING_PC(PC, );
+	FVector2D MousePosition;
+	PC->GetMousePosition(MousePosition.X, MousePosition.Y);
+	ContextMenu->SetMenuPosition(MousePosition);
 	ActiveContextMenuRef = ContextMenu;
 }
 
@@ -500,9 +403,30 @@ void UChatBox::OnTabRenamedHandler(UChatTab* Tab, const FString& NewName)
 	USessionSave* SessionSave = UFunctionLibrary::LoadSessionSave(this);
 	if (IsValid(SessionSave))
 	{
-		UChatChannel* Channel = Tab->GetChannel();
-		FString ParticipantsKey = FString::Join(Channel->Participants, TEXT("|"));
+		FString ParticipantsKey = UFunctionLibrary::MakeParticipantKey(Tab->GetChannel()->Participants);
 		SessionSave->ChatTabNames.Add(ParticipantsKey, NewName);
 		UGameplayStatics::SaveGameToSlot(SessionSave, UFunctionLibrary::GetSessionSaveSlotName(GetGameInstance<USessionInstance>()), 0);
 	}
+}
+
+// Tokenizes Message on spaces; words prefixed with '@' are stripped and added to OutRecipients, the rest join into OutBody.
+void UChatBox::ParseMentions(const FString& Message, TArray<FString>& OutRecipients, FString& OutBody) const
+{
+	TArray<FString> Words;
+	Message.ParseIntoArray(Words, TEXT(" "), 1);
+
+	TArray<FString> MessageArray;
+
+	for (const FString& Word : Words)
+	{
+		if (Word.StartsWith(TEXT("@")))
+		{
+			OutRecipients.Add(Word.RightChop(1));
+		}
+		else
+		{
+			MessageArray.Add(Word);
+		}
+	}
+	OutBody = FString::Join(MessageArray, TEXT(" "));
 }

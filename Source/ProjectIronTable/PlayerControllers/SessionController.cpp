@@ -11,6 +11,7 @@
 #include "SessionHUDComponent.h"
 #include "SessionPawn.h"
 #include "CameraSettingsSave.h"
+#include "MacroLibrary.h"
 
 // Creates and attaches the HUD component subobject.
 ASessionController::ASessionController()
@@ -100,11 +101,7 @@ void ASessionController::ApplyCameraSettings(const UCameraSettingsSave* Settings
 void ASessionController::SaveCameraSettings()
 {
 	UCameraSettingsSave* Save = NewObject<UCameraSettingsSave>();
-	if (!IsValid(Save))
-	{
-		UE_LOG(LogTemp, Error, TEXT("ASessionController::SaveCameraSettings — Failed to create CameraSettingsSave object"));
-		return;
-	}
+	CHECK_IF_VALID(Save, );
 	Save->MinCameraMovementSpeed = MinCameraMovementSpeed;
 	Save->MaxCameraMovementSpeed = MaxCameraMovementSpeed;
 	Save->CameraSpeedMultiplier = CameraSpeedMultiplier;
@@ -139,11 +136,7 @@ void ASessionController::BeginPlay()
 	if (UGameplayStatics::DoesSaveGameExist(UCameraSettingsSave::SaveSlotName, 0))
 	{
 		UCameraSettingsSave* LoadedSettings = Cast<UCameraSettingsSave>(UGameplayStatics::LoadGameFromSlot(UCameraSettingsSave::SaveSlotName, 0));
-		if (!IsValid(LoadedSettings))
-		{
-			UE_LOG(LogTemp, Warning, TEXT("ASessionController::BeginPlay — Failed to load camera settings save"));
-			return;
-		}
+		CHECK_IF_VALID(LoadedSettings, );
 		ApplyCameraSettings(LoadedSettings);
 	}
 }

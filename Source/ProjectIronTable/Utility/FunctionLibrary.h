@@ -16,10 +16,6 @@ class PROJECTIRONTABLE_API UFunctionLibrary : public UBlueprintFunctionLibrary
 	GENERATED_BODY()
 
 public:
-	/** Returns the display name string for a given EDiceType (e.g. "D20"). */
-	UFUNCTION(BlueprintPure, Category = "Dice")
-	static FString GetDiceName(EDiceType Type);
-
 	/** Finds a named child widget within the given UserWidget and casts it to T. Returns nullptr and logs a warning if the widget is not found or the cast fails. */
 	template<typename T>
 	static T* GetTypedWidgetFromName(UUserWidget* Widget, FName Name)
@@ -37,6 +33,19 @@ public:
 		return Result;
 	}
 
+	/** Gets the display name for the given enum value. Returns an empty string and logs a warning if the enum type is not found. */
+	template<typename T>
+	static FString GetEnumDisplayName(T Value)
+	{
+		const UEnum* EnumPtr = StaticEnum<T>();
+		if (!EnumPtr)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("GetEnumDisplayName: Failed to find enum type"));
+			return FString();
+		}
+		return EnumPtr->GetDisplayNameTextByValue(static_cast<int64>(Value)).ToString();
+	}
+
 	/** Returns the save slot name for the given session instance (e.g. "Session_<guid>"), or an empty string if invalid. */
 	static FString GetSessionSaveSlotName(USessionInstance* SessionInstance);
 
@@ -45,4 +54,7 @@ public:
 
 	/** Returns the local player's name from their PlayerState, or "Unknown" if unavailable. */
 	static FString GetLocalPlayerName(UObject* WorldContext);
+
+	/** Sorts the participant list and joins it with '|' to produce a stable channel identity key. */
+	static FString MakeParticipantKey(TArray<FString> Participants);
 };

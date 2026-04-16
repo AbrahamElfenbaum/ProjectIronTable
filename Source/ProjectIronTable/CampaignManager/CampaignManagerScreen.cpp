@@ -8,6 +8,7 @@
 #include "GameTypeButton.h"
 #include "CampaignCard.h"
 #include "SessionInstance.h"
+#include "MacroLibrary.h"
 
 // Loads campaign data (real or fake), builds game type tabs, and populates the grid with the first available game type's campaigns.
 void UCampaignManagerScreen::Init()
@@ -27,11 +28,7 @@ void UCampaignManagerScreen::Init()
 
 		USaveGame* LoadedSave = UGameplayStatics::LoadGameFromSlot(UCampaignManagerSave::SaveSlotName, 0);
 		CampaignData = Cast<UCampaignManagerSave>(LoadedSave);
-		if (!IsValid(CampaignData))
-		{
-			UE_LOG(LogTemp, Warning, TEXT("UCampaignManagerScreen::Init — Failed to cast loaded save to UCampaignManagerSave"));
-			return;
-		}
+		CHECK_IF_VALID(CampaignData, );
 	}
 
 	bool bGridPopulated = false;
@@ -165,11 +162,7 @@ void UCampaignManagerScreen::SetSelectedGameButton()
 // Updates the selected game type and refreshes the campaign grid.
 void UCampaignManagerScreen::OnGameTypeSelected(const FString& GameType)
 {
-	if (!IsValid(CampaignData))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UCampaignManagerScreen::OnGameTypeSelected — CampaignData is null"));
-		return;
-	}
+	CHECK_IF_VALID(CampaignData, );
 
 	SelectedGameType = GameType;
 	if (const FCampaignList* CampaignList = CampaignData->CampaignRecords.Find(GameType))
@@ -189,11 +182,7 @@ void UCampaignManagerScreen::OnGameTypeSelected(const FString& GameType)
 void UCampaignManagerScreen::OnCampaignSelected(const FGuid& CampaignID, const FString& GameType)
 {
 	USessionInstance* SessionInstance = Cast<USessionInstance>(UGameplayStatics::GetGameInstance(this));
-	if (!IsValid(SessionInstance))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UCampaignManagerScreen::OnCampaignSelected — Failed to get SessionInstance"));
-		return;
-	}
+	CHECK_IF_VALID(SessionInstance, );
 
 	FGuid PlayerID = SessionInstance->GetPlayerID();
 	if (!PlayerID.IsValid())

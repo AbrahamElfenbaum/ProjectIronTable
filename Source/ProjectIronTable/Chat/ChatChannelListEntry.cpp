@@ -5,6 +5,7 @@
 #include "Components/Button.h"
 
 #include "ChatChannel.h"
+#include "MacroLibrary.h"
 
 // Binds the entry button click delegate.
 void UChatChannelListEntry::NativeConstruct()
@@ -26,11 +27,7 @@ void UChatChannelListEntry::OnEntryButtonClicked()
 // Stores the channel reference and updates the label to the channel's display name.
 void UChatChannelListEntry::SetChannel(UChatChannel* InChannel)
 {
-	if (!IsValid(InChannel))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UChatChannelListEntry::SetChannel — InChannel is null."));
-		return;
-	}
+	CHECK_IF_VALID(InChannel, );
 	Channel = InChannel;
 	if (EntryLabel)
 	{

@@ -19,6 +19,7 @@
 #include "FunctionLibrary.h"
 #include "SessionInstance.h"
 #include "SessionSave.h"
+#include "MacroLibrary.h"
 
 // Disables tick and enables replication so server RPCs function correctly.
 USessionHUDComponent::USessionHUDComponent()
@@ -34,11 +35,7 @@ void USessionHUDComponent::BeginPlay()
 
 	PlayerControllerRef = Cast<APlayerController>(GetOwner());
 
-	if (!IsValid(PlayerControllerRef))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::BeginPlay — Owner is not a PlayerController"));
-		return;
-	}
+	CHECK_IF_VALID(PlayerControllerRef, );
 
 	if (PlayerControllerRef &&
 		PlayerControllerRef->IsLocalPlayerController() &&
@@ -139,7 +136,8 @@ void USessionHUDComponent::BeginPlay()
 			DicePanel = FindAndRegisterPanel(TEXT("DicePanel"), TEXT("Dice"));
 			ChatPanel = FindAndRegisterPanel(TEXT("ChatPanel"), TEXT("Chat"));
 			PlayersPanel = FindAndRegisterPanel(TEXT("PlayersPanel"), TEXT("Players"));
-			//Register other widgets as needed
+			Panels = { DicePanel, ChatPanel, PlayersPanel };
+			//Register and add other widgets to Panels array as needed
 			LoadPanelLayout();
 		}
 		else
@@ -197,10 +195,11 @@ void USessionHUDComponent::SavePanelLayout()
 		UE_LOG(LogTemp, Error, TEXT("USessionHUDComponent::SavePanelLayout — Failed to create PanelLayoutSave object"));
 		return;
 	}
-	SavePanelLayout(DicePanel, PanelLayoutSave);
-	SavePanelLayout(ChatPanel, PanelLayoutSave);
-	SavePanelLayout(PlayersPanel, PanelLayoutSave);
-	//Apply other panels as needed
+
+	for (UDraggablePanel* Panel : Panels)
+	{
+		SavePanelLayout(Panel, PanelLayoutSave);
+	}
 
 	UGameplayStatics::SaveGameToSlot(PanelLayoutSave, UPanelLayoutSave::SaveSlotName, 0);
 }
@@ -208,11 +207,7 @@ void USessionHUDComponent::SavePanelLayout()
 // Notifies the chat box that a roll has been initiated so it can prepare for incoming roll result messages.
 void USessionHUDComponent::OnRollInitiated()
 {
-	if (!IsValid(ChatBoxRef))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::OnRollInitiated — ChatBoxRef is null"));
-		return;
-	}
+	CHECK_IF_VALID(ChatBoxRef, );
 	ChatBoxRef->TrySendPrivateRollMessage();
 }
 
@@ -224,10 +219,10 @@ void USessionHUDComponent::LoadPanelLayout()
 		UPanelLayoutSave* LoadedLayout = Cast<UPanelLayoutSave>(UGameplayStatics::LoadGameFromSlot(UPanelLayoutSave::SaveSlotName, 0));
 		if (IsValid(LoadedLayout))
 		{
-			ApplyPanelLayout(DicePanel, LoadedLayout);
-			ApplyPanelLayout(ChatPanel, LoadedLayout);
-			ApplyPanelLayout(PlayersPanel, LoadedLayout);
-			//Apply other panels as needed
+			for(UDraggablePanel* Panel : Panels)
+			{
+				ApplyPanelLayout(Panel, LoadedLayout);
+			}
 		}
 		else
 		{
@@ -268,11 +263,7 @@ void USessionHUDComponent::ApplyPanelLayout(UDraggablePanel* Panel, UPanelLayout
 // Delivers the incoming message to the chat box on the owning client.
 void USessionHUDComponent::AddChatMessageOnOwningClient_Implementation(const FString& Message, const TArray<FString>& Recipients, bool bIsSender)
 {
-	if (!IsValid(ChatBoxRef))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::AddChatMessageOnOwningClient — ChatBoxRef is null"));
-		return;
-	}
+	CHECK_IF_VALID(ChatBoxRef, );
 	ChatBoxRef->AddChatMessage(Message, Recipients, bIsSender);
 }
 
@@ -293,17 +284,9 @@ void USessionHUDComponent::SendChatMessageOnServer_Implementation(const FString&
 
 	//Get the game state to access the player array
 	UWorld* World = GetWorld();
-	if (!IsValid(World))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::SendChatMessageOnServer — World is null"));
-		return;
-	}
+	CHECK_IF_VALID(World, );
 	AGameStateBase* GS = World->GetGameState<AGameStateBase>();
-	if (!IsValid(GS))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::SendChatMessageOnServer — GameState is null"));
-		return;
-	}
+	CHECK_IF_VALID(GS, );
 
 	//Send the message to each player's HUD component if they're a participant (or if broadcast)
 	for (APlayerState* Play : GS->PlayerArray)
@@ -323,9 +306,7 @@ void USessionHUDComponent::SendChatMessageOnServer_Implementation(const FString&
 
 	int32 ColonIndex = Message.Find(TEXT(": "));
 	FString Body = Message.RightChop(ColonIndex + 2);
-
-	Participants.Sort();
-	FString sParticipants = FString::Join(Participants, TEXT("|"));
+	FString sParticipants = UFunctionLibrary::MakeParticipantKey(Participants);
 
 	FChatMessageRecord MessageRecord = { SenderName , Body };
 
@@ -364,8 +345,7 @@ void USessionHUDComponent::AddRollResultToChat(TArray<FRollResult> Results, EDic
 	//Add in each rolled result on a new line
 	for (const FRollResult& Result : Results)
 	{
-		FString DiceTypeName = UEnum::GetValueAsString(Result.DiceType);
-		DiceTypeName = DiceTypeName.RightChop(DiceTypeName.Find(TEXT("::")) + 2);
+		FString DiceTypeName = UFunctionLibrary::GetEnumDisplayName(Result.DiceType);
 		Message += FString::Printf(TEXT("%d on a %s\n"), Result.Value, *DiceTypeName);
 	}
 
@@ -383,8 +363,7 @@ void USessionHUDComponent::OnDiceFailsafeHandler(EDiceType DiceType)
 {
 	FString PlayerName = UFunctionLibrary::GetLocalPlayerName(GetOwner());
 
-	FString DiceTypeName = UEnum::GetValueAsString(DiceType);
-	DiceTypeName = DiceTypeName.RightChop(DiceTypeName.Find(TEXT("::")) + 2);
+	FString DiceTypeName = UFunctionLibrary::GetEnumDisplayName(DiceType);
 
 	SendChatMessageOnServer(FString::Printf(TEXT("%s lost a %s to the void"), *PlayerName, *DiceTypeName), {});
 }
@@ -392,10 +371,6 @@ void USessionHUDComponent::OnDiceFailsafeHandler(EDiceType DiceType)
 // Appends the player's name as an @mention in the chat input field.
 void USessionHUDComponent::OnPlayerAddressClicked(const FString& PlayerName)
 {
-	if (!IsValid(ChatBoxRef))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("USessionHUDComponent::OnPlayerAddressClicked — ChatBoxRef is null"));
-		return;
-	}
+	CHECK_IF_VALID(ChatBoxRef, );
 	ChatBoxRef->AppendToInput(TEXT("@") + PlayerName + TEXT(" "));
 }

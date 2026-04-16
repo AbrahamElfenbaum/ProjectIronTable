@@ -607,6 +607,8 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 
 ---
 
+*Last updated: 2026-04-15* — No design changes; internal code quality pass only. See TechDoc for details.
+
 *Last updated: 2026-04-14 (updated)* — Session save/load utilities extracted to `UFunctionLibrary`: `GetSessionSaveSlotName`, `LoadSessionSave`, `GetLocalPlayerName`. No design changes; internal refactor only.
 
 *2026-04-14* — Chat tab rename complete. Right-click on any non-Server tab opens a context menu with Rename and Close options. Close button removed from tabs. Rename is client-local, persisted to `USessionSave::ChatTabNames`.

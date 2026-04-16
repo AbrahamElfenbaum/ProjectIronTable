@@ -10,6 +10,7 @@
 #include "AssetLibraryScreen.h"
 #include "SettingsScreen.h"
 #include "FunctionLibrary.h"
+#include "MacroLibrary.h"
 
 // Disables tick.
 UMainScreenHUDComponent::UMainScreenHUDComponent()
@@ -29,11 +30,7 @@ void UMainScreenHUDComponent::BeginPlay()
 		MainScreenClass)
 	{
 		MainScreenRef = CreateWidget<UUserWidget>(PlayerControllerRef, MainScreenClass);
-		if (!IsValid(MainScreenRef))
-		{
-			UE_LOG(LogTemp, Warning, TEXT("UMainScreenHUDComponent::BeginPlay — Failed to create MainScreen widget"));
-			return;
-		}
+		CHECK_IF_VALID(MainScreenRef, );
 		MainScreenRef->AddToViewport();
 
 		ScreenSwitcherRef = UFunctionLibrary::GetTypedWidgetFromName<UWidgetSwitcher>(MainScreenRef, TEXT("ScreenSwitcher"));
@@ -105,54 +102,34 @@ void UMainScreenHUDComponent::BeginPlay()
 // Switches the screen switcher back to the home screen (index 0).
 void UMainScreenHUDComponent::OnBackClicked()
 {
-	if (!IsValid(ScreenSwitcherRef))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UMainScreenHUDComponent::OnBackClicked — ScreenSwitcherRef is null"));
-		return;
-	}
+	CHECK_IF_VALID(ScreenSwitcherRef, );
 	ScreenSwitcherRef->SetActiveWidgetIndex(0);
 }
 
 // Switches the screen switcher to the campaign manager screen (index 1).
 void UMainScreenHUDComponent::OnCampaignManagerClicked()
 {
-	if (!IsValid(ScreenSwitcherRef))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UMainScreenHUDComponent::OnCampaignManagerClicked — ScreenSwitcherRef is null"));
-		return;
-	}
+	CHECK_IF_VALID(ScreenSwitcherRef, );
 	ScreenSwitcherRef->SetActiveWidgetIndex(1);
 }
 
 // Switches the screen switcher to the campaign browser screen (index 2).
 void UMainScreenHUDComponent::OnCampaignBrowserClicked()
 {
-	if (!IsValid(ScreenSwitcherRef))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UMainScreenHUDComponent::OnCampaignBrowserClicked — ScreenSwitcherRef is null"));
-		return;
-	}
+	CHECK_IF_VALID(ScreenSwitcherRef, );
 	ScreenSwitcherRef->SetActiveWidgetIndex(2);
 }
 
 // Switches the screen switcher to the asset library screen (index 3).
 void UMainScreenHUDComponent::OnAssetLibraryClicked()
 {
-	if (!IsValid(ScreenSwitcherRef))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UMainScreenHUDComponent::OnAssetLibraryClicked — ScreenSwitcherRef is null"));
-		return;
-	}
+	CHECK_IF_VALID(ScreenSwitcherRef, );
 	ScreenSwitcherRef->SetActiveWidgetIndex(3);
 }
 
 // Switches the screen switcher to the settings screen (index 4).
 void UMainScreenHUDComponent::OnSettingsClicked()
 {
-	if (!IsValid(ScreenSwitcherRef))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UMainScreenHUDComponent::OnSettingsClicked — ScreenSwitcherRef is null"));
-		return;
-	}
+	CHECK_IF_VALID(ScreenSwitcherRef, );
 	ScreenSwitcherRef->SetActiveWidgetIndex(4);
 }

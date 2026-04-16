@@ -5,6 +5,7 @@
 #include "Components/VerticalBox.h"
 
 #include "ContextMenuButton.h"
+#include "MacroLibrary.h"
 
 // Closes the menu if the click is outside the content box; otherwise passes the event to children.
 FReply UContextMenu::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
@@ -68,11 +69,7 @@ void UContextMenu::SetMenuOptions(const TArray<FContextMenuOption>& Options)
 void UContextMenu::SetMenuPosition(FVector2D Position)
 {
 	UOverlaySlot* OverlaySlot = Cast<UOverlaySlot>(ContextBox->Slot);
-	if (!IsValid(OverlaySlot))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UContextMenu::SetMenuPosition — ContextBox is not in an Overlay slot"));
-		return;
-	}
+	CHECK_IF_VALID(OverlaySlot, );
 	OverlaySlot->SetPadding(FMargin(Position.X, Position.Y, 0.f, 0.f));
 	OverlaySlot->SetHorizontalAlignment(HAlign_Left);
 	OverlaySlot->SetVerticalAlignment(VAlign_Top);

@@ -6,6 +6,7 @@
 
 #include "TaskbarButton.h"
 #include "DraggablePanel.h"
+#include "MacroLibrary.h"
 
 // Binds the reset button click event.
 void UTaskbar::NativeConstruct()
@@ -21,11 +22,7 @@ void UTaskbar::NativeConstruct()
 UTaskbarButton* UTaskbar::RegisterWidget(UUserWidget* Widget, const FString& Label)
 {
 	UTaskbarButton* TaskbarButton = CreateWidget<UTaskbarButton>(GetOwningPlayer(), TaskbarButtonClass);
-	if (!IsValid(TaskbarButton))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UTaskbar::RegisterWidget — Failed to create TaskbarButton for %s"), *Label);
-		return nullptr;
-	}
+	CHECK_IF_VALID(TaskbarButton, nullptr);
 	TaskbarButton->SetTrackedWidget(Widget, Label);
 	ButtonContainer->AddChild(TaskbarButton);
 	return TaskbarButton;

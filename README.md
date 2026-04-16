@@ -71,7 +71,7 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - `Settings/` — Settings widget classes (`UCameraSettingsPanel`, `USettingsScreen`)
 - `UI/` — Non-chat widget classes (`UBaseScreen`, `UDiceSelector`, `UDiceSelectorManager`, `UTaskbar`, `UTaskbarButton`, `UDraggablePanel`, `UDragHandle`, `UResizeHandle`, `USettingsSlider`, `UHomeScreen`)
 - `Physics/Materials/` — Physical material assets (friction, restitution for dice)
-- `Utility/` — Blueprint function libraries and helpers (`UFunctionLibrary`, `UDelegateLibrary`, `UContextMenu`, `UContextMenuButton`)
+- `Utility/` — Blueprint function libraries, helpers, and macros (`UFunctionLibrary`, `UDelegateLibrary`, `UContextMenu`, `UContextMenuButton`, `MacroLibrary.h`)
 
 ### Flow Diagrams (`Flow Diagrams/`)
 - `LoginFlow.drawio` — Player identity and session login flow from app launch through `PostLogin` role assignment

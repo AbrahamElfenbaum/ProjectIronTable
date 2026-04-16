@@ -4,6 +4,7 @@
 #include "Components/ScrollBox.h"
 
 #include "ChatEntry.h"
+#include "MacroLibrary.h"
 
 // Creates a UChatEntry widget with the given message, appends it to the scroll box, and scrolls to the bottom.
 void UChatChannel::AddChatMessage(const FString& Message)
@@ -14,11 +15,7 @@ void UChatChannel::AddChatMessage(const FString& Message)
 		return;
 	}
 	UChatEntry* ChatEntry = CreateWidget<UChatEntry>(this, ChatEntryClass);
-	if (!IsValid(ChatEntry))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UChatChannel::AddChatMessage — Failed to create ChatEntry widget"));
-		return;
-	}
+	CHECK_IF_VALID(ChatEntry, );
 	ChatEntry->Message = Message;
 	if (ScrollBox)
 	{
@@ -55,11 +52,7 @@ void UChatChannel::RestoreMessage(const FString& SenderName, const FString& Mess
 		return;
 	}
 	UChatEntry* ChatEntry = CreateWidget<UChatEntry>(this, ChatEntryClass);
-	if (!IsValid(ChatEntry))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UChatChannel::RestoreMessage — Failed to create ChatEntry widget"));
-		return;
-	}
+	CHECK_IF_VALID(ChatEntry, );
 	ChatEntry->Message = FString::Printf(TEXT("%s: %s"), *SenderName, *Message);
 	if (ScrollBox)
 	{

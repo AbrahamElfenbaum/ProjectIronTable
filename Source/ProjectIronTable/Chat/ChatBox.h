@@ -179,4 +179,9 @@ private:
 	UFUNCTION()
 	void OnTabRenamedHandler(UChatTab* Tab, const FString& NewName);
 #pragma endregion
+
+#pragma region Private Methods
+	/** Splits a message string into @mention recipients and the remaining message body. */
+	void ParseMentions(const FString& Message, TArray<FString>& OutRecipients, FString& OutBody) const;
+#pragma endregion
 };

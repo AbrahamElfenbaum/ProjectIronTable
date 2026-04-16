@@ -7,6 +7,7 @@
 #include "SessionSave.h"
 #include "SessionGameState.h"
 #include "SessionPlayerState.h"
+#include "MacroLibrary.h"
 
 // Load session save and populate GameState before any player logs in
 void ASessionGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
@@ -14,11 +15,7 @@ void ASessionGameMode::InitGame(const FString& MapName, const FString& Options, 
 	Super::InitGame(MapName, Options, ErrorMessage);
 
 	USessionInstance* SessionInstance = GetGameInstance<USessionInstance>();
-	if (!IsValid(SessionInstance))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ASessionGameMode::InitGame — SessionInstance is null; session save will not be loaded"));
-		return;
-	}
+	CHECK_IF_VALID(SessionInstance, );
 
 	USessionSave* SessionSave = Cast<USessionSave>(UGameplayStatics::LoadGameFromSlot(
 		FString::Printf(TEXT("Session_%s"), *SessionInstance->GetSessionID().ToString()), 0));
@@ -29,11 +26,7 @@ void ASessionGameMode::InitGame(const FString& MapName, const FString& Options, 
 	}
 
 	ASessionGameState* SessionGameState = GetGameState<ASessionGameState>();
-	if (!IsValid(SessionGameState))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ASessionGameMode::InitGame — SessionGameState is null; cannot populate session data"));
-		return;
-	}
+	CHECK_IF_VALID(SessionGameState, );
 
 	SessionGameState->SetGameTypeID(SessionSave->GameTypeID);
 	SessionGameState->SetCampaignID(SessionSave->CampaignID);
@@ -56,11 +49,7 @@ void ASessionGameMode::PreLogin(const FString& Options, const FString& Address, 
 	}
 
 	ASessionGameState* SessionGameState = GetGameState<ASessionGameState>();
-	if (!IsValid(SessionGameState))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ASessionGameMode::PreLogin — SessionGameState is null; cannot determine if session is full"));
-		return;
-	}
+	CHECK_IF_VALID(SessionGameState, );
 	
 	int32 CurrentPlayers = SessionGameState->PlayerArray.Num();
 	if (CurrentPlayers >= MaxPlayers)
@@ -78,18 +67,10 @@ void ASessionGameMode::PostLogin(APlayerController* NewPlayer)
 	Super::PostLogin(NewPlayer);
 
 	ASessionPlayerState* SessionPlayerState = NewPlayer->GetPlayerState<ASessionPlayerState>();
-	if (!IsValid(SessionPlayerState))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ASessionGameMode::PostLogin — SessionPlayerState is null; cannot assign role flags"));
-		return;
-	}
+	CHECK_IF_VALID(SessionPlayerState, );
 
 	ASessionGameState* SessionGameState = GetGameState<ASessionGameState>();
-	if (!IsValid(SessionGameState))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ASessionGameMode::PostLogin — SessionGameState is null; cannot determine role flags"));
-		return;
-	}
+	CHECK_IF_VALID(SessionGameState, );
 
 	FString sPlayerID = UGameplayStatics::ParseOption(OptionsString, TEXT("PlayerID"));
 	if (sPlayerID.IsEmpty())
@@ -132,25 +113,13 @@ void ASessionGameMode::Logout(AController* Exiting)
 	Super::Logout(Exiting);
 
 	APlayerController* ExitingPlayerController = Cast<APlayerController>(Exiting);
-	if (!IsValid(ExitingPlayerController))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ASessionGameMode::Logout — ExitingPlayerController is null; cannot remove player from active list"));
-		return;
-	}
+	CHECK_IF_VALID(ExitingPlayerController, );
 
 	ASessionPlayerState* SessionPlayerState = ExitingPlayerController->GetPlayerState<ASessionPlayerState>();
-	if (!IsValid(SessionPlayerState))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ASessionGameMode::Logout — SessionPlayerState is null; cannot remove player from active list"));
-		return;
-	}
+	CHECK_IF_VALID(SessionPlayerState, );
 
 	ASessionGameState* SessionGameState = GetGameState<ASessionGameState>();
-	if (!IsValid(SessionGameState))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ASessionGameMode::Logout — SessionGameState is null; cannot remove player from active list"));
-		return;
-	}
+	CHECK_IF_VALID(SessionGameState, );
 
 	FGuid PlayerID = SessionPlayerState->GetSessionPlayerID();
 	if (SessionPlayerState->GetIsGM())

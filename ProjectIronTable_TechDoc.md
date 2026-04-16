@@ -168,13 +168,14 @@ Tabbed chat container. Manages channels, routing, and input.
 
 **Key Methods:**
 - `CreateChannel(TArray<FString> Participants)` — creates channel + tab, wires delegates, returns channel. Empty participants = Server tab (not closeable).
-- `FindOrCreateChannel(TArray<FString> Participants)` — searches existing channels for a participant-list match (Num() check first); calls `CreateChannel` if none found. Used by both `AddChatMessage` and the chat log restore loop.
+- `FindOrCreateChannel(TArray<FString> Participants)` — builds a sorted participant key via `UFunctionLibrary::MakeParticipantKey`, compares against each channel's key, and returns the match or creates a new channel. Used by both `AddChatMessage` and the chat log restore loop.
 - `SwitchToChannel(UChatChannel*)` — activates channel, clears notification and input
 - `AddChatMessage(Message, Participants, bIsSender)` — routes to correct channel via `FindOrCreateChannel`; auto-reopens closed channels on incoming message; shows notification if not active
 - `FocusChat()` / `ExitChat()` — manage input mode. `ExitChat` does **not** clear the input field.
 - `AppendToInput(FString)` — appends text to current input value
 - `GetActiveChannelParticipants()` — returns active channel's participants, or `{}` for Server
 - `TrySendPrivateRollMessage()` — if `@Name` tokens in input, sends them as a message and clears input; noop otherwise
+- `ParseMentions(Message, OutRecipients, OutBody)` *(private)* — splits a message string on spaces; words prefixed with `@` are stripped and added to `OutRecipients`; the rest join into `OutBody`. Called by both `OnTextCommitted` and `TrySendPrivateRollMessage`.
 
 > **Note:** Channel matching checks `Participants.Num()` equality before content — required to avoid partial matches.
 >
@@ -565,9 +566,9 @@ Manages the session HUD lifecycle and all chat networking.
 **Widget names it searches for (must match):** `DiceSelectorManager`, `ChatBox`, `PlayerList`, `Taskbar`, `DicePanel`, `ChatPanel`, `PlayersPanel`
 
 **Key Methods:**
-- `FindAndRegisterPanel(WidgetName, Label)` — finds `UDraggablePanel`, registers with taskbar, assigns ID, binds layout save delegates
-- `SavePanelLayout()` — writes all panel positions/sizes to `"PanelLayout"` save slot
-- `LoadPanelLayout()` — loads and applies saved panel layout on startup
+- `FindAndRegisterPanel(WidgetName, Label)` — finds `UDraggablePanel`, registers with taskbar, assigns ID, binds layout save delegates. Populated into `Panels` array at BeginPlay.
+- `SavePanelLayout()` — iterates `Panels` array and writes each panel's layout to `"PanelLayout"` save slot
+- `LoadPanelLayout()` — loads and applies saved panel layout to each panel in `Panels` array on startup
 - `FocusChat()` / `ExitChat()` / `ScrollChat(bool)` — delegate to `ChatBoxRef`
 - `OnRollInitiated()` — calls `TrySendPrivateRollMessage` before dice spawn
 
@@ -657,7 +658,7 @@ Shared base class for all main screen widgets. Provides a common back button, `O
 #### UDragHandle / UResizeHandle
 **Type:** `UUserWidget` | **Blueprints:** `WE_DragHandle`, `WE_ResizeHandle`
 
-Hit-testable widgets that capture mouse and forward drag/resize events to their parent `UDraggablePanel` via `GetTypedOuter<UDraggablePanel>()`. Guard mouse move with a `bActive` flag — `NativeOnMouseMove` fires on hover too.
+Hit-testable widgets that capture mouse and forward drag/resize events to their parent `UDraggablePanel` via `GET_OUTER(UDraggablePanel, Panel, FReply::Unhandled())`. Guard mouse move with a `bActive` flag — `NativeOnMouseMove` fires on hover too.
 
 ---
 
@@ -840,13 +841,28 @@ Central hub for all player input and HUD management.
 General-purpose helper functions accessible from C++ and Blueprint.
 
 **Functions:**
-- `GetDiceName(EDiceType)` → `FString` — returns display name (e.g. `"D20"`) *(BlueprintPure)*
 - `GetTypedWidgetFromName<T>(UUserWidget* Widget, FName Name)` → `T*` — template; casts result of `GetWidgetFromName`. Logs a warning if `Widget` is null or the cast fails. **C++-only** (no `UFUNCTION` — templates can't be `UFUNCTION`). Use this everywhere instead of `Cast<T>(Widget->GetWidgetFromName(...))`.
+- `GetEnumDisplayName<T>(T Value)` → `FString` — template; returns the display name for a `UENUM` value via `StaticEnum<T>()`. Requires `DisplayName` metadata on each enum value. **C++-only**. Use instead of `GetValueAsString` + `RightChop` pattern.
 - `GetSessionSaveSlotName(USessionInstance*)` → `FString` — returns `"Session_{SessionID}"` or empty string on null. All session save/load calls go through this; never hardcode the slot name.
 - `LoadSessionSave(UObject* WorldContext)` → `USessionSave*` — gets `USessionInstance` from the world context, resolves the slot name, loads and returns the save object. Returns nullptr (with warning) on any failure. Use this everywhere instead of inline `GetGameInstance` + `LoadGameFromSlot` blocks.
 - `GetLocalPlayerName(UObject* WorldContext)` → `FString` — returns the local player's name from `PlayerState->GetPlayerName()`, or `"Unknown"` on failure. Use this everywhere instead of inline `GetPlayerController(0)` + null-check chains.
+- `MakeParticipantKey(TArray<FString> Participants)` → `FString` — sorts the participant list and joins with `|` to produce a stable channel identity key. Use everywhere a pipe-joined participant key is needed; never sort+join inline.
 
-> **Note:** The template definition must live entirely in the `.h` — no `.cpp` entry needed. Define it inside the class body (implicit `inline`) or outside with `inline`.
+> **Note:** Template definitions must live entirely in the `.h` — no `.cpp` entry needed. Define inside the class body (implicit `inline`) or outside with `inline`.
+
+---
+
+#### MacroLibrary.h
+**Type:** Plain header (no class, no `.cpp`)
+
+Project-wide utility macros for common null-guard and outer-retrieval patterns. Include wherever needed.
+
+**Macros:**
+- `GET_OUTER(Type, VarName, ReturnVal)` — calls `GetTypedOuter<Type>()`, assigns to `VarName`, and returns `ReturnVal` with a warning log if the result is invalid. Used in `UDragHandle` and `UResizeHandle`.
+- `GET_OWNING_PC(VarName, ReturnVal)` — casts `GetOwningPlayer()` to `APlayerController*`, assigns to `VarName`, and returns `ReturnVal` with a warning log if the cast or validity check fails. Used in `UChatBox`.
+- `CHECK_IF_VALID(VarName, ReturnVal)` — checks `IsValid(VarName)` and returns `ReturnVal` with a warning log if the check fails. The single most common null-guard pattern — use everywhere instead of the three-line `if (!IsValid) { UE_LOG; return; }` block.
+
+> **Note:** Macros are used here because they require injecting a local variable name and/or causing the caller to `return` — neither is possible with a template function. These are the only cases where a macro is preferred over a template.
 
 ---
 
@@ -1008,7 +1024,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - `FRotator(Pitch, Yaw, Roll)` — constructor order is **not** (X, Y, Z); wrong order causes violent camera bouncing
 - `GetActorForwardVector()` has a Z component when pitched — zero out `Delta.Z` after computing movement to keep it flat
 - `FMath::Sign(float)` returns 1.f / -1.f / 0.f — good for collapsing scroll direction checks
-- `UEnum::GetValueAsString()` returns `"EnumClass::ValueName"` — strip the prefix with `RightChop(str.Find("::") + 2)`
+- `UEnum::GetValueAsString()` returns `"EnumClass::ValueName"` — use `UFunctionLibrary::GetEnumDisplayName<T>(Value)` instead; requires `UMETA(DisplayName = "...")` on each enum value
 - `UPhysicalMaterial` requires the `PhysicsCore` module in `Build.cs`
 - A `USTRUCT` or `UCLASS` member that holds raw `UObject*` pointers (including `TArray<UObject*>`) must use `UPROPERTY()` — without it the GC can't track the references and they may be prematurely collected
 - `USlider::SetValue` fires `OnValueChanged` the same as a user drag — guard with `ClampedValue != Value` to prevent recursion
@@ -1299,6 +1315,8 @@ Sessions are stored using Unreal's built-in save slot system — no custom file 
 This approach keeps all save I/O within UE's native save game system and makes a future dedicated-server migration straightforward — the index and session slots move to wherever the server runs, no path logic to change.
 
 ---
+
+*Last updated: 2026-04-15* — Code quality pass: `MacroLibrary.h` added (`GET_OUTER`, `GET_OWNING_PC`, `CHECK_IF_VALID`); `UFunctionLibrary` gains `MakeParticipantKey` and `GetEnumDisplayName<T>`, removes `GetDiceName`; `UChatBox` gains `ParseMentions` private helper; `FindOrCreateChannel` optimized via `MakeParticipantKey`; `USessionHUDComponent` gains `Panels` array (loop replaces triple-call save/load); `CHECK_IF_VALID` applied across ~11 files (~33 sites); `GET_OUTER` applied to `UDragHandle`/`UResizeHandle`; `GET_OWNING_PC` applied in `UChatBox`. (~176 lines removed.)
 
 *Last updated: 2026-04-14 (updated)* — `UFunctionLibrary` gains three static helpers extracted from repeated inline patterns: `GetSessionSaveSlotName(USessionInstance*)`, `LoadSessionSave(UObject*)`, `GetLocalPlayerName(UObject*)`. All call sites in `UChatBox` and `USessionHUDComponent` updated to use these. `USessionSave` gains `ChatTabNames` (`TMap<FString, FString>`) for persisting user-assigned tab labels. `UChatBox` Config gains `ContextMenuClass`. (~50 lines of inline boilerplate removed across 4 call sites.)
 
