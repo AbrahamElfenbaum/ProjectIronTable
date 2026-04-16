@@ -32,8 +32,10 @@ Source/ProjectIronTable/
 ├── PlayerList/        — Player list widget classes (PlayerList, PlayerRow)
 ├── PlayerStates/      — Player state classes (SessionPlayerState)
 ├── SaveLoad/          — Save game classes (PanelLayoutSave, CameraSettingsSave, CampaignManagerSave, SessionSave, PlayerSave)
-├── Settings/          — Settings widget classes (CameraSettingsPanel, SettingsScreen)
-├── UI/                — Non-chat widget classes (no HUD components; HomeScreen and BaseScreen live here)
+├── Screens/           — Generic/shared screen widgets (HomeScreen, BaseScreen)
+├── SessionNotes/      — Session notes panel widget (SessionNotesPanel)
+├── Settings/          — Settings widget classes (CameraSettingsPanel, SettingsScreen, SettingsSlider)
+├── UI/                — Reusable UI primitives (DraggablePanel, DragHandle, ResizeHandle, Taskbar, TaskbarButton, ContextMenu, ContextMenuButton)
 └── Utility/           — Function libraries and general-purpose helpers
 ```
 
@@ -353,7 +355,7 @@ Root widget for the Campaign Manager. Inherits back-navigation from `UBaseScreen
 
 **Handlers:**
 - `OnGameTypeSelected(const FString&)` — updates `SelectedGameType`, refreshes grid, calls `SetSelectedGameButton`
-- `OnCampaignSelected(const FGuid&, const FString&)` — placeholder; will launch the selected campaign
+- `OnCampaignSelected(const FGuid&, const FString&)` — gets `PlayerID` from `USessionInstance`, builds travel URL (`"MapName?PlayerID=<guid>"`), gets owning player controller via `GET_OWNING_PC`, casts to `ASessionController`, calls `Server_TravelToSession(TravelURL)`. "MapName" is a placeholder until the session level path is finalized.
 
 > **Note:** The campaign grid (`UWrapBox`) must be inside a `UScrollBox` to support vertical scrolling when cards overflow.
 >
@@ -563,7 +565,7 @@ Manages the session HUD lifecycle and all chat networking.
 **Config:**
 - `SessionScreenClass` (`TSubclassOf<UUserWidget>`)
 
-**Widget names it searches for (must match):** `DiceSelectorManager`, `ChatBox`, `PlayerList`, `Taskbar`, `DicePanel`, `ChatPanel`, `PlayersPanel`
+**Widget names it searches for (must match):** `DiceSelectorManager`, `ChatBox`, `PlayerList`, `SessionNotesPanel`, `Taskbar`, `DicePanel`, `ChatPanel`, `PlayersPanel`, `SessionNotesPanel`
 
 **Key Methods:**
 - `FindAndRegisterPanel(WidgetName, Label)` — finds `UDraggablePanel`, registers with taskbar, assigns ID, binds layout save delegates. Populated into `Panels` array at BeginPlay.
@@ -614,46 +616,6 @@ Root settings screen widget. Inherits back button, `OnBackRequested` delegate, a
 ---
 
 ### UI/
-
-#### UHomeScreen
-**Type:** `UUserWidget` | **Blueprint:** `S_HomeScreen`
-
-Home screen widget. Owns all five home screen buttons and exposes delegates for screen-level navigation.
-
-**Bound Widgets:** `CampaignManagerButton`, `CampaignBrowserButton`, `AssetLibraryButton`, `SettingsButton`, `QuitButton` (`UButton`)
-
-**Delegates:**
-- `OnCampaignManagerRequested` (BlueprintAssignable) — bound by `UMainScreenHUDComponent` → switches to Campaign Manager screen
-- `OnCampaignBrowserRequested` (BlueprintAssignable) — bound by `UMainScreenHUDComponent` → switches to Campaign Browser screen
-- `OnAssetLibraryRequested` (BlueprintAssignable) — bound by `UMainScreenHUDComponent` → switches to Asset Library screen
-- `OnSettingsRequested` (BlueprintAssignable) — bound by `UMainScreenHUDComponent` → switches to Settings screen
-
-**Key Methods:**
-- `Init()` — binds all button delegates
-
-**Direct handlers (no delegate):**
-- Quit → `QuitGame` directly
-
----
-
-#### UBaseScreen
-**Type:** `UUserWidget`
-
-Shared base class for all main screen widgets. Provides a common back button, `OnBackRequested` delegate, and a virtual `Init()` hook so subclasses only need to override what they actually use.
-
-**Bound Widgets (protected):** `BackButton` (`UButton`) — must be named exactly `BackButton` in every child Blueprint
-
-**Delegates:**
-- `OnBackRequested` (`FOnBackRequested`, BlueprintAssignable) — broadcast when `BackButton` is clicked; bound by `UMainScreenHUDComponent` to navigate back to index 0
-
-**Key Methods:**
-- `virtual void Init()` — empty default; override in subclasses that need setup logic
-
-**NativeConstruct:** binds `BackButton` click → broadcasts `OnBackRequested`
-
-> **Note:** `BackButton` must be `protected` (not `private`) in `UBaseScreen` — `BindWidget` requires the property to be visible to the engine's reflection system. Private breaks the binding silently.
-
----
 
 #### UDragHandle / UResizeHandle
 **Type:** `UUserWidget` | **Blueprints:** `WE_DragHandle`, `WE_ResizeHandle`
@@ -827,6 +789,9 @@ Central hub for all player input and HUD management.
 - `SaveCameraSettings()` — writes all 9 fields to `"CameraSettings"` slot
 - `BeginPlay` — loads and applies `"CameraSettings"` if it exists
 
+**Server RPCs:**
+- `Server_TravelToSession(const FString& TravelURL)` (Server, Reliable) — validates `GetWorld()` and calls `ServerTravel(TravelURL)`. Called by `UCampaignManagerScreen::OnCampaignSelected` to ensure `ServerTravel` always runs on the server regardless of which client initiates travel.
+
 > **Note:** `bCanCameraMove` is a plain `bool` (no `UPROPERTY`) to avoid Blueprint CDO override.
 >
 > **Note:** `PostEditChangeProperty` is wrapped in `#if WITH_EDITOR` — for runtime validation use `ValidateCameraSettings()` directly.
@@ -910,6 +875,67 @@ Generic floating context menu. Add to viewport via `AddToViewport()`, position w
 
 ---
 
+### Screens/
+
+#### UBaseScreen
+**Type:** `UUserWidget`
+
+Shared base class for all main screen widgets. Provides a common back button, `OnBackRequested` delegate, and a virtual `Init()` hook so subclasses only need to override what they actually use.
+
+**Bound Widgets (protected):** `BackButton` (`UButton`) — must be named exactly `BackButton` in every child Blueprint
+
+**Delegates:**
+- `OnBackRequested` (`FOnBackRequested`, BlueprintAssignable) — broadcast when `BackButton` is clicked; bound by `UMainScreenHUDComponent` to navigate back to index 0
+
+**Key Methods:**
+- `virtual void Init()` — empty default; override in subclasses that need setup logic
+
+**NativeConstruct:** binds `BackButton` click → broadcasts `OnBackRequested`
+
+> **Note:** `BackButton` must be `protected` (not `private`) in `UBaseScreen` — `BindWidget` requires the property to be visible to the engine's reflection system. Private breaks the binding silently.
+
+---
+
+#### UHomeScreen
+**Type:** `UUserWidget` | **Blueprint:** `S_HomeScreen`
+
+Home screen widget. Owns all five home screen buttons and exposes delegates for screen-level navigation.
+
+**Bound Widgets:** `CampaignManagerButton`, `CampaignBrowserButton`, `AssetLibraryButton`, `SettingsButton`, `QuitButton` (`UButton`)
+
+**Delegates:**
+- `OnCampaignManagerRequested` (BlueprintAssignable) — bound by `UMainScreenHUDComponent` → switches to Campaign Manager screen
+- `OnCampaignBrowserRequested` (BlueprintAssignable) — bound by `UMainScreenHUDComponent` → switches to Campaign Browser screen
+- `OnAssetLibraryRequested` (BlueprintAssignable) — bound by `UMainScreenHUDComponent` → switches to Asset Library screen
+- `OnSettingsRequested` (BlueprintAssignable) — bound by `UMainScreenHUDComponent` → switches to Settings screen
+
+**Key Methods:**
+- `Init()` — binds all button delegates
+
+**Direct handlers (no delegate):**
+- Quit → `QuitGame` directly
+
+---
+
+### SessionNotes/
+
+#### USessionNotesPanel
+**Type:** `UUserWidget` | **Blueprint:** `WE_SessionNotesPanel`
+
+Scrollable multi-line text area for session notes. Auto-scrolls to the bottom when content grows.
+
+**Bound Widgets:** `NotesScroll` (`UScrollBox`), `NotesText` (`UMultiLineEditableText`)
+
+**Blueprint layout:** `Border → SizeBox (400×250) → ScrollBox → MultiLineEditableText (Auto Wrap Text: on)`
+
+**Key Behavior:**
+- `NativeConstruct` — binds `NotesText::OnTextChanged → OnNotesTextChanged`
+- `OnNotesTextChanged` — calls `NotesScroll->ScrollToEnd()` on each text change
+
+> **Note:** This is the foundation only. Save/load, input context management (Escape), and hover-scroll are not yet implemented.
+
+---
+
 ### Environment/ *(planned — not yet implemented)*
 
 #### AEnvironmentManager
@@ -965,7 +991,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - All source subdirectories must be added to `PublicIncludePaths` in `ProjectIronTable.Build.cs`
 - Uses `Path.Combine(ModuleDirectory, "FolderName")` — requires `using System.IO;` at the top
 - This allows `#include "FileName.h"` with no path prefix from any folder in the module
-- **Current registered folders:** `AssetLibrary`, `CampaignBrowser`, `CampaignManager`, `Chat`, `Components`, `Dice`, `GameModes`, `GameStates`, `PlayerControllers`, `PlayerList`, `PlayerStates`, `Pawns`, `SaveLoad`, `Settings`, `UI`, `Utility`
+- **Current registered folders:** `AssetLibrary`, `CampaignBrowser`, `CampaignManager`, `Chat`, `Components`, `Dice`, `GameModes`, `GameStates`, `GameInstances`, `PlayerControllers`, `PlayerList`, `PlayerStates`, `Pawns`, `SaveLoad`, `Screens`, `SessionNotes`, `Settings`, `UI`, `Utility`
 - **Pending (Environment system):** Add `Environment` to `PublicIncludePaths` when the `Environment/` source folder is created
 
 ---
@@ -1083,13 +1109,13 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - [x] Draggable and resizable panels — `UDraggablePanel`, `UDragHandle`, `UResizeHandle`
 - [x] Close and reopen private chat tabs
 - [x] Home screen → Campaign Manager navigation (Play button replaced with Campaign Manager button; CampaignBrowser and AssetLibrary stub screens added)
-- [~] Session management (start, load, save) — `USessionInstance`, `USessionSave`, `UPlayerSave`, `ASessionGameState`, `ASessionPlayerState`, `ASessionGameMode` all implemented; `InitGame`/`PostLogin`/`Logout` logic complete; login options flow implemented (`?PlayerID=<guid>` passed via travel URL, parsed in `PostLogin`); remaining gap: `UCampaignManagerScreen::OnCampaignSelected` `ServerTravel` call needs to be routed through a server RPC
+- [~] Session management (start, load, save) — `USessionInstance`, `USessionSave`, `UPlayerSave`, `ASessionGameState`, `ASessionPlayerState`, `ASessionGameMode` all implemented; `InitGame`/`PostLogin`/`Logout` logic complete; login options flow implemented (`?PlayerID=<guid>` passed via travel URL, parsed in `PostLogin`); `Server_TravelToSession` RPC added to `ASessionController`; `OnCampaignSelected` now routes through RPC; remaining gap: "MapName" travel URL placeholder needs actual session level path
 - [ ] Session save/load — full snapshot (map, tokens, fog of war, initiative, chat, sheets, notes, inventory); sessions stored as `"Session_{SessionID}"` slots indexed by `UCampaignManagerSave`; manual save + autosave (configurable interval); auto-save on session close
 - [ ] GM permissions system
 - [ ] Session player cap (default 8, removable)
 - [x] Tab renaming (client-local) — right-click opens `UContextMenu` with Rename and Close options; rename persisted to `USessionSave::ChatTabNames`; close button removed from tab in favour of context menu
 - [x] Chat log persistence
-- [ ] Shared notes (rich-text: headers, bullets, bold, italic; real-time collaborative editing; persists across sessions; accessible outside active session via Campaign Manager)
+- [~] Shared notes — `USessionNotesPanel` created; scrollable `UMultiLineEditableText` with auto-scroll-to-bottom; registered as `UDraggablePanel` in `USessionHUDComponent`; save/load, input context (Escape), and hover-scroll not yet implemented
 - [ ] Pre-session lobby (waiting room; pre-game chat; character sheet accessible while waiting; Host sees connection status and launches when ready)
 - [ ] Session discovery and join flow
   - [ ] Invite code — immediate join, no approval
@@ -1315,6 +1341,8 @@ Sessions are stored using Unreal's built-in save slot system — no custom file 
 This approach keeps all save I/O within UE's native save game system and makes a future dedicated-server migration straightforward — the index and session slots move to wherever the server runs, no path logic to change.
 
 ---
+
+*Last updated: 2026-04-16* — Server RPC infrastructure: `ASessionController::Server_TravelToSession` added; `UCampaignManagerScreen::OnCampaignSelected` updated to route through RPC instead of calling `ServerTravel` directly. `USessionNotesPanel` added (`SessionNotes/`): scrollable `UMultiLineEditableText` with auto-scroll-to-bottom; registered as `UDraggablePanel` in `USessionHUDComponent`. Source folder restructure: `Screens/` added (`HomeScreen`, `BaseScreen` moved from `UI/`); `DiceSelector`/`DiceSelectorManager` moved to `Dice/`; `SettingsSlider` moved to `Settings/`; `ContextMenu`/`ContextMenuButton` moved to `UI/` from `Utility/`. `Build.cs` updated with `Screens` path. TechDoc class sections reorganized to match new folder structure.
 
 *Last updated: 2026-04-15* — Code quality pass: `MacroLibrary.h` added (`GET_OUTER`, `GET_OWNING_PC`, `CHECK_IF_VALID`); `UFunctionLibrary` gains `MakeParticipantKey` and `GetEnumDisplayName<T>`, removes `GetDiceName`; `UChatBox` gains `ParseMentions` private helper; `FindOrCreateChannel` optimized via `MakeParticipantKey`; `USessionHUDComponent` gains `Panels` array (loop replaces triple-call save/load); `CHECK_IF_VALID` applied across ~11 files (~33 sites); `GET_OUTER` applied to `UDragHandle`/`UResizeHandle`; `GET_OWNING_PC` applied in `UChatBox`. (~176 lines removed.)
 

@@ -68,10 +68,11 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - `PlayerList/` — Player list widget classes (`UPlayerList`, `UPlayerRow`)
 - `PlayerStates/` — Player state classes (`ASessionPlayerState`)
 - `SaveLoad/` — Save game classes (`UPanelLayoutSave`, `UCameraSettingsSave`, `UCampaignManagerSave`, `USessionSave`, `UPlayerSave`)
-- `Settings/` — Settings widget classes (`UCameraSettingsPanel`, `USettingsScreen`)
-- `UI/` — Non-chat widget classes (`UBaseScreen`, `UDiceSelector`, `UDiceSelectorManager`, `UTaskbar`, `UTaskbarButton`, `UDraggablePanel`, `UDragHandle`, `UResizeHandle`, `USettingsSlider`, `UHomeScreen`)
-- `Physics/Materials/` — Physical material assets (friction, restitution for dice)
-- `Utility/` — Blueprint function libraries, helpers, and macros (`UFunctionLibrary`, `UDelegateLibrary`, `UContextMenu`, `UContextMenuButton`, `MacroLibrary.h`)
+- `Screens/` — Generic screen widgets (`UBaseScreen`, `UHomeScreen`)
+- `SessionNotes/` — Session notes panel widget (`USessionNotesPanel`)
+- `Settings/` — Settings widget classes (`UCameraSettingsPanel`, `USettingsScreen`, `USettingsSlider`)
+- `UI/` — Reusable UI primitives (`UDraggablePanel`, `UDragHandle`, `UResizeHandle`, `UTaskbar`, `UTaskbarButton`, `UContextMenu`, `UContextMenuButton`)
+- `Utility/` — Blueprint function libraries, helpers, and macros (`UFunctionLibrary`, `UDelegateLibrary`, `MacroLibrary.h`)
 
 ### Flow Diagrams (`Flow Diagrams/`)
 - `LoginFlow.drawio` — Player identity and session login flow from app launch through `PostLogin` role assignment

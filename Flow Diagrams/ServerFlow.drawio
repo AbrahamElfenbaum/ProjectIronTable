@@ -1,0 +1,115 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Server Flow" id="server-flow">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1650" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="ProjectIronTable — Server Flow&#xa;Instances, States, Controllers, Save/Load, and ServerTravel" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="800" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- SECTION HEADERS -->
+        <mxCell id="hdr_persistent" value="PERSISTENT (survives level travel)" style="text;html=1;strokeColor=none;fillColor=#dae8fc;align=center;verticalAlign=middle;rounded=1;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="300" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="hdr_server" value="SERVER AUTHORITY" style="text;html=1;strokeColor=none;fillColor=#d5e8d4;align=center;verticalAlign=middle;rounded=1;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="420" y="90" width="300" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="hdr_client" value="PER-CLIENT" style="text;html=1;strokeColor=none;fillColor=#fff2cc;align=center;verticalAlign=middle;rounded=1;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="800" y="90" width="300" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="hdr_save" value="SAVE/LOAD (disk)" style="text;html=1;strokeColor=none;fillColor=#f8cecc;align=center;verticalAlign=middle;rounded=1;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1180" y="90" width="300" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- USessionInstance -->
+        <mxCell id="instance" value="&lt;b&gt;USessionInstance&lt;/b&gt;&#xa;(UGameInstance)&#xa;&#xa;Survives all level transitions.&#xa;Holds: PlayerID, SessionID, CampaignID&#xa;&#xa;Init(): loads UPlayerSave → PlayerID&#xa;Generates new PlayerID if none exists" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="140" width="300" height="130" as="geometry" />
+        </mxCell>
+
+        <!-- ASessionGameMode -->
+        <mxCell id="gamemode" value="&lt;b&gt;ASessionGameMode&lt;/b&gt;&#xa;(Server only — never replicated)&#xa;&#xa;InitGame(): reads SessionID from USessionInstance,&#xa;loads USessionSave, pushes all fields → ASessionGameState&#xa;&#xa;PostLogin(): parses PlayerID from travel URL,&#xa;sets on ASessionPlayerState, assigns bIsGM / bIsHost&#xa;&#xa;Logout(): removes player from GameState role arrays" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="420" y="140" width="300" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- ASessionGameState -->
+        <mxCell id="gamestate" value="&lt;b&gt;ASessionGameState&lt;/b&gt;&#xa;(Replicated to all clients)&#xa;&#xa;Runtime mirror of USessionSave.&#xa;Server is authoritative.&#xa;&#xa;Replicated fields:&#xa;GameTypeID, HostPlayerID, GMPlayerIDs,&#xa;PlayerIDs, PlayerArray (built-in)&#xa;&#xa;Read by: USessionHUDComponent (chat routing),&#xa;ASessionGameMode (role checks)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="420" y="360" width="300" height="200" as="geometry" />
+        </mxCell>
+
+        <!-- ASessionPlayerState -->
+        <mxCell id="playerstate" value="&lt;b&gt;ASessionPlayerState&lt;/b&gt;&#xa;(Replicated to all clients)&#xa;&#xa;Per-player runtime state.&#xa;Set by server in PostLogin.&#xa;Not persisted — repopulated each session.&#xa;&#xa;Replicated fields:&#xa;SessionPlayerID (FGuid), bIsGM, bIsHost&#xa;&#xa;Note: field is SessionPlayerID, not PlayerID&#xa;(shadows APlayerState::PlayerID int32)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="420" y="600" width="300" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- ASessionController -->
+        <mxCell id="controller" value="&lt;b&gt;ASessionController&lt;/b&gt;&#xa;(One per connected player)&#xa;&#xa;Owns: USessionHUDComponent&#xa;Handles: camera input, chat input&#xa;&#xa;Server_TravelToSession(URL) [Server RPC]:&#xa;  Called by client → executes on server&#xa;  Calls GetWorld()-&gt;ServerTravel(URL)&#xa;  Moves ALL players to the target level&#xa;&#xa;BeginPlay: loads UCameraSettingsSave" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="800" y="140" width="300" height="200" as="geometry" />
+        </mxCell>
+
+        <!-- USessionHUDComponent -->
+        <mxCell id="hudcomp" value="&lt;b&gt;USessionHUDComponent&lt;/b&gt;&#xa;(Replicated ActorComponent)&#xa;&#xa;BeginPlay: creates GameplayScreen widget,&#xa;caches refs (ChatBox, DiceSelectorManager,&#xa;PlayerList, SessionNotesPanel, Taskbar),&#xa;registers panels, loads panel layout,&#xa;restores chat log from USessionSave&#xa;&#xa;SendChatMessageOnServer [Server RPC]:&#xa;  Resolves sender, routes to participants,&#xa;  saves message to USessionSave&#xa;&#xa;AddChatMessageOnOwningClient [Client RPC]:&#xa;  Delivers message to local ChatBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="800" y="380" width="300" height="230" as="geometry" />
+        </mxCell>
+
+        <!-- Save files -->
+        <mxCell id="save_player" value="&lt;b&gt;UPlayerSave&lt;/b&gt;&#xa;Slot: &quot;PlayerIdentity&quot;&#xa;&#xa;PlayerID (FGuid) — permanent.&#xa;Generated once. Never changes.&#xa;Loaded by USessionInstance on startup." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="140" width="280" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="save_session" value="&lt;b&gt;USessionSave&lt;/b&gt;&#xa;Slot: &quot;Session_{SessionID}&quot;&#xa;&#xa;GameTypeID, CampaignID, SessionID,&#xa;HostPlayerID, GMPlayerIDs, PlayerIDs,&#xa;LastSaved, ChatLog, ChatTabNames&#xa;&#xa;Loaded by: ASessionGameMode::InitGame&#xa;Written by: USessionHUDComponent&#xa;  (chat messages, tab renames)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="270" width="280" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="save_panel" value="&lt;b&gt;UPanelLayoutSave&lt;/b&gt;&#xa;Slot: &quot;PanelLayout&quot;&#xa;&#xa;PanelLayouts (TMap&lt;FString, FPanelLayoutData&gt;)&#xa;Keyed by PanelID.&#xa;&#xa;Saved: on drag/resize/toggle.&#xa;Loaded: on HUD startup." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="460" width="280" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="save_campaign" value="&lt;b&gt;UCampaignManagerSave&lt;/b&gt;&#xa;Slot: &quot;CampaignManager&quot;&#xa;&#xa;TMap&lt;FString, FCampaignList&gt;&#xa;Keyed by game type (e.g. &quot;DnD5e&quot;).&#xa;FCampaignRecord contains SessionIDs array.&#xa;&#xa;Authoritative campaign→session index." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="610" width="280" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- SERVER TRAVEL FLOW -->
+        <mxCell id="travel_hdr" value="SERVER TRAVEL FLOW" style="text;html=1;strokeColor=none;fillColor=#e1d5e7;align=center;verticalAlign=middle;rounded=1;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="760" width="1440" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="t1" value="1. Player clicks campaign card&#xa;(UCampaignManagerScreen::OnCampaignSelected)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="810" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t2" value="2. Get PlayerID from USessionInstance&#xa;Build TravelURL: &quot;MapName?PlayerID=&lt;guid&gt;&quot;&#xa;GET_OWNING_PC → cast to ASessionController" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="340" y="810" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t3" value="3. ASessionController::Server_TravelToSession(URL)&#xa;[Server RPC — executes on server]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="640" y="810" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t4" value="4. GetWorld()-&gt;ServerTravel(URL)&#xa;All connected clients travel to new level" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="940" y="810" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t5" value="5. New level loads.&#xa;ASessionGameMode::InitGame reads SessionID&#xa;from USessionInstance, loads USessionSave,&#xa;pushes to ASessionGameState.&#xa;PostLogin fires for each connecting player." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="790" width="260" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Travel arrows -->
+        <mxCell id="ta1" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t1" target="t2" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ta2" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t2" target="t3" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ta3" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t3" target="t4" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="ta4" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="t4" target="t5" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Key arrows between boxes -->
+        <mxCell id="a1" value="loads on startup" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" source="instance" target="save_player" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a2" value="reads SessionID" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" source="gamemode" target="instance" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a3" value="loads + pushes fields" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" source="gamemode" target="save_session" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a4" value="populates" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" source="gamemode" target="gamestate" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a5" value="sets role flags" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" source="gamemode" target="playerstate" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a6" value="saves messages + tab names" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" source="hudcomp" target="save_session" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a7" value="saves/loads panel layout" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" source="hudcomp" target="save_panel" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a8" value="owned by" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" source="controller" target="hudcomp" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a9" value="reads PlayerArray for routing" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" source="hudcomp" target="gamestate" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
