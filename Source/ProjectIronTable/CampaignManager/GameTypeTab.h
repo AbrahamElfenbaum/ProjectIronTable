@@ -2,7 +2,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "GameTypeButton.generated.h"
+#include "GameTypeTab.generated.h"
 
 class UButton;
 class UTextBlock;
@@ -11,7 +11,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGameTypeSelected, const FString&,
 
 /** A tab button representing a single game type in the Campaign Manager. Displays the type name and fires OnGameTypeSelected when clicked. */
 UCLASS()
-class PROJECTIRONTABLE_API UGameTypeButton : public UUserWidget
+class PROJECTIRONTABLE_API UGameTypeTab : public UUserWidget
 {
 	GENERATED_BODY()
 
@@ -57,7 +57,7 @@ public:
 	/** Returns the displayed game type label text. */
 	FString GetLabel() const;
 
-	/** Enables or disables the button â€” used to grey it out when no campaigns exist for this game type. */
+	/** Enables or disables the button — used to grey it out when no campaigns exist for this game type. */
 	void SetInteractable(bool bInteractable);
 
 	/** Sets the button's selected state, visually indicating it is the active game type. */
@@ -69,7 +69,6 @@ private:
 #pragma region Event Handlers
 	/** Broadcasts OnGameTypeSelected with the current label text as the game type name. */
 	UFUNCTION()
-	void OnGameTypeButtonClicked();
+	void OnGameTypeTabClicked();
 #pragma endregion
-
 };

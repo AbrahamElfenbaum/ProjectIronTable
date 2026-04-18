@@ -6,7 +6,7 @@
 #include "InputAction.h"
 #include "SessionController.generated.h"
 
-class USessionHUDComponent;
+class USessionUIComponent;
 class ASessionPawn;
 class UEnhancedInputLocalPlayerSubsystem;
 class UCameraSettingsSave;
@@ -38,7 +38,7 @@ public:
 #pragma region Components
 	/** The HUD component owned by this controller, responsible for all UI widgets. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<USessionHUDComponent> HUDComponent;
+	TObjectPtr<USessionUIComponent> HUDComponent;
 #pragma endregion
 
 #pragma region Camera State

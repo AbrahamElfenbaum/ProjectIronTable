@@ -1,21 +1,21 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
-#include "GameTypeButton.h"
+#include "GameTypeTab.h"
 
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 
 // Binds the tab button click delegate.
-void UGameTypeButton::NativeConstruct()
+void UGameTypeTab::NativeConstruct()
 {
 	Super::NativeConstruct();
 	if (GameTypeTab)
 	{
-		GameTypeTab->OnClicked.AddDynamic(this, &UGameTypeButton::OnGameTypeButtonClicked);
+		GameTypeTab->OnClicked.AddDynamic(this, &UGameTypeTab::OnGameTypeTabClicked);
 	}
 }
 
 // Sets the game type label text.
-void UGameTypeButton::SetLabel(const FString& Label)
+void UGameTypeTab::SetLabel(const FString& Label)
 {
 	if (GameTypeLabel)
 	{
@@ -24,14 +24,14 @@ void UGameTypeButton::SetLabel(const FString& Label)
 }
 
 // Stores the selected and unselected background colors for use by SetSelected.
-void UGameTypeButton::SetTabColors(const FLinearColor& InSelectedTabColor, const FLinearColor& InUnselectedTabColor)
+void UGameTypeTab::SetTabColors(const FLinearColor& InSelectedTabColor, const FLinearColor& InUnselectedTabColor)
 {
 	SelectedTabColor = InSelectedTabColor;
 	UnselectedTabColor = InUnselectedTabColor;
 }
 
 // Returns the current label text as a string.
-FString UGameTypeButton::GetLabel() const
+FString UGameTypeTab::GetLabel() const
 {
 	if (!GameTypeLabel)
 	{
@@ -41,7 +41,7 @@ FString UGameTypeButton::GetLabel() const
 }
 
 // Enables or disables the button to reflect whether campaigns exist for this game type.
-void UGameTypeButton::SetInteractable(bool bInteractable)
+void UGameTypeTab::SetInteractable(bool bInteractable)
 {
 	if (GameTypeTab)
 	{
@@ -50,7 +50,7 @@ void UGameTypeButton::SetInteractable(bool bInteractable)
 }
 
 // Applies SelectedTabColor or UnselectedTabColor to the button background based on bSelected.
-void UGameTypeButton::SetSelected(bool bSelected)
+void UGameTypeTab::SetSelected(bool bSelected)
 {
 	if (!GameTypeTab)
 	{
@@ -68,10 +68,7 @@ void UGameTypeButton::SetSelected(bool bSelected)
 }
 
 // Broadcasts OnGameTypeSelected with the current label text as the game type name.
-void UGameTypeButton::OnGameTypeButtonClicked()
+void UGameTypeTab::OnGameTypeTabClicked()
 {
-	if (GameTypeLabel)
-	{
-		OnGameTypeSelected.Broadcast(GameTypeLabel->GetText().ToString());
-	}
+	OnGameTypeSelected.Broadcast(GetLabel());
 }

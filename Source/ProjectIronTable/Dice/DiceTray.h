@@ -3,10 +3,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "BaseDiceActor.h"
-#include "DiceSelectorManager.generated.h"
-
-class UButton;
-class ADiceSpawnVolume;
+#include "DiceTray.generated.h"
 
 /** Controls whether a single-die roll uses normal, advantage, or disadvantage rules. */
 UENUM(BlueprintType)
@@ -17,6 +14,8 @@ enum class EDiceRollMode : uint8
 	Disadvantage
 };
 
+class UButton;
+class ADiceSpawnVolume;
 class UDiceSelector;
 
 /** Fired once all spawned dice have settled, passing every result and the active roll mode. */
@@ -28,12 +27,12 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDiceFailsafeDestroyed, EDiceType,
 /** Fired when a roll is initiated, before any dice are spawned. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRollInitiated);
 
-/** Widget that manages all DiceSelector widgets, handles spawning and rolling, and broadcasts results. */
+/** Manages all dice selectors, roll mode, and dice spawning. Spawns dice into the world via ADiceSpawnVolume and broadcasts results once all dice have settled. */
 UCLASS()
-class PROJECTIRONTABLE_API UDiceSelectorManager : public UUserWidget
+class PROJECTIRONTABLE_API UDiceTray : public UUserWidget
 {
 	GENERATED_BODY()
-
+	
 protected:
 	/** Populates selector and button arrays, binds all button delegates, and refreshes initial button states. */
 	virtual void NativeConstruct() override;
@@ -95,19 +94,19 @@ public:
 
 	/** Base direction and magnitude for the launch impulse applied to each die. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
-	FVector Impulse;
+	FVector Impulse = {3000.f, 3000.f, 0.f};
 
 	/** Half-range of random noise added to the impulse on each axis. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
-	float ImpulseRange = 50.f;
+	float ImpulseRange = 100.f;
 
 	/** Base direction and magnitude for the angular impulse applied to each die. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
-	FVector AngularImpulse;
+	FVector AngularImpulse = {500.f, 500.f, 500.f};
 
 	/** Half-range of random noise added to the angular impulse on each axis. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
-	float AngularImpulseRange = 500.f;
+	float AngularImpulseRange = 200.f;
 
 	/** Seconds to wait after all dice settle before destroying them. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
@@ -208,6 +207,6 @@ private:
 	void UpdateAdvantageButtonState();
 
 	/** Returns the base vector with a uniform random offset applied to each axis within Range. Z is only randomized when bUseZAxis is true. */
-	FVector GetRandomizedVector(const FVector& BaseVector, const float&, bool bUseZAxis);
+	FVector GetRandomizedVector(const FVector& BaseVector, const float& Range, bool bUseZAxis);
 #pragma endregion
 };

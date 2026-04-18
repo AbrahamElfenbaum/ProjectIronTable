@@ -3,10 +3,10 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "BaseDiceActor.h"
-#include "SessionHUDComponent.generated.h"
+#include "SessionUIComponent.generated.h"
 
 class UChatBox;
-class UDiceSelectorManager;
+class UDiceTray;
 class UTaskbar;
 class UDraggablePanel;
 class UPanelLayoutSave;
@@ -14,28 +14,28 @@ class UPlayerList;
 class USessionNotesPanel;
 
 /**
- * Actor component attached to ASessionController that owns and manages all gameplay UI.
+ * Actor component attached to ASessionController that owns and manages all session UI.
  * Handles widget creation, dice result routing, and replicated chat messaging.
  */
 UCLASS(Blueprintable, ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
-class PROJECTIRONTABLE_API USessionHUDComponent : public UActorComponent
+class PROJECTIRONTABLE_API USessionUIComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-public:
+public:	
 	/** Disables tick and enables replication so server RPCs function correctly. */
-	USessionHUDComponent();
+	USessionUIComponent();
 
 protected:
-	/** Creates and adds the gameplay screen widget, then caches widget references and wires up delegates. */
+	/** Creates and adds the session screen widget, then caches widget references and wires up delegates. */
 	virtual void BeginPlay() override;
 
 public:
 
 #pragma region Config
-	/** The root gameplay screen widget class to instantiate and add to the viewport. */
+	/** The root session screen widget class to instantiate and add to the viewport. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UUserWidget> GameplayScreenClass;
+	TSubclassOf<UUserWidget> SessionScreenClass;
 #pragma endregion
 
 private:
@@ -45,33 +45,33 @@ private:
 	UPROPERTY()
 	TObjectPtr<APlayerController> PlayerControllerRef;
 
-	/** The instantiated root gameplay screen widget. */
+	/** The instantiated root session screen widget. */
 	UPROPERTY()
-	TObjectPtr<UUserWidget> GameplayScreenRef;
+	TObjectPtr<UUserWidget> SessionScreenRef;
 
-	/** Reference to the DiceSelectorManager widget found inside the gameplay screen. */
+	/** Reference to the DiceTray widget found inside the session screen. */
 	UPROPERTY()
-	TObjectPtr<UDiceSelectorManager> DiceSelectorManagerRef;
+	TObjectPtr<UDiceTray> DiceTrayRef;
 
-	/** Reference to the ChatBox widget found inside the gameplay screen. */
+	/** Reference to the ChatBox widget found inside the session screen. */
 	UPROPERTY()
 	TObjectPtr<UChatBox> ChatBoxRef;
 
-	/** Reference to the PlayerList widget found inside the gameplay screen. */
+	/** Reference to the PlayerList widget found inside the session screen. */
 	UPROPERTY()
 	TObjectPtr<UPlayerList> PlayerListRef;
 
-	/** Reference to the SessionNotesPanel widget found inside the gameplay screen. */
+	/** Reference to the SessionNotesPanel widget found inside the session screen. */
 	UPROPERTY()
 	TObjectPtr<USessionNotesPanel> SessionNotesPanelRef;
 
-	/** Reference to the Taskbar widget found inside the gameplay screen. */
+	/** Reference to the Taskbar widget found inside the session screen. */
 	UPROPERTY()
 	TObjectPtr<UTaskbar> TaskbarRef;
 
 	/** Reference to the DraggablePanel wrapping the DiceSelectorManager, registered with the Taskbar for toggling. */
 	UPROPERTY()
-	TObjectPtr<UDraggablePanel> DicePanel;
+	TObjectPtr<UDraggablePanel> DiceTrayPanel;
 
 	/** Reference to the DraggablePanel wrapping the ChatBox, registered with the Taskbar for toggling. */
 	UPROPERTY()

@@ -5,7 +5,7 @@
 #include "Components/ScrollBox.h"
 #include "Components/WrapBox.h"
 
-#include "GameTypeButton.h"
+#include "GameTypeTab.h"
 #include "CampaignCard.h"
 #include "SessionController.h"
 #include "SessionInstance.h"
@@ -35,20 +35,20 @@ void UCampaignManagerScreen::Init()
 	bool bGridPopulated = false;
 	for (const TPair<FString, FCampaignList>& Game : CampaignData->CampaignRecords)
 	{
-		UGameTypeButton* TypeButton = CreateWidget<UGameTypeButton>(this, GameTypeButtonClass);
-		if (!IsValid(TypeButton))
+		UGameTypeTab* TypeTab = CreateWidget<UGameTypeTab>(this, GameTypeTabClass);
+		if (!IsValid(TypeTab))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("UCampaignManagerScreen::Init — Failed to create GameTypeButton for %s"), *Game.Key);
+			UE_LOG(LogTemp, Warning, TEXT("UCampaignManagerScreen::Init — Failed to create GameTypeTab for %s"), *Game.Key);
 			continue;
 		}
 
-		TypeButton->SetLabel(Game.Key);
-		TypeButton->SetTabColors(SelectedTabColor, UnselectedTabColor);
+		TypeTab->SetLabel(Game.Key);
+		TypeTab->SetTabColors(SelectedTabColor, UnselectedTabColor);
 
 		if (Game.Value.Campaigns.Num() > 0)
 		{
-			TypeButton->SetInteractable(true);
-			ActiveButtons.Add(TypeButton);
+			TypeTab->SetInteractable(true);
+			ActiveTabs.Add(TypeTab);
 
 			if (!bGridPopulated)
 			{
@@ -59,11 +59,11 @@ void UCampaignManagerScreen::Init()
 		}
 		else
 		{
-			TypeButton->SetInteractable(false);
+			TypeTab->SetInteractable(false);
 		}
 
-		TypeButton->OnGameTypeSelected.AddDynamic(this, &UCampaignManagerScreen::OnGameTypeSelected);
-		GameTypeTabBar->AddChild(TypeButton);
+		TypeTab->OnGameTypeSelected.AddDynamic(this, &UCampaignManagerScreen::OnGameTypeSelected);
+		GameTypeTabBar->AddChild(TypeTab);
 	}
 
 	SetSelectedGameButton();
@@ -151,11 +151,11 @@ TMap<FString, FCampaignList> UCampaignManagerScreen::BuildFakeData() const
 // Iterates all active buttons and sets their selected state based on SelectedGameType.
 void UCampaignManagerScreen::SetSelectedGameButton()
 {
-	for (UGameTypeButton* Button : ActiveButtons)
+	for (UGameTypeTab* Tab : ActiveTabs)
 	{
-		if (IsValid(Button))
+		if (IsValid(Tab))
 		{
-			Button->SetSelected(Button->GetLabel() == SelectedGameType);
+			Tab->SetSelected(Tab->GetLabel() == SelectedGameType);
 		}
 	}
 }

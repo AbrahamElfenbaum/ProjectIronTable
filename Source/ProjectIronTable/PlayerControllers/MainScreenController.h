@@ -4,9 +4,9 @@
 #include "GameFramework/PlayerController.h"
 #include "MainScreenController.generated.h"
 
-class UMainScreenHUDComponent;
+class UMainScreenUIComponent;
 
-/** Player controller for the main screen. Sets UI-only input mode and owns the main screen HUD component. */
+/** Player controller for the main screen. Sets UI-only input mode and owns the main screen UI component. */
 UCLASS()
 class PROJECTIRONTABLE_API AMainScreenController : public APlayerController
 {
@@ -18,9 +18,9 @@ public:
 	AMainScreenController();
 
 #pragma region Components
-	/** The HUD component owned by this controller, responsible for all UI widgets. */
+	/** The UI component owned by this controller, responsible for all UI widgets. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TObjectPtr<UMainScreenHUDComponent> HUDComponent;
+	TObjectPtr<UMainScreenUIComponent> HUDComponent;
 #pragma endregion
 
 protected:

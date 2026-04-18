@@ -8,6 +8,7 @@
 class UScrollBox;
 class UWrapBox;
 class UGameTypeButton;
+class UGameTypeTab;
 class UCampaignCard;
 
 /** Root widget for the campaign manager screen. Loads saved campaigns, populates game type tabs, and displays campaign cards. */
@@ -19,9 +20,9 @@ class PROJECTIRONTABLE_API UCampaignManagerScreen : public UBaseScreen
 public:
 
 #pragma region Config
-	/** Widget class used when creating game type tab buttons. */
+	/** Widget class used when creating game type tabs. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UGameTypeButton> GameTypeButtonClass;
+	TSubclassOf<UGameTypeTab> GameTypeTabClass;
 
 	/** Widget class used when creating campaign card entries. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -68,9 +69,9 @@ private:
 	UPROPERTY()
 	TObjectPtr<UCampaignManagerSave> CampaignData;
 
-	/** Cached references to the active game type buttons. */
+	/** Cached references to the active game type tabs. */
 	UPROPERTY()
-	TArray<TObjectPtr<UGameTypeButton>> ActiveButtons;
+	TArray<TObjectPtr<UGameTypeTab>> ActiveTabs;
 #pragma endregion
 
 public:

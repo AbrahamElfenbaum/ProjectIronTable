@@ -1,5 +1,5 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
-#include "DiceSelectorManager.h"
+#include "DiceTray.h"
 
 #include "Kismet/KismetMathLibrary.h"
 #include "Components/Button.h"
@@ -8,20 +8,20 @@
 #include "DiceSpawnVolume.h"
 
 // Populates selector and button arrays, binds all button delegates, and refreshes initial button states.
-void UDiceSelectorManager::NativeConstruct()
+void UDiceTray::NativeConstruct()
 {
 	Super::NativeConstruct();
 
 	Selectors = { D4, D6, D8, D10, D12, D20, D100 };
 	AdvantageButtons = { NormalRollButton, AdvantageRollButton, DisadvantageRollButton };
-	RollButton->OnClicked.AddDynamic(this, &UDiceSelectorManager::RollDice);
-	NormalRollButton->OnClicked.AddDynamic(this, &UDiceSelectorManager::OnNormalClicked);
-	AdvantageRollButton->OnClicked.AddDynamic(this, &UDiceSelectorManager::OnAdvantageClicked);
-	DisadvantageRollButton->OnClicked.AddDynamic(this, &UDiceSelectorManager::OnDisadvantageClicked);
+	RollButton->OnClicked.AddDynamic(this, &UDiceTray::RollDice);
+	NormalRollButton->OnClicked.AddDynamic(this, &UDiceTray::OnNormalClicked);
+	AdvantageRollButton->OnClicked.AddDynamic(this, &UDiceTray::OnAdvantageClicked);
+	DisadvantageRollButton->OnClicked.AddDynamic(this, &UDiceTray::OnDisadvantageClicked);
 
 	for (auto Selector : Selectors)
 	{
-		Selector->OnCountChanged.AddDynamic(this, &UDiceSelectorManager::OnSelectorCountChanged);
+		Selector->OnCountChanged.AddDynamic(this, &UDiceTray::OnSelectorCountChanged);
 	}
 
 	UpdateRollButtonState();
@@ -29,11 +29,11 @@ void UDiceSelectorManager::NativeConstruct()
 }
 
 // Spawns and launches all selected dice, clearing leftover dice from the previous roll first.
-void UDiceSelectorManager::RollDice()
+void UDiceTray::RollDice()
 {
 	if (!IsValid(SpawnVolume))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UDiceSelectorManager::RollDice â€” SpawnVolume is not set."));
+		UE_LOG(LogTemp, Warning, TEXT("UDiceTray::RollDice — SpawnVolume is not set."));
 		bRollInProgress = false;
 		return;
 	}
@@ -41,7 +41,7 @@ void UDiceSelectorManager::RollDice()
 	UWorld* World = GetWorld();
 	if (!World)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UDiceSelectorManager::RollDice â€” GetWorld() returned null."));
+		UE_LOG(LogTemp, Warning, TEXT("UDiceTray::RollDice — GetWorld() returned null."));
 		return;
 	}
 
@@ -96,10 +96,10 @@ void UDiceSelectorManager::RollDice()
 					ExpectedDiceCount++;
 
 					//Add delegate to wait until all dice have stopped moving before broadcasting the result
-					SpawnedDie->OnDiceRolled.AddDynamic(this, &UDiceSelectorManager::OnDiceRolledHandler);
+					SpawnedDie->OnDiceRolled.AddDynamic(this, &UDiceTray::OnDiceRolledHandler);
 
 					//Failsafe delegate in case something goes wrong and the dice don't stop moving within a reasonable time frame
-					SpawnedDie->OnFailsafeDestroy.AddDynamic(this, &UDiceSelectorManager::OnDiceFailsafeHandler);
+					SpawnedDie->OnFailsafeDestroy.AddDynamic(this, &UDiceTray::OnDiceFailsafeHandler);
 				}
 			}
 
@@ -116,7 +116,7 @@ void UDiceSelectorManager::RollDice()
 		{
 			//Roll the dice
 			Dice->Roll(GetRandomizedVector(Impulse, ImpulseRange, false),
-					   GetRandomizedVector(AngularImpulse, AngularImpulseRange, true));
+				GetRandomizedVector(AngularImpulse, AngularImpulseRange, true));
 		}
 	}
 	else
@@ -127,8 +127,7 @@ void UDiceSelectorManager::RollDice()
 	}
 }
 
-// Accumulates results; once all dice report in, resolves advantage/disadvantage and broadcasts OnAllDiceRolled.
-void UDiceSelectorManager::OnDiceRolledHandler(FRollResult Result)
+void UDiceTray::OnDiceRolledHandler(FRollResult Result)
 {
 	PendingResults.Add(Result);
 
@@ -175,7 +174,7 @@ void UDiceSelectorManager::OnDiceRolledHandler(FRollResult Result)
 			TimerWorld->GetTimerManager().SetTimer(
 				DestroyDiceTimerHandle,
 				this,
-				&UDiceSelectorManager::DestroyDice,
+				&UDiceTray::DestroyDice,
 				TimeBeforeDestroyingDice,
 				false);
 		}
@@ -187,7 +186,7 @@ void UDiceSelectorManager::OnDiceRolledHandler(FRollResult Result)
 }
 
 // Destroys all actors in SpawnedDice and empties the array.
-void UDiceSelectorManager::DestroyDice()
+void UDiceTray::DestroyDice()
 {
 	for (auto Dice : SpawnedDice)
 	{
@@ -200,7 +199,7 @@ void UDiceSelectorManager::DestroyDice()
 }
 
 // Decrements the expected count and finalises the roll early if remaining dice have all reported results.
-void UDiceSelectorManager::OnDiceFailsafeHandler(EDiceType DiceType)
+void UDiceTray::OnDiceFailsafeHandler(EDiceType DiceType)
 {
 	ExpectedDiceCount--;
 	OnDiceFailsafeDestroyed.Broadcast(DiceType);
@@ -218,7 +217,7 @@ void UDiceSelectorManager::OnDiceFailsafeHandler(EDiceType DiceType)
 			TimerWorld->GetTimerManager().SetTimer(
 				DestroyDiceTimerHandle,
 				this,
-				&UDiceSelectorManager::DestroyDice,
+				&UDiceTray::DestroyDice,
 				TimeBeforeDestroyingDice,
 				false);
 		}
@@ -229,46 +228,46 @@ void UDiceSelectorManager::OnDiceFailsafeHandler(EDiceType DiceType)
 }
 
 // Refreshes roll and advantage button states whenever any selector count changes.
-void UDiceSelectorManager::OnSelectorCountChanged()
+void UDiceTray::OnSelectorCountChanged()
 {
 	UpdateRollButtonState();
 	UpdateAdvantageButtonState();
 }
 
 // Sets roll mode to Normal and refreshes advantage button states.
-void UDiceSelectorManager::OnNormalClicked()
+void UDiceTray::OnNormalClicked()
 {
 	RollMode = EDiceRollMode::Normal;
 	UpdateAdvantageButtonState();
 }
 
 // Sets roll mode to Advantage and refreshes advantage button states.
-void UDiceSelectorManager::OnAdvantageClicked()
+void UDiceTray::OnAdvantageClicked()
 {
 	RollMode = EDiceRollMode::Advantage;
 	UpdateAdvantageButtonState();
 }
 
 // Sets roll mode to Disadvantage and refreshes advantage button states.
-void UDiceSelectorManager::OnDisadvantageClicked()
+void UDiceTray::OnDisadvantageClicked()
 {
 	RollMode = EDiceRollMode::Disadvantage;
 	UpdateAdvantageButtonState();
 }
 
 // Enables the roll button only when at least one die is selected and no roll is in progress.
-void UDiceSelectorManager::UpdateRollButtonState()
+void UDiceTray::UpdateRollButtonState()
 {
 	bool bAnyDiceSelected = Selectors.ContainsByPredicate([](UDiceSelector* S)
-	{
-		return S && S->DiceCount > 0;
-	});
+		{
+			return S && S->DiceCount > 0;
+		});
 
 	RollButton->SetIsEnabled(!bRollInProgress && bAnyDiceSelected);
 }
 
 // Enables advantage buttons only when exactly one die total is selected; disables the currently active mode button.
-void UDiceSelectorManager::UpdateAdvantageButtonState()
+void UDiceTray::UpdateAdvantageButtonState()
 {
 	int32 TotalDiceCount = 0;
 	bool bAnyDiceSelected = true;
@@ -329,10 +328,10 @@ void UDiceSelectorManager::UpdateAdvantageButtonState()
 }
 
 // Adds a uniform random offset within [-Range, Range] to each component of the base vector.
-FVector UDiceSelectorManager::GetRandomizedVector(const FVector& BaseVector, const float& Range, bool bUseZAxis)
+FVector  UDiceTray::GetRandomizedVector(const FVector& BaseVector, const float& Range, bool bUseZAxis)
 {
 	float Z = bUseZAxis ? FMath::FRandRange(-Range, Range) : 0.f;
 	return BaseVector + FVector(FMath::FRandRange(-Range, Range),
-								FMath::FRandRange(-Range, Range),
-								Z);
+		FMath::FRandRange(-Range, Range),
+		Z);
 }

@@ -1,11 +1,11 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "MainScreenController.h"
-#include "MainScreenHUDComponent.h"
+#include "MainScreenUIComponent.h"
 
-// Creates the HUD component as a default subobject.
+// Creates the UI component as a default subobject.
 AMainScreenController::AMainScreenController()
 {
-	HUDComponent = CreateDefaultSubobject<UMainScreenHUDComponent>(TEXT("HUDComponent"));
+	HUDComponent = CreateDefaultSubobject<UMainScreenUIComponent>(TEXT("UIComponent"));
 }
 
 // Sets UI-only input mode and shows the mouse cursor.

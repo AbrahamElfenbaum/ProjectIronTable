@@ -8,7 +8,7 @@
 #include "InputAction.h"
 #include "Kismet/GameplayStatics.h"
 
-#include "SessionHUDComponent.h"
+#include "SessionUIComponent.h"
 #include "SessionPawn.h"
 #include "CameraSettingsSave.h"
 #include "MacroLibrary.h"
@@ -16,7 +16,7 @@
 // Creates and attaches the HUD component subobject.
 ASessionController::ASessionController()
 {
-	HUDComponent = CreateDefaultSubobject<USessionHUDComponent>(TEXT("HUDComponent"));
+	HUDComponent = CreateDefaultSubobject<USessionUIComponent>(TEXT("HUDComponent"));
 }
 
 // Caches the pawn reference, registers the session input context, and binds all input actions.

@@ -663,7 +663,7 @@ Manages all dice selectors and initiates rolls.
 
 **Bound Widgets:** `D4`–`D100` (`UDiceSelector`), `NormalRollButton`, `AdvantageRollButton`, `DisadvantageRollButton`, `RollButton` (`UButton`)
 
-**Config:** `SpawnVolume` (set at runtime by `USessionHUDComponent`), `Impulse`, `AngularImpulse`, `ImpulseRange`, `AngularImpulseRange`, `TimeBeforeDestroyingDice` (5s)
+**Config:** `SpawnVolume` (set at runtime by `USessionHUDComponent`), `Impulse` (default `3000,3000,0`), `ImpulseRange` (default `100`), `AngularImpulse` (default `500,500,500`), `AngularImpulseRange` (default `200`), `TimeBeforeDestroyingDice` (5s)
 
 **Roll Modes:** Normal / Advantage / Disadvantage — mode buttons enabled only when exactly one selector has `DiceCount == 1`. Advantage/Disadvantage spawn 2 dice and keep only the higher/lower result; losing die gets `bWasKept = false`.
 

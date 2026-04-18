@@ -9,7 +9,7 @@ class UEditableText;
 class UVerticalBox;
 class UWidgetSwitcher;
 class UButton;
-class USessionHUDComponent;
+class USessionUIComponent;
 class UChatEntry;
 class UChatChannel;
 class UChatTab;
@@ -140,7 +140,7 @@ private:
 #pragma region Runtime References
 	/** Reference to the owning HUD component, used to send chat messages to the server. */
 	UPROPERTY()
-	TObjectPtr<USessionHUDComponent> HUDComponentRef;
+	TObjectPtr<USessionUIComponent> HUDComponentRef;
 
 	/** Cached reference to the currently visible context menu, used to dismiss it before spawning a new one. */
 	UPROPERTY()

@@ -2,7 +2,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "MainScreenHUDComponent.generated.h"
+#include "MainScreenUIComponent.generated.h"
 
 class UWidgetSwitcher;
 class UHomeScreen;
@@ -13,19 +13,19 @@ class USettingsScreen;
 
 /** Actor component attached to AMainScreenController that owns and manages all main screen UI. */
 UCLASS(Blueprintable, ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
-class PROJECTIRONTABLE_API UMainScreenHUDComponent : public UActorComponent
+class PROJECTIRONTABLE_API UMainScreenUIComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-public:
+public:	
 	/** Disables tick. */
-	UMainScreenHUDComponent();
+	UMainScreenUIComponent();
 
 protected:
 	/** Creates and adds the main screen widget, then caches widget references and binds click handlers. */
 	virtual void BeginPlay() override;
 
-public:
+public:	
 
 #pragma region Config
 	/** The root main screen widget class to instantiate and add to the viewport. */
@@ -90,4 +90,7 @@ private:
 	UFUNCTION()
 	void OnSettingsClicked();
 #pragma endregion
+
+	/** Switches the screen switcher to the screen at the given index. */
+	void SwitchScreen(int32 ScreenIndex);
 };

@@ -17,7 +17,7 @@
 #include "ContextMenu.h"
 #include "FunctionLibrary.h"
 #include "MacroLibrary.h"
-#include "SessionHUDComponent.h"
+#include "SessionUIComponent.h"
 #include "SessionInstance.h"
 #include "SessionSave.h"
 
