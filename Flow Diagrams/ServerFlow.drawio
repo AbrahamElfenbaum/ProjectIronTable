@@ -49,8 +49,8 @@
           <mxGeometry x="800" y="140" width="300" height="200" as="geometry" />
         </mxCell>
 
-        <!-- USessionHUDComponent -->
-        <mxCell id="hudcomp" value="&lt;b&gt;USessionHUDComponent&lt;/b&gt;&#xa;(Replicated ActorComponent)&#xa;&#xa;BeginPlay: creates GameplayScreen widget,&#xa;caches refs (ChatBox, DiceSelectorManager,&#xa;PlayerList, SessionNotesPanel, Taskbar),&#xa;registers panels, loads panel layout,&#xa;restores chat log from USessionSave&#xa;&#xa;SendChatMessageOnServer [Server RPC]:&#xa;  Resolves sender, routes to participants,&#xa;  saves message to USessionSave&#xa;&#xa;AddChatMessageOnOwningClient [Client RPC]:&#xa;  Delivers message to local ChatBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+        <!-- USessionUIComponent + USessionChatComponent -->
+        <mxCell id="hudcomp" value="&lt;b&gt;USessionUIComponent&lt;/b&gt; (Replicated)&#xa;Init(): creates SessionScreen widget,&#xa;caches refs (ChatBox, DiceTray,&#xa;PlayerList, SessionNotesPanel, Taskbar),&#xa;registers panels, loads panel layout,&#xa;restores chat log from USessionSave.&#xa;GetChatBox() → UChatBox*&#xa;&#xa;&lt;b&gt;USessionChatComponent&lt;/b&gt; (Replicated)&#xa;Init(): gets ChatBoxRef from UIComponent,&#xa;wires ChatBox.SetChatComponent(this)&#xa;&#xa;SendChatMessageOnServer [Server RPC]:&#xa;  Resolves sender, routes to participants,&#xa;  saves message to USessionSave&#xa;&#xa;AddChatMessageOnOwningClient [Client RPC]:&#xa;  Delivers message to local ChatBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="800" y="380" width="300" height="230" as="geometry" />
         </mxCell>
 
@@ -59,7 +59,7 @@
           <mxGeometry x="1180" y="140" width="280" height="100" as="geometry" />
         </mxCell>
 
-        <mxCell id="save_session" value="&lt;b&gt;USessionSave&lt;/b&gt;&#xa;Slot: &quot;Session_{SessionID}&quot;&#xa;&#xa;GameTypeID, CampaignID, SessionID,&#xa;HostPlayerID, GMPlayerIDs, PlayerIDs,&#xa;LastSaved, ChatLog, ChatTabNames&#xa;&#xa;Loaded by: ASessionGameMode::InitGame&#xa;Written by: USessionHUDComponent&#xa;  (chat messages, tab renames)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+        <mxCell id="save_session" value="&lt;b&gt;USessionSave&lt;/b&gt;&#xa;Slot: &quot;Session_{SessionID}&quot;&#xa;&#xa;GameTypeID, CampaignID, SessionID,&#xa;HostPlayerID, GMPlayerIDs, PlayerIDs,&#xa;LastSaved, ChatLog, ChatTabNames&#xa;&#xa;Loaded by: ASessionGameMode::InitGame&#xa;Written by: USessionChatComponent&#xa;  (chat messages); UChatBox (tab renames)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="1180" y="270" width="280" height="160" as="geometry" />
         </mxCell>
 

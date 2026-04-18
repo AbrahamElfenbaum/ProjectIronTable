@@ -20,10 +20,10 @@ ProjectIronTable is a TTRPG simulator built in Unreal Engine 5.7. It supports ma
 Source/ProjectIronTable/
 ├── AssetLibrary/      — Asset library screen (AssetLibraryScreen)
 ├── CampaignBrowser/   — Campaign browser screen (CampaignBrowserScreen)
-├── CampaignManager/   — Campaign manager widget classes (GameTypeButton, CampaignCard, CampaignManagerScreen)
+├── CampaignManager/   — Campaign manager widget classes (GameTypeTab, CampaignCard, CampaignManagerScreen)
 ├── Chat/              — Chat widget classes (ChatBox, ChatEntry, ChatChannel, ChatTab, ChatChannelListEntry)
-├── Components/        — Actor component classes (SessionHUDComponent, MainScreenHUDComponent)
-├── Dice/              — Dice actors and data assets
+├── Components/        — Actor component classes (SessionUIComponent, SessionChatComponent, MainScreenUIComponent)
+├── Dice/              — Dice actors and data assets (DiceTray, DiceSelector, BaseDiceActor, DiceSpawnVolume, DiceData)
 ├── GameInstances/     — Game instance class (SessionInstance)
 ├── GameModes/         — Game mode classes (SessionGameMode)
 ├── GameStates/        — Game state classes (SessionGameState)
@@ -46,7 +46,7 @@ Content/
 │   ├── Core/
 │   │   ├── GameModes/          — GM_Testing, GM_Session, GM_MainScreen
 │   │   ├── PlayerControllers/  — PC_Testing, PC_Session, PC_MainScreen
-│   │   └── Components/         — BP_SessionHUDComponent, BP_HomeScreenHUDComponent
+│   │   └── Components/         — BP_SessionUIComponent, BP_SessionChatComponent, BP_HomeScreenUIComponent
 │   ├── Dice/
 │   │   ├── A_BaseDiceActor     — Base dice actor Blueprint
 │   │   └── DiceActors/         — Individual die Blueprints (A_D4, A_D6, etc.)
@@ -57,10 +57,10 @@ Content/
 │   ├── Session/                — IMC_Session, IA_CameraMove, IA_CameraPan, IA_CameraPanReset, IA_CameraSprint, IA_CameraZoom, IA_FocusChat
 │   └── Chat/                   — IMC_Chat, IA_ExitChat, IA_ScrollChat
 ├── UI/
-│   ├── Dice/                   — WE_DiceSelector, W_DiceSelectorManager
+│   ├── Dice/                   — WE_DiceSelector, W_DiceSelectorManager, W_DiceTray
 │   ├── Chat/                   — W_ChatBox, WE_ChatChannel, WE_ChatTab, WE_ChatEntry
 │   ├── PlayerList/             — W_PlayerList, WE_PlayerRow
-│   ├── CampaignManager/        — WE_GameTypeButton, WE_CampaignCard
+│   ├── CampaignManager/        — WE_GameTypeTab, WE_CampaignCard
 │   ├── Screens/                — S_SessionScreen, S_HomeScreen, S_MainScreen, S_SettingsScreen, S_CampaignManagerScreen, S_CampaignBrowserScreen, S_AssetLibraryScreen
 │   ├── Settings/               — WE_SettingsSlider
 │   │   └── Panels/             — WE_CameraSettingsPanel
@@ -102,7 +102,7 @@ Content/
 #### ADiceSpawnVolume
 **Type:** `AActor` | **Place in level:** yes (one instance)
 
-Defines the spawn area for dice. `USessionHUDComponent` finds it at runtime and passes it to `UDiceSelectorManager`.
+Defines the spawn area for dice. `USessionUIComponent` finds it at runtime via `GetActorOfClass` and passes it to `UDiceTray`.
 
 **Components:** `SpawnArea` (`UBoxComponent`, root — visible/resizable in viewport)
 
@@ -202,7 +202,7 @@ Represents one channel/tab's message list.
 
 **Key Methods:**
 - `AddChatMessage(FString)` — creates and appends a `UChatEntry`; logs warning if `ChatEntryClass` is null
-- `RestoreMessage(SenderName, Message)` — recreates a saved message entry directly in the scroll box, bypassing routing and notification logic. Used by `USessionHUDComponent` to restore chat log on session load.
+- `RestoreMessage(SenderName, Message)` — recreates a saved message entry directly in the scroll box, bypassing routing and notification logic. Used by `USessionUIComponent` to restore chat log on session load.
 - `Scroll(bool bUp)` — adjusts scroll offset by `ScrollMultiplier`
 
 ---
@@ -295,7 +295,7 @@ Stub screen for the public campaign browser. Inherits all back-navigation behavi
 
 ### CampaignManager/
 
-#### UGameTypeButton
+#### UGameTypeTab
 **Type:** `UUserWidget`
 
 Tab button representing a single game type in the Campaign Manager screen. Displays the game type name and is greyed out (non-interactable) when no campaigns exist for that type. Visually indicates the active tab via background color.
@@ -339,17 +339,17 @@ Displays one campaign entry. Stores campaign ID and game type as private members
 Root widget for the Campaign Manager. Inherits back-navigation from `UBaseScreen`. Loads saved campaigns, builds game type tab buttons, and populates a campaign card grid filtered by the selected game type. Supports a fake-data mode for testing without a real save.
 
 **Config:**
-- `GameTypeButtonClass` (`TSubclassOf<UGameTypeButton>`)
+- `GameTypeTabClass` (`TSubclassOf<UGameTypeTab>`)
 - `CampaignCardClass` (`TSubclassOf<UCampaignCard>`)
 - `SelectedTabColor` / `UnselectedTabColor` (`FLinearColor`) — passed to each button via `SetTabColors`; must have alpha > 0 or buttons appear invisible
 - `bUseFakeData` (`bool`) — when true, `Init` uses hardcoded test data instead of the save game
 
 **Bound Widgets:** `NewCampaignButton` (`UButton`), `GameTypeTabBar` (`UScrollBox`), `CampaignGrid` (`UWrapBox`), `CampaignScroll` (`UScrollBox`) *(BackButton inherited from UBaseScreen)*
 
-**Private State:** `SelectedGameType` (`FString`), `CampaignData` (`TObjectPtr<UCampaignManagerSave>`, `UPROPERTY()`), `ActiveButtons` (`TArray<UGameTypeButton*>`, `UPROPERTY()`) — only buttons with at least one campaign
+**Private State:** `SelectedGameType` (`FString`), `CampaignData` (`TObjectPtr<UCampaignManagerSave>`, `UPROPERTY()`), `ActiveButtons` (`TArray<UGameTypeTab*>`, `UPROPERTY()`) — only buttons with at least one campaign
 
 **Key Methods:**
-- `virtual void Init() override` — branches on `bUseFakeData`; either creates a temporary `UCampaignManagerSave` via `NewObject` and populates it with `BuildFakeData()`, or loads from the `"CampaignManager"` save slot. Creates one `UGameTypeButton` per game type, tracks buttons with campaigns in `ActiveButtons`, populates the grid with the first available type, calls `SetSelectedGameButton()` after the loop.
+- `virtual void Init() override` — branches on `bUseFakeData`; either creates a temporary `UCampaignManagerSave` via `NewObject` and populates it with `BuildFakeData()`, or loads from the `"CampaignManager"` save slot. Creates one `UGameTypeTab` per game type, tracks tabs with campaigns in `ActiveButtons`, populates the grid with the first available type, calls `SetSelectedGameButton()` after the loop.
 - `SetSelectedGameButton()` — iterates `ActiveButtons` and calls `SetSelected` based on `SelectedGameType`
 - `BuildFakeData() const` — returns a `TMap<FString, FCampaignList>` with DnD5e (20), Pathfinder2e (4), CallOfCthulhu (2), Starfinder (2), VtM (1), Shadowrun/WFRP/CyberpunkRED/Mothership (0 each)
 
@@ -441,7 +441,7 @@ Per-session save file. One instance per game session. `UCampaignManagerSave` is 
 | `PlayerIDs` | `TArray<FGuid>` | — | All non-GM players |
 | `LastSaved` | `FDateTime` | — | Used to sort sessions when loading a campaign (most recent first) |
 | `ChatLog` | `TMap<FString, FChatLogRecord>` | — | Keyed by sorted, pipe-joined participant names (e.g. `"Alice\|Bob"`). Empty string key = Server channel. `FChatLogRecord` wraps `TArray<FChatMessageRecord>`; each record holds `SenderName` and `Message` body. |
-| `ChatTabNames` | `TMap<FString, FString>` | — | Keyed by sorted, pipe-joined participant names (same key format as `ChatLog`). Value is the user-assigned display name for that tab. Persisted on rename; restored by `USessionHUDComponent::BeginPlay` after the chat log is restored. |
+| `ChatTabNames` | `TMap<FString, FString>` | — | Keyed by sorted, pipe-joined participant names (same key format as `ChatLog`). Value is the user-assigned display name for that tab. Persisted on rename; restored by `USessionUIComponent::Init` after the chat log is restored. |
 
 `FChatMessageRecord` and `FChatLogRecord` are declared in `SessionSave.h`.
 
@@ -528,8 +528,8 @@ Server authority hub for gameplay sessions. Manages session init, player login/l
 
 ### Components/
 
-#### UMainScreenHUDComponent
-**Type:** `UActorComponent` | **Blueprint:** `BP_HomeScreenHUDComponent` (rename pending)
+#### UMainScreenUIComponent
+**Type:** `UActorComponent` | **Blueprint:** `BP_HomeScreenUIComponent`
 **Owner:** `AMainScreenController`
 
 Handles screen-level navigation only. Creates the root `S_MainScreen` widget, gets refs to all five screens, calls `Init()` on each, and wires their navigation delegates to the `ScreenSwitcher`.
@@ -545,42 +545,65 @@ Handles screen-level navigation only. Creates the root `S_MainScreen` widget, ge
 - `AssetLibraryScreen` (`UAssetLibraryScreen`) — index 3
 - `SettingsScreen` (`USettingsScreen`) — index 4
 
+**Private Helpers:**
+- `SwitchScreen(int32 ScreenIndex)` — sets `ScreenSwitcherRef->SetActiveWidgetIndex(ScreenIndex)`; all navigation handlers delegate to this
+
 **Handlers:**
-- `OnCampaignManagerClicked` → `SetActiveWidgetIndex(1)` — bound to `UHomeScreen::OnCampaignManagerRequested`
-- `OnCampaignBrowserClicked` → `SetActiveWidgetIndex(2)` — bound to `UHomeScreen::OnCampaignBrowserRequested`
-- `OnAssetLibraryClicked` → `SetActiveWidgetIndex(3)` — bound to `UHomeScreen::OnAssetLibraryRequested`
-- `OnSettingsClicked` → `SetActiveWidgetIndex(4)` — bound to `UHomeScreen::OnSettingsRequested`
-- `OnBackClicked` → `SetActiveWidgetIndex(0)` — bound to `OnBackRequested` on all four non-home screens
+- `OnCampaignManagerClicked` → `SwitchScreen(1)` — bound to `UHomeScreen::OnCampaignManagerRequested`
+- `OnCampaignBrowserClicked` → `SwitchScreen(2)` — bound to `UHomeScreen::OnCampaignBrowserRequested`
+- `OnAssetLibraryClicked` → `SwitchScreen(3)` — bound to `UHomeScreen::OnAssetLibraryRequested`
+- `OnSettingsClicked` → `SwitchScreen(4)` — bound to `UHomeScreen::OnSettingsRequested`
+- `OnBackClicked` → `SwitchScreen(0)` — bound to `OnBackRequested` on all four non-home screens
 
 > Does **not** own any button refs, slider refs, or save/load logic — all of that lives in the individual screen classes.
 
 ---
 
-#### USessionHUDComponent
+#### USessionUIComponent
 **Type:** `UActorComponent` | **Replicated:** yes
 **Owner:** `ASessionController`
 
-Manages the session HUD lifecycle and all chat networking.
+Manages the session HUD lifecycle: widget creation, panel registration, layout save/load, and widget reference distribution to other components. Chat RPCs and passthrough methods live in `USessionChatComponent`.
 
 **Config:**
-- `SessionScreenClass` (`TSubclassOf<UUserWidget>`)
+- `SessionScreenClass` (`TSubclassOf<UUserWidget>`) — **must be set on the component instance inside `PC_Session`**, not on a standalone component Blueprint
 
-**Widget names it searches for (must match):** `DiceSelectorManager`, `ChatBox`, `PlayerList`, `SessionNotesPanel`, `Taskbar`, `DicePanel`, `ChatPanel`, `PlayersPanel`, `SessionNotesPanel`
+**Widget names it searches for (must match):** `DiceTray`, `ChatBox`, `PlayerList`, `SessionNotesPanel`, `Taskbar`, `DicePanel`, `ChatPanel`, `PlayersPanel`, `SessionNotesPanelDraggable`
 
 **Key Methods:**
-- `FindAndRegisterPanel(WidgetName, Label)` — finds `UDraggablePanel`, registers with taskbar, assigns ID, binds layout save delegates. Populated into `Panels` array at BeginPlay.
+- `Init()` — called by `ASessionController::BeginPlay`; creates and adds the session screen widget, caches all widget refs, registers panels with the taskbar, loads panel layout, and binds delegates. Only runs logic for the local player controller.
+- `GetChatBox() const` → `UChatBox*` — returns the cached chat box reference; called by `USessionChatComponent::Init`
+- `GetDiceTray() const` → `UDiceTray*` — returns the cached dice tray reference; called by `USessionChatComponent::Init`
+- `GetPlayerList() const` → `UPlayerList*` — returns the cached player list reference; called by `USessionChatComponent::Init`
+- `FindAndRegisterPanel(WidgetName, Label)` — finds `UDraggablePanel`, registers with taskbar, assigns ID, binds layout save delegates. Populated into `Panels` array during `Init`.
 - `SavePanelLayout()` — iterates `Panels` array and writes each panel's layout to `"PanelLayout"` save slot
 - `LoadPanelLayout()` — loads and applies saved panel layout to each panel in `Panels` array on startup
-- `FocusChat()` / `ExitChat()` / `ScrollChat(bool)` — delegate to `ChatBoxRef`
-- `OnRollInitiated()` — calls `TrySendPrivateRollMessage` before dice spawn
-
-**RPCs:**
-- `SendChatMessageOnServer` (Server, Reliable) — resolves sender name, builds participant list, routes to each player's HUD component via `AddChatMessageOnOwningClient`. After routing, also persists the message to `USessionSave`: parses sender/body from the formatted message string, builds a sorted pipe-joined participant key, and saves the record via `FindOrAdd` on `ChatLog`.
-- `AddChatMessageOnOwningClient` (Client, Reliable) — delivers message to `ChatBoxRef`
-
-**Chat log restore (BeginPlay):** After `ChatBoxRef` is initialized, loads `USessionSave` and iterates `ChatLog`. For each entry, splits the key on `|` to recover the participant list, calls `ChatBoxRef->FindOrCreateChannel(Recipients)`, then calls `Channel->RestoreMessage` for each saved message. This runs only for the local player controller.
 
 > **Note:** Always place the Blueprint variant (`W_Taskbar`, etc.) in the screen widget — placing the raw C++ class causes null `BindWidget` crashes on first access.
+
+---
+
+#### USessionChatComponent
+**Type:** `UActorComponent` | **Replicated:** yes
+**Owner:** `ASessionController`
+
+Owns all chat networking, dice-to-chat routing, and chat passthrough methods. Gets widget references from `USessionUIComponent` via the owning `ASessionController`.
+
+**Key Methods:**
+- `Init()` — called by `ASessionController::BeginPlay` (after `UIComponent->Init()`); gets `ChatBoxRef`, `DiceTrayRef`, and `PlayerListRef` from `UIComponent` getters; wires `ChatBoxRef->SetChatComponent(this)`; binds dice and player list delegates. Local controller only.
+- `FocusChat()` / `ExitChat()` / `ScrollChat(bool)` — delegate to `ChatBoxRef`
+
+**RPCs:**
+- `SendChatMessageOnServer` (Server, Reliable) — resolves sender name, builds participant list, routes to each player's chat component via `AddChatMessageOnOwningClient`. After routing, persists the message to `USessionSave`: parses sender/body from the formatted message string, builds a sorted pipe-joined participant key, and saves the record via `FindOrAdd` on `ChatLog`.
+- `AddChatMessageOnOwningClient` (Client, Reliable) — delivers message to `ChatBoxRef`
+
+**Event Handlers:**
+- `AddRollResultToChat(TArray<FRollResult>, EDiceRollMode)` — bound to `UDiceTray::OnAllDiceRolled`; formats result string and calls `SendChatMessageOnServer`
+- `OnDiceFailsafeHandler(EDiceType)` — bound to `UDiceTray::OnDiceFailsafeDestroyed`; broadcasts a "lost to the void" message
+- `OnRollInitiated()` — bound to `UDiceTray::OnRollInitiated`; calls `ChatBoxRef->TrySendPrivateRollMessage()` before dice spawn
+- `OnPlayerAddressClicked(FString)` — bound to `UPlayerList::OnAddressClicked`; appends `@Name` to chat input
+
+**Chat log restore:** Handled in `USessionUIComponent::Init` after `ChatBoxRef` is initialized. Loads `USessionSave`, iterates `ChatLog`, splits each key on `|` to recover the participant list, calls `FindOrCreateChannel`, then calls `RestoreMessage` per record.
 
 ---
 
@@ -657,13 +680,18 @@ UI row for selecting a die type and count. All logic is C++; Blueprint is layout
 ---
 
 #### UDiceSelectorManager
-**Type:** `UUserWidget` | **Blueprint:** `W_DiceSelectorManager`
+**Renamed to `UDiceTray`.** See `UDiceTray` below.
 
-Manages all dice selectors and initiates rolls.
+---
+
+#### UDiceTray
+**Type:** `UUserWidget` | **Blueprint:** `W_DiceTray`
+
+Manages all dice selectors and initiates rolls. Renamed from `UDiceSelectorManager`.
 
 **Bound Widgets:** `D4`–`D100` (`UDiceSelector`), `NormalRollButton`, `AdvantageRollButton`, `DisadvantageRollButton`, `RollButton` (`UButton`)
 
-**Config:** `SpawnVolume` (set at runtime by `USessionHUDComponent`), `Impulse` (default `3000,3000,0`), `ImpulseRange` (default `100`), `AngularImpulse` (default `500,500,500`), `AngularImpulseRange` (default `200`), `TimeBeforeDestroyingDice` (5s)
+**Config:** `SpawnVolume` (set at runtime by `USessionUIComponent`), `Impulse` (default `3000,3000,0`), `ImpulseRange` (default `100`), `AngularImpulse` (default `500,500,500`), `AngularImpulseRange` (default `200`), `TimeBeforeDestroyingDice` (5s)
 
 **Roll Modes:** Normal / Advantage / Disadvantage — mode buttons enabled only when exactly one selector has `DiceCount == 1`. Advantage/Disadvantage spawn 2 dice and keep only the higher/lower result; losing die gets `bWasKept = false`.
 
@@ -743,7 +771,7 @@ All components are public so `ASessionController` can access `SpringArm->TargetA
 
 UI-only controller for the main screen. No camera pawn, no Enhanced Input.
 
-**Constructor:** `CreateDefaultSubobject<UMainScreenHUDComponent>("HUDComponent")`
+**Constructor:** `CreateDefaultSubobject<UMainScreenUIComponent>("UIComponent")`
 
 **BeginPlay:** `bShowMouseCursor = true`, `FInputModeUIOnly()`
 
@@ -754,7 +782,13 @@ UI-only controller for the main screen. No camera pawn, no Enhanced Input.
 
 Central hub for all player input and HUD management.
 
-**Constructor:** `CreateDefaultSubobject<USessionHUDComponent>("HUDComponent")`
+**Constructor:**
+```cpp
+UIComponent = CreateDefaultSubobject<USessionUIComponent>(TEXT("UIComponent"));
+ChatComponent = CreateDefaultSubobject<USessionChatComponent>(TEXT("ChatComponent"));
+```
+
+**BeginPlay:** Sets `bShowMouseCursor = true`, `FInputModeGameAndUI()`, then calls `UIComponent->Init()` followed by `ChatComponent->Init()` (order matters — chat component needs `UChatBox` from UI component).
 
 **Input (bound in `OnPossess`):**
 
@@ -765,9 +799,9 @@ Central hub for all player input and HUD management.
 | `IA_CameraPanReset` | — | Reset pitch to -15, preserve yaw |
 | `IA_CameraSprint` | bool | Hold: apply `CameraSpeedMultiplier`; release: restore 1x |
 | `IA_CameraZoom` | float | Adjust `SpringArm->TargetArmLength` by `Sign * ZoomSpeed` (clamped) |
-| `IA_FocusChat` | — | Swap in `IMC_Chat` (priority 1), delegate to HUD |
-| `IA_ExitChat` | — | Swap out `IMC_Chat`, delegate to HUD |
-| `IA_ScrollChat` | float | Delegate sign to `HUDComponent->ScrollChat()` |
+| `IA_FocusChat` | — | Swap in `IMC_Chat` (priority 1), delegate to `ChatComponent` |
+| `IA_ExitChat` | — | Swap out `IMC_Chat`, delegate to `ChatComponent` |
+| `IA_ScrollChat` | float | Delegate sign to `ChatComponent->ScrollChat()` |
 
 **Camera Properties (defaults):**
 
@@ -837,7 +871,7 @@ Project-wide utility macros for common null-guard and outer-retrieval patterns. 
 Holds shared delegate type declarations used across multiple screens and systems. All cross-screen delegates are declared here to avoid name collisions and keep delegate types in one place.
 
 **Declared types:**
-- `FOnBackRequested` (`DECLARE_DYNAMIC_MULTICAST_DELEGATE`) — declared on `UBaseScreen`; broadcast by all screen subclasses when the user clicks Back; bound by `UMainScreenHUDComponent` to navigate to index 0
+- `FOnBackRequested` (`DECLARE_DYNAMIC_MULTICAST_DELEGATE`) — declared on `UBaseScreen`; broadcast by all screen subclasses when the user clicks Back; bound by `UMainScreenUIComponent` to navigate to index 0
 
 ---
 
@@ -885,7 +919,7 @@ Shared base class for all main screen widgets. Provides a common back button, `O
 **Bound Widgets (protected):** `BackButton` (`UButton`) — must be named exactly `BackButton` in every child Blueprint
 
 **Delegates:**
-- `OnBackRequested` (`FOnBackRequested`, BlueprintAssignable) — broadcast when `BackButton` is clicked; bound by `UMainScreenHUDComponent` to navigate back to index 0
+- `OnBackRequested` (`FOnBackRequested`, BlueprintAssignable) — broadcast when `BackButton` is clicked; bound by `UMainScreenUIComponent` to navigate back to index 0
 
 **Key Methods:**
 - `virtual void Init()` — empty default; override in subclasses that need setup logic
@@ -904,10 +938,10 @@ Home screen widget. Owns all five home screen buttons and exposes delegates for 
 **Bound Widgets:** `CampaignManagerButton`, `CampaignBrowserButton`, `AssetLibraryButton`, `SettingsButton`, `QuitButton` (`UButton`)
 
 **Delegates:**
-- `OnCampaignManagerRequested` (BlueprintAssignable) — bound by `UMainScreenHUDComponent` → switches to Campaign Manager screen
-- `OnCampaignBrowserRequested` (BlueprintAssignable) — bound by `UMainScreenHUDComponent` → switches to Campaign Browser screen
-- `OnAssetLibraryRequested` (BlueprintAssignable) — bound by `UMainScreenHUDComponent` → switches to Asset Library screen
-- `OnSettingsRequested` (BlueprintAssignable) — bound by `UMainScreenHUDComponent` → switches to Settings screen
+- `OnCampaignManagerRequested` (BlueprintAssignable) — bound by `UMainScreenUIComponent` → switches to Campaign Manager screen
+- `OnCampaignBrowserRequested` (BlueprintAssignable) — bound by `UMainScreenUIComponent` → switches to Campaign Browser screen
+- `OnAssetLibraryRequested` (BlueprintAssignable) — bound by `UMainScreenUIComponent` → switches to Asset Library screen
+- `OnSettingsRequested` (BlueprintAssignable) — bound by `UMainScreenUIComponent` → switches to Settings screen
 
 **Key Methods:**
 - `Init()` — binds all button delegates
@@ -941,7 +975,7 @@ Scrollable multi-line text area for session notes. Auto-scrolls to the bottom wh
 #### AEnvironmentManager
 **Type:** `AActor` (Replicated) | **Place in level:** yes (one instance)
 
-Controls time of day and weather. `USessionHUDComponent` finds it at BeginPlay via `GetActorOfClass`.
+Controls time of day and weather. `USessionUIComponent` finds it during `Init` via `GetActorOfClass`.
 
 **Replicated properties:** `CurrentTimeOfDay` (float, 0–24), `CurrentWeatherType` (`EWeatherType`), `WeatherIntensity` (float, 0–1) — each has an OnRep function that applies the change locally.
 
@@ -963,7 +997,7 @@ Controls time of day and weather. `USessionHUDComponent` finds it at BeginPlay v
 #### UEnvironmentControlPanel
 **Type:** `UUserWidget` | **Blueprint:** `WE_EnvironmentControlPanel`
 
-GM panel for setting time of day and weather. Registered with `UTaskbar` as a `UDraggablePanel` via `USessionHUDComponent`.
+GM panel for setting time of day and weather. Registered with `UTaskbar` as a `UDraggablePanel` via `USessionUIComponent`.
 
 **Controls:** Time slider (0–24, with formatted label e.g. `"14:30"`), weather type button row (one per `EWeatherType`), intensity slider (0–1, disabled when weather = Clear).
 
@@ -1039,6 +1073,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - **`bRollInProgress` must be set `true` before calling `ResetCount`** — `ResetCount` triggers `UpdateAdvantageButtonState`, which resets `RollMode` to Normal if `bRollInProgress` is still false
 
 ### Networking & RPCs
+- **Widget initialization must go in `BeginPlay`, not `OnPossess`** — `OnPossess` runs only on the server in multiplayer. Remote clients never call `OnPossess`, so any `Init()` or widget creation placed there will silently skip all non-server clients, leaving them with a black screen. `BeginPlay` runs once per machine per controller, making it the correct place for HUD initialization. Enhanced Input setup is the exception — it still belongs in `OnPossess` where `InputComponent` is valid.
 - **`Participants` passed to `AddChatMessageOnOwningClient` must include the sender** — add `SenderName` with `AddUnique` before passing to clients; without it, channels on recipients' clients are missing the sender
 - Channel matching must check `Participants.Num()` equality before content — a subset-participant channel can otherwise incorrectly match
 
@@ -1071,7 +1106,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - [x] Base dice actor (`ABaseDiceActor`)
 - [x] Dice data asset (`UDiceData`)
 - [x] Dice selector widget (`UDiceSelector`)
-- [x] Dice selector manager (`UDiceSelectorManager`)
+- [x] Dice selector manager (`UDiceTray`, formerly `UDiceSelectorManager`)
 - [x] Individual die blueprints (D4, D6, D8, D10, D12, D20)
 - [x] Dice meshes and materials (*Dungeons of Dice* by NNJohn)
 - [x] Physics-based roll simulation
@@ -1094,7 +1129,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - [x] `ASessionController` — all input, HUD component, camera movement
 - [x] `ASessionPawn` — top-down camera rig
 - [x] Camera movement — pan, zoom, sprint, pan reset, editor property validation
-- [x] `AMainScreenController` + `UMainScreenHUDComponent` — main screen flow
+- [x] `AMainScreenController` + `UMainScreenUIComponent` — main screen flow
 - [x] `S_MainScreen` — `WidgetSwitcher` root; `S_HomeScreen` index 0, `S_SettingsScreen` index 1
 - [x] **Runtime camera settings menu** (`USaveGame`-based)
   - [x] `UCameraSettingsSave` — save class with all 9 camera fields
@@ -1102,7 +1137,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
   - [x] `USettingsSlider` — reusable slider+text widget with paired min/max clamping
   - [x] `WE_SettingsSlider` — Blueprint widget layout
   - [x] `S_SettingsScreen` — 9 sliders wired and grouped; Apply, Reset, Back buttons added
-  - [x] `UMainScreenHUDComponent` settings wiring — refactored; settings logic moved to `UCameraSettingsPanel`; home screen logic moved to `UHomeScreen`; component now handles screen-level navigation only
+  - [x] `UMainScreenUIComponent` settings wiring — refactored; settings logic moved to `UCameraSettingsPanel`; home screen logic moved to `UHomeScreen`; component now handles screen-level navigation only
 - [x] Private messaging — `@Name` syntax, per-conversation tabs, server-side routing
 - [x] Panel layout persistence — `UPanelLayoutSave`; saved on drag/resize/toggle; restored on startup
 - [x] Taskbar minimize system — `UTaskbar` + `UTaskbarButton`
@@ -1115,7 +1150,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - [ ] Session player cap (default 8, removable)
 - [x] Tab renaming (client-local) — right-click opens `UContextMenu` with Rename and Close options; rename persisted to `USessionSave::ChatTabNames`; close button removed from tab in favour of context menu
 - [x] Chat log persistence
-- [~] Shared notes — `USessionNotesPanel` created; scrollable `UMultiLineEditableText` with auto-scroll-to-bottom; registered as `UDraggablePanel` in `USessionHUDComponent`; save/load, input context (Escape), and hover-scroll not yet implemented
+- [~] Shared notes — `USessionNotesPanel` created; scrollable `UMultiLineEditableText` with auto-scroll-to-bottom; registered as `UDraggablePanel` in `USessionUIComponent`; save/load, input context (Escape), and hover-scroll not yet implemented
 - [ ] Pre-session lobby (waiting room; pre-game chat; character sheet accessible while waiting; Host sees connection status and launches when ready)
 - [ ] Session discovery and join flow
   - [ ] Invite code — immediate join, no approval
@@ -1129,7 +1164,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 The Campaign Manager is the primary hub between the home screen and an active session. Accessed via the Play button on the home screen.
 
 - [x] `UCampaignManagerSave` — save game; `TMap<FString, FCampaignList>` keyed by game type; slot `"CampaignManager"`
-- [x] `UGameTypeButton` — tab button per game type; greyed out if no campaigns exist
+- [x] `UGameTypeTab` — tab button per game type; greyed out if no campaigns exist
 - [x] `UCampaignCard` — campaign entry card; displays title, last played, player count; fires `OnCampaignSelected`
 - [~] `UCampaignManagerScreen` — tab switching, selected state highlighting, and fake-data test mode complete; `OnCampaignSelected` is still a placeholder; Blueprint wiring pending
 - [ ] Campaign Manager screen — lists all campaigns the player is part of (full flow pending)
@@ -1191,8 +1226,8 @@ The Campaign Manager is the primary hub between the home screen and an active se
 
 - [ ] `EWeatherType` enum (Environment/) — Clear, Overcast, Rain, HeavyRain, Snow, Blizzard, Wind, Sandstorm
 - [ ] `AEnvironmentManager` — replicated level actor; controls `ADirectionalLight` (sun angle → Sky Atmosphere), `ASkyLight`, `AExponentialHeightFog`, `AWindDirectionalSourceComponent`, and `ANiagaraActor`s per weather type. Server RPCs: `Server_SetTimeOfDay(float)`, `Server_SetWeather(EWeatherType, float Intensity)`. Replicated properties with OnRep apply logic.
-- [ ] `UEnvironmentControlPanel` — `UUserWidget`; time slider (0–24 + formatted label), weather type button row, intensity slider. Calls RPCs on `AEnvironmentManager`. Registered with `Taskbar` as a `UDraggablePanel` via `USessionHUDComponent`.
-- [ ] Wire into `USessionHUDComponent` — find `AEnvironmentManager` at BeginPlay via `GetActorOfClass`; call `FindAndRegisterPanel` for EnvironmentPanel
+- [ ] `UEnvironmentControlPanel` — `UUserWidget`; time slider (0–24 + formatted label), weather type button row, intensity slider. Calls RPCs on `AEnvironmentManager`. Registered with `Taskbar` as a `UDraggablePanel` via `USessionUIComponent`.
+- [ ] Wire into `USessionUIComponent` — find `AEnvironmentManager` during `Init` via `GetActorOfClass`; call `FindAndRegisterPanel` for EnvironmentPanel
 - [ ] Blueprint side — place `AEnvironmentManager` in `L_Session`, wire light/fog/Niagara refs in BP, build `WE_EnvironmentControlPanel`
 
 ---
@@ -1341,6 +1376,10 @@ Sessions are stored using Unreal's built-in save slot system — no custom file 
 This approach keeps all save I/O within UE's native save game system and makes a future dedicated-server migration straightforward — the index and session slots move to wherever the server runs, no path logic to change.
 
 ---
+
+*Last updated: 2026-04-18 (updated)* — `USessionChatComponent` completed: dice-to-chat handlers (`AddRollResultToChat`, `OnDiceFailsafeHandler`, `OnRollInitiated`, `OnPlayerAddressClicked`) moved from `#if 0` blocks in `USessionUIComponent` into `USessionChatComponent`; bound to `DiceTrayRef` and `PlayerListRef` in `Init()`. `USessionUIComponent` gains `GetDiceTray()` and `GetPlayerList()` getters alongside `GetChatBox()`. `BeginPlay` stubs removed from `USessionUIComponent` and `USessionChatComponent`. **Private Methods** region added to class layout standard (position 7, between Public Methods and Runtime References) — catch-all for internal helpers that aren't event handlers.
+
+*Last updated: 2026-04-18* — Component rename/split: `USessionHUDComponent` split into `USessionUIComponent` (widget management, panel layout, `GetChatBox()` getter) and `USessionChatComponent` (chat RPCs, passthrough methods). `UMainScreenHUDComponent` renamed to `UMainScreenUIComponent` (`SwitchScreen` private helper added). `UGameTypeButton` renamed to `UGameTypeTab`. `UDiceSelectorManager` renamed to `UDiceTray` (default impulse values documented). `ASessionController` updated: creates both components; `BeginPlay` calls `UIComponent->Init()` then `ChatComponent->Init()` (Init pattern replaces BeginPlay ordering). Chat references in `UChatBox` updated: `HUDComponentRef` → `ChatComponentRef` (type `USessionChatComponent*`). New gotcha: widget Init must go in `BeginPlay`, not `OnPossess` — `OnPossess` is server-only in multiplayer.
 
 *Last updated: 2026-04-16* — Server RPC infrastructure: `ASessionController::Server_TravelToSession` added; `UCampaignManagerScreen::OnCampaignSelected` updated to route through RPC instead of calling `ServerTravel` directly. `USessionNotesPanel` added (`SessionNotes/`): scrollable `UMultiLineEditableText` with auto-scroll-to-bottom; registered as `UDraggablePanel` in `USessionHUDComponent`. Source folder restructure: `Screens/` added (`HomeScreen`, `BaseScreen` moved from `UI/`); `DiceSelector`/`DiceSelectorManager` moved to `Dice/`; `SettingsSlider` moved to `Settings/`; `ContextMenu`/`ContextMenuButton` moved to `UI/` from `Utility/`. `Build.cs` updated with `Screens` path. TechDoc class sections reorganized to match new folder structure.
 

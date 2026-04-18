@@ -10,19 +10,19 @@
           <mxGeometry x="40" y="20" width="340" height="30" as="geometry" />
         </mxCell>
 
-        <mxCell id="10" value="USessionHUDComponent::BeginPlay()" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="100" y="70" width="220" height="50" as="geometry" />
+        <mxCell id="10" value="ASessionController::BeginPlay()&#xa;→ UIComponent-&gt;Init()&#xa;→ ChatComponent-&gt;Init()" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="100" y="70" width="220" height="60" as="geometry" />
         </mxCell>
 
-        <mxCell id="11" value="Cast owner → APlayerController&#xa;Cache PlayerControllerRef&#xa;Guard: not local controller → return" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+        <mxCell id="11" value="USessionUIComponent::Init()&#xa;Guard: not local controller → return&#xa;Cast owner → ASessionController&#xa;Cache PlayerControllerRef" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
           <mxGeometry x="80" y="155" width="260" height="70" as="geometry" />
         </mxCell>
 
-        <mxCell id="12" value="CreateWidget(GameplayScreenClass)&#xa;AddToViewport()&#xa;Cache GameplayScreenRef" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+        <mxCell id="12" value="CreateWidget(SessionScreenClass)&#xa;AddToViewport()&#xa;Cache SessionScreenRef" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
           <mxGeometry x="80" y="265" width="260" height="70" as="geometry" />
         </mxCell>
 
-        <mxCell id="13" value="GetWidgetFromName() for each:&#xa;• DiceSelectorManager&#xa;• ChatBox&#xa;• PlayerList&#xa;• Taskbar" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+        <mxCell id="13" value="GetWidgetFromName() for each:&#xa;• DiceTray&#xa;• ChatBox&#xa;• PlayerList&#xa;• Taskbar" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
           <mxGeometry x="80" y="375" width="260" height="90" as="geometry" />
         </mxCell>
 
@@ -39,12 +39,12 @@
           <mxGeometry x="80" y="665" width="260" height="90" as="geometry" />
         </mxCell>
 
-        <mxCell id="16" value="Bind delegates:&#xa;• DiceSelectorManager.OnAllDiceRolled → AddRollResultToChat&#xa;• DiceSelectorManager.OnDiceFailsafeDestroyed → OnDiceFailsafeHandler&#xa;• DiceSelectorManager.OnRollInitiated → OnRollInitiated&#xa;• PlayerList.OnPlayerAddressClicked → OnPlayerAddressClicked" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+        <mxCell id="16" value="Bind delegates:&#xa;• DiceTray.OnAllDiceRolled → AddRollResultToChat&#xa;• DiceTray.OnDiceFailsafeDestroyed → OnDiceFailsafeHandler&#xa;• DiceTray.OnRollInitiated → OnRollInitiated&#xa;• PlayerList.OnPlayerAddressClicked → OnPlayerAddressClicked" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
           <mxGeometry x="50" y="795" width="320" height="100" as="geometry" />
         </mxCell>
 
-        <mxCell id="17" value="Set input mode: FInputModeGameAndUI&#xa;bShowMouseCursor = true&#xa;ADiceSpawnVolume found via GetActorOfClass&#xa;Assigned to DiceSelectorManager.SpawnVolume" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="70" y="935" width="280" height="80" as="geometry" />
+        <mxCell id="17" value="ADiceSpawnVolume found via GetActorOfClass&#xa;Assigned to DiceTray.SpawnVolume&#xa;&#xa;USessionChatComponent::Init()&#xa;Get ChatBoxRef from UIComponent-&gt;GetChatBox()&#xa;ChatBoxRef-&gt;SetChatComponent(this)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="70" y="935" width="280" height="100" as="geometry" />
         </mxCell>
 
         <!-- CHAT RPC FLOW -->
@@ -52,7 +52,7 @@
           <mxGeometry x="500" y="20" width="260" height="30" as="geometry" />
         </mxCell>
 
-        <mxCell id="20" value="ChatBox calls&#xa;HUDComponent::SendChatMessageOnServer()&#xa;[Server RPC]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+        <mxCell id="20" value="ChatBox calls&#xa;ChatComponent::SendChatMessageOnServer()&#xa;[Server RPC]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
           <mxGeometry x="510" y="70" width="240" height="70" as="geometry" />
         </mxCell>
 

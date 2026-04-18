@@ -15,7 +15,7 @@ class USessionNotesPanel;
 
 /**
  * Actor component attached to ASessionController that owns and manages all session UI.
- * Handles widget creation, dice result routing, and replicated chat messaging.
+ * Handles widget creation, panel layout save/load, and widget reference distribution to other components.
  */
 UCLASS(Blueprintable, ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class PROJECTIRONTABLE_API USessionUIComponent : public UActorComponent
@@ -26,11 +26,7 @@ public:
 	/** Disables tick and enables replication so server RPCs function correctly. */
 	USessionUIComponent();
 
-protected:
-	/** Creates and adds the session screen widget, then caches widget references and wires up delegates. */
-	virtual void BeginPlay() override;
-
-public:
+	void Init();
 
 #pragma region Config
 	/** The root session screen widget class to instantiate and add to the viewport. */
@@ -92,46 +88,18 @@ private:
 
 public:
 
-#pragma region Replicated Chat Methods
-	/** Server RPC: validates and routes a chat message to all relevant clients. */
-	UFUNCTION(Reliable, Server)
-	void SendChatMessageOnServer(const FString& Message, const TArray<FString>& Recipients);
+	/** Returns a reference to the chat box widget. */
+	UChatBox* GetChatBox() const;
 
-	/** Client RPC: delivers a chat message to this client's chat box. */
-	UFUNCTION(Reliable, Client)
-	void AddChatMessageOnOwningClient(const FString& Message, const TArray<FString>& Recipients, bool bIsSender);
-#pragma endregion
+	/** Returns a reference to the dice tray widget. */
+	UDiceTray* GetDiceTray() const;
 
-#pragma region Chat Passthrough Methods
-	/** Focuses the chat input box and switches to UI-only input mode. */
-	void FocusChat();
-
-	/** Exits chat focus, clears the input field, and restores game-and-UI input mode. */
-	void ExitChat();
-
-	/** Scrolls the active chat channel up or down. */
-	void ScrollChat(bool bUp);
-#pragma endregion
+	/** Returns a reference to the player list widget. */
+	UPlayerList* GetPlayerList() const;
 
 private:
 
 #pragma region Event Handlers
-	/** Converts dice roll results into a formatted chat message and sends it to the server. */
-	UFUNCTION()
-	void AddRollResultToChat(TArray<FRollResult> Results, EDiceRollMode RollMode);
-
-	/** Sends a chat message noting that a die of the given type was lost to the failsafe. */
-	UFUNCTION()
-	void OnDiceFailsafeHandler(EDiceType DiceType);
-
-	/** Appends the clicked player's name as an @mention in the chat input field. */
-	UFUNCTION()
-	void OnPlayerAddressClicked(const FString& PlayerName);
-
-	/** Called when a roll is initiated; forwards to the chat box to send a private roll message if recipients are present in the input. */
-	UFUNCTION()
-	void OnRollInitiated();
-
 	/** Saves the current layout of all draggable panels to a save game object. Called when a panel is dragged, resized, or toggled. */
 	UFUNCTION()
 	void SavePanelLayout();

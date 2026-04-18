@@ -7,6 +7,7 @@
 #include "SessionController.generated.h"
 
 class USessionUIComponent;
+class USessionChatComponent;
 class ASessionPawn;
 class UEnhancedInputLocalPlayerSubsystem;
 class UCameraSettingsSave;
@@ -18,7 +19,7 @@ class PROJECTIRONTABLE_API ASessionController : public APlayerController
 	GENERATED_BODY()
 
 public:
-	/** Creates and attaches the HUD component subobject. */
+	/** Creates and attaches the UI and chat component subobjects. */
 	ASessionController();
 
 protected:
@@ -38,7 +39,11 @@ public:
 #pragma region Components
 	/** The HUD component owned by this controller, responsible for all UI widgets. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<USessionUIComponent> HUDComponent;
+	TObjectPtr<USessionUIComponent> UIComponent;
+
+	/** The chat component owned by this controller, responsible for replicated chat messaging. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USessionChatComponent> ChatComponent;
 #pragma endregion
 
 #pragma region Camera State

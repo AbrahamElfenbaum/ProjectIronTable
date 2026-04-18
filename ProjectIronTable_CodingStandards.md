@@ -62,8 +62,9 @@ Within a UCLASS, members are grouped using `#pragma region` / `#pragma endregion
 4. **State** — Runtime state variables
 5. **Events** — Delegates (public, `BlueprintAssignable`)
 6. **Public Methods** — Setters, public API
-7. **Runtime References** — Cached pointers set at runtime (private)
-8. **Private handlers** — `UFUNCTION()` AddDynamic targets
+7. **Private Methods** — Internal helpers that don't fit other regions (private)
+8. **Runtime References** — Cached pointers set at runtime (private)
+9. **Event Handlers** — `UFUNCTION()` AddDynamic targets (private)
 
 **Access rules:**
 - Widget references: **private**

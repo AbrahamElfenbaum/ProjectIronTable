@@ -17,7 +17,7 @@
 #include "ContextMenu.h"
 #include "FunctionLibrary.h"
 #include "MacroLibrary.h"
-#include "SessionUIComponent.h"
+#include "SessionChatComponent.h"
 #include "SessionInstance.h"
 #include "SessionSave.h"
 
@@ -216,10 +216,10 @@ void UChatBox::TrySendPrivateRollMessage()
 	{
 		Recipients.Remove(PlayerName);
 
-		CHECK_IF_VALID(HUDComponentRef, );
+		CHECK_IF_VALID(ChatComponentRef, );
 
 		FString FullMessage = FString::Printf(TEXT("%s: %s"), *PlayerName, *Body);
-		HUDComponentRef->SendChatMessageOnServer(FullMessage, Recipients);
+		ChatComponentRef->SendChatMessageOnServer(FullMessage, Recipients);
 		EditableText->SetText(FText::GetEmpty());
 	}
 }
@@ -246,6 +246,12 @@ UChatTab* UChatBox::GetTabForChannel(UChatChannel* Channel) const
 	return Tab ? *Tab : nullptr;
 }
 
+// Stores the chat component reference for use when sending messages to the server.
+void UChatBox::SetChatComponent(USessionChatComponent* InChatComponent)
+{
+	ChatComponentRef = InChatComponent;
+}
+
 // On Enter: parses @mentions from the message and sends it to the server. On focus loss: exits chat.
 void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod)
 {
@@ -270,10 +276,10 @@ void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod
 				Recipients.Remove(PlayerName);
 			}
 
-			CHECK_IF_VALID(HUDComponentRef, );
+			CHECK_IF_VALID(ChatComponentRef, );
 
 			FString FullMessage = FString::Printf(TEXT("%s: %s"), *PlayerName, *Body);
-			HUDComponentRef->SendChatMessageOnServer(FullMessage, Recipients);
+			ChatComponentRef->SendChatMessageOnServer(FullMessage, Recipients);
 
 			EditableText->SetText(FText::GetEmpty());
 

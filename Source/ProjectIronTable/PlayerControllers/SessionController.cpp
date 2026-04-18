@@ -8,15 +8,17 @@
 #include "InputAction.h"
 #include "Kismet/GameplayStatics.h"
 
+#include "SessionChatComponent.h"
 #include "SessionUIComponent.h"
 #include "SessionPawn.h"
 #include "CameraSettingsSave.h"
 #include "MacroLibrary.h"
 
-// Creates and attaches the HUD component subobject.
+// Creates and attaches the UI and chat component subobjects.
 ASessionController::ASessionController()
 {
-	HUDComponent = CreateDefaultSubobject<USessionUIComponent>(TEXT("HUDComponent"));
+	UIComponent = CreateDefaultSubobject<USessionUIComponent>(TEXT("UIComponent"));
+	ChatComponent = CreateDefaultSubobject<USessionChatComponent>(TEXT("ChatComponent"));
 }
 
 // Caches the pawn reference, registers the session input context, and binds all input actions.
@@ -146,6 +148,9 @@ void ASessionController::BeginPlay()
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	SetInputMode(InputMode);
 
+	UIComponent->Init();
+	ChatComponent->Init();
+
 	if (UGameplayStatics::DoesSaveGameExist(UCameraSettingsSave::SaveSlotName, 0))
 	{
 		UCameraSettingsSave* LoadedSettings = Cast<UCameraSettingsSave>(UGameplayStatics::LoadGameFromSlot(UCameraSettingsSave::SaveSlotName, 0));
@@ -219,14 +224,14 @@ void ASessionController::Input_CameraZoom(const FInputActionValue& Value)
 void ASessionController::Input_FocusChat()
 {
 	if (IsValid(InputSubsystemRef)) InputSubsystemRef->AddMappingContext(IMC_Chat, 1);
-	if (IsValid(HUDComponent)) HUDComponent->FocusChat();
+	if (IsValid(ChatComponent)) ChatComponent->FocusChat();
 }
 
 // Removes the chat input mapping context and tells the HUD to exit chat.
 void ASessionController::Input_ExitChat()
 {
 	if (IsValid(InputSubsystemRef)) InputSubsystemRef->RemoveMappingContext(IMC_Chat);
-	if (IsValid(HUDComponent)) HUDComponent->ExitChat();
+	if (IsValid(ChatComponent)) ChatComponent->ExitChat();
 }
 
 // Forwards the scroll direction (positive = up) to the HUD chat scroll handler.
@@ -234,7 +239,7 @@ void ASessionController::Input_ScrollChat(const FInputActionValue& Value)
 {
 	float ScrollInput = Value.Get<float>();
 
-	if (IsValid(HUDComponent)) HUDComponent->ScrollChat(ScrollInput > 0);
+	if (IsValid(ChatComponent)) ChatComponent->ScrollChat(ScrollInput > 0);
 }
 
 // Returns movement speed proportional to spring arm length, clamped between min and max.

@@ -9,7 +9,7 @@ class UEditableText;
 class UVerticalBox;
 class UWidgetSwitcher;
 class UButton;
-class USessionUIComponent;
+class USessionChatComponent;
 class UChatEntry;
 class UChatChannel;
 class UChatTab;
@@ -133,14 +133,17 @@ public:
 
 	/** Returns the tab associated with the given channel, or nullptr if not found. */
 	UChatTab* GetTabForChannel(UChatChannel* Channel) const;
+
+	/** Sets the chat component reference used to send messages to the server. Called by USessionChatComponent after Init. */
+	void SetChatComponent(USessionChatComponent* InChatComponent);
 #pragma endregion
 
 private:
 
 #pragma region Runtime References
-	/** Reference to the owning HUD component, used to send chat messages to the server. */
+	/** Reference to the owning chat component, used to send chat messages to the server. */
 	UPROPERTY()
-	TObjectPtr<USessionUIComponent> HUDComponentRef;
+	TObjectPtr<USessionChatComponent> ChatComponentRef;
 
 	/** Cached reference to the currently visible context menu, used to dismiss it before spawning a new one. */
 	UPROPERTY()
