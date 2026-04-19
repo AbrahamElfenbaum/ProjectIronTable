@@ -1,5 +1,6 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "ContextMenu.h"
+
 #include "Components/OverlaySlot.h"
 #include "Components/SizeBox.h"
 #include "Components/VerticalBox.h"

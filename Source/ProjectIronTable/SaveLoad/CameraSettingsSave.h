@@ -12,6 +12,7 @@ class PROJECTIRONTABLE_API UCameraSettingsSave : public USaveGame
 
 public:
 
+	/** Save slot name used for all camera settings load and save calls. */
 	static const FString SaveSlotName;
 
 #pragma region Movement

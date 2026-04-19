@@ -42,6 +42,7 @@ void UPlayerList::PopulateList()
 	AGameStateBase* GS = World->GetGameState<AGameStateBase>();
 	if (!IsValid(GS) || !PlayerRowClass)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("UPlayerList::PopulateList — GameState is invalid or PlayerRowClass is not set"));
 		return;
 	}
 

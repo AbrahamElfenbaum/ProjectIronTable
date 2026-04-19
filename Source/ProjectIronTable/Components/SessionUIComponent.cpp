@@ -29,6 +29,7 @@ USessionUIComponent::USessionUIComponent()
 	SetIsReplicatedByDefault(true);
 }
 
+// Creates and initializes all session UI widgets, binds delegates, and loads the saved panel layout.
 void USessionUIComponent::Init()
 {
 	PlayerControllerRef = Cast<APlayerController>(GetOwner());

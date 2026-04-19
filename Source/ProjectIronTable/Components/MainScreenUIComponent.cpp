@@ -42,7 +42,7 @@ void UMainScreenUIComponent::BeginPlay()
 
 		if (!IsValid(ScreenSwitcherRef))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("UMainScreenUIComponent::BeginPlay — ScreenSwitcher not found"));
+			UE_LOG(LogTemp, Warning, TEXT("UMainScreenUIComponent::BeginPlay ï¿½ ScreenSwitcher not found"));
 		}
 
 		if (IsValid(HomeScreenRef))
@@ -55,7 +55,7 @@ void UMainScreenUIComponent::BeginPlay()
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("UMainScreenUIComponent::BeginPlay — HomeScreen not found"));
+			UE_LOG(LogTemp, Warning, TEXT("UMainScreenUIComponent::BeginPlay ï¿½ HomeScreen not found"));
 		}
 
 		if (IsValid(CampaignManagerScreenRef))
@@ -65,7 +65,7 @@ void UMainScreenUIComponent::BeginPlay()
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("UMainScreenUIComponent::BeginPlay — CampaignManagerScreen not found"));
+			UE_LOG(LogTemp, Warning, TEXT("UMainScreenUIComponent::BeginPlay ï¿½ CampaignManagerScreen not found"));
 		}
 
 		if (IsValid(CampaignBrowserScreenRef))
@@ -75,7 +75,7 @@ void UMainScreenUIComponent::BeginPlay()
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("UMainScreenUIComponent::BeginPlay — CampaignBrowserScreen not found"));
+			UE_LOG(LogTemp, Warning, TEXT("UMainScreenUIComponent::BeginPlay ï¿½ CampaignBrowserScreen not found"));
 		}
 
 		if (IsValid(AssetLibraryScreenRef))
@@ -85,7 +85,7 @@ void UMainScreenUIComponent::BeginPlay()
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("UMainScreenUIComponent::BeginPlay — AssetLibraryScreen not found"));
+			UE_LOG(LogTemp, Warning, TEXT("UMainScreenUIComponent::BeginPlay ï¿½ AssetLibraryScreen not found"));
 		}
 
 		if (IsValid(SettingsScreenRef))
@@ -94,7 +94,7 @@ void UMainScreenUIComponent::BeginPlay()
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("UMainScreenUIComponent::BeginPlay — SettingsScreen not found"));
+			UE_LOG(LogTemp, Warning, TEXT("UMainScreenUIComponent::BeginPlay ï¿½ SettingsScreen not found"));
 		}
 	}
 }
@@ -129,7 +129,7 @@ void UMainScreenUIComponent::OnSettingsClicked()
 	SwitchScreen(4);
 }
 
-//Switches the screen switcher to the screen at the given index.
+// Switches the screen switcher to the screen at the given index.
 void UMainScreenUIComponent::SwitchScreen(int32 ScreenIndex)
 {
 	CHECK_IF_VALID(ScreenSwitcherRef, );

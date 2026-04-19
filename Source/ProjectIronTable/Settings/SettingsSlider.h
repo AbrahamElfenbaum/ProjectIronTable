@@ -68,6 +68,7 @@ private:
 
 public:
 
+#pragma region Public Methods
 	/** Returns the current slider value. */
 	float GetValue() const;
 
@@ -76,9 +77,11 @@ public:
 
 	/** Resets the slider to DefaultValue. */
 	void ResetToDefault();
+#pragma endregion
 
 private:
 
+#pragma region Event Handlers
 	/** Syncs the text field and enforces paired clamping when the slider value changes. */
 	UFUNCTION()
 	void OnSliderValueChanged(float Value);
@@ -86,8 +89,11 @@ private:
 	/** Parses the committed text, clamps it to slider bounds and pair gap, then applies it. */
 	UFUNCTION()
 	void OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod);
+#pragma endregion
 
+#pragma region Private Methods
 	/** Returns Value clamped relative to the paired slider's value, or unchanged if no pair is set. */
 	float ClampToPair(float Value);
-	
+#pragma endregion
+
 };

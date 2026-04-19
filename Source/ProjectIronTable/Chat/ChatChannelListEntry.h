@@ -8,6 +8,7 @@ class UTextBlock;
 class UButton;
 class UChatChannel;
 
+/** Fired when the entry button is clicked, passing the channel it represents. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEntryClicked, UChatChannel*, ClickedChannel);
 
 /** A single row in the closed channel list. Displays the channel name and fires OnEntryClicked when pressed. */

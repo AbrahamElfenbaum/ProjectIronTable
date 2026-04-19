@@ -171,9 +171,6 @@ private:
 	UFUNCTION()
 	void ReopenChannel(UChatChannel* Channel);
 
-	/** Clears and repopulates the closed channel list panel from the current ClosedChannels set. */
-	void RefreshChannelList();
-
 	/** Spawns a context menu at the cursor position when a non-Server tab is right-clicked. */
 	UFUNCTION()
 	void OnTabRightClickedHandler(UChatChannel* Channel);
@@ -186,5 +183,8 @@ private:
 #pragma region Private Methods
 	/** Splits a message string into @mention recipients and the remaining message body. */
 	void ParseMentions(const FString& Message, TArray<FString>& OutRecipients, FString& OutBody) const;
+
+	/** Clears and repopulates the closed channel list panel from the current ClosedChannels set. */
+	void RefreshChannelList();
 #pragma endregion
 };

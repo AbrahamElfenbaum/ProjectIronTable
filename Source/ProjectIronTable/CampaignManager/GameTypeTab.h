@@ -7,6 +7,7 @@
 class UButton;
 class UTextBlock;
 
+/** Fired when the tab button is clicked, passing the game type name this tab represents. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGameTypeSelected, const FString&, GameType);
 
 /** A tab button representing a single game type in the Campaign Manager. Displays the type name and fires OnGameTypeSelected when clicked. */
@@ -57,7 +58,7 @@ public:
 	/** Returns the displayed game type label text. */
 	FString GetLabel() const;
 
-	/** Enables or disables the button — used to grey it out when no campaigns exist for this game type. */
+	/** Enables or disables the button ï¿½ used to grey it out when no campaigns exist for this game type. */
 	void SetInteractable(bool bInteractable);
 
 	/** Sets the button's selected state, visually indicating it is the active game type. */

@@ -7,7 +7,6 @@
 #include "SettingsSlider.h"
 #include "CameraSettingsSave.h"
 
-
 // Populates the sliders array, binds button delegates, and loads saved camera settings (or resets to defaults if no save exists).
 void UCameraSettingsPanel::Init()
 {

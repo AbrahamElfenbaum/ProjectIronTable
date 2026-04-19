@@ -2,7 +2,6 @@
 #include "ChatBox.h"
 
 #include "Kismet/GameplayStatics.h"
-
 #include "GameFramework/PlayerState.h"
 #include "Components/HorizontalBox.h"
 #include "Components/VerticalBox.h"
@@ -362,6 +361,7 @@ void UChatBox::RefreshChannelList()
 	}
 }
 
+// Spawns a context menu at the cursor with Rename and Close options when a non-Server tab is right-clicked.
 void UChatBox::OnTabRightClickedHandler(UChatChannel* Channel)
 {
 	if (Channel->Participants.IsEmpty())

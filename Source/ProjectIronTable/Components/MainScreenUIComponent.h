@@ -91,6 +91,8 @@ private:
 	void OnSettingsClicked();
 #pragma endregion
 
+#pragma region Private Methods
 	/** Switches the screen switcher to the screen at the given index. */
 	void SwitchScreen(int32 ScreenIndex);
+#pragma endregion
 };

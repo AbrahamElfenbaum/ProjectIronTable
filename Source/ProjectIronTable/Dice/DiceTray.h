@@ -113,13 +113,13 @@ public:
 	float TimeBeforeDestroyingDice = 5.0f;
 #pragma endregion
 
+private:
+
 #pragma region State
 	/** The currently active roll mode; controls advantage/disadvantage behaviour. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dice")
 	EDiceRollMode RollMode = EDiceRollMode::Normal;
 #pragma endregion
-
-private:
 
 	/** Flat array of all selector widgets for iteration. */
 	UPROPERTY()

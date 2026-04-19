@@ -14,6 +14,8 @@ class PROJECTIRONTABLE_API USessionNotesPanel : public UUserWidget
 	GENERATED_BODY()
 
 private:
+
+#pragma region Widget References
 	/** Scroll box wrapping the notes text area; scrolled to the end when new content is added. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UScrollBox> NotesScroll;
@@ -21,6 +23,7 @@ private:
 	/** Editable multi-line text field where the player writes session notes. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UMultiLineEditableText> NotesText;
+#pragma endregion
 
 protected:
 	/** Binds the text changed delegate to keep the scroll position at the bottom as content grows. */
@@ -28,8 +31,10 @@ protected:
 
 private:
 
+#pragma region Event Handlers
 	/** Scrolls the notes panel to the end whenever the text content changes. */
 	UFUNCTION()
 	void OnNotesTextChanged(const FText& Text);
-	
+#pragma endregion
+
 };

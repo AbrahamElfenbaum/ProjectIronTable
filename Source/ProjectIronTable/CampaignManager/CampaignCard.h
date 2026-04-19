@@ -7,6 +7,7 @@
 class UButton;
 class UTextBlock;
 
+/** Fired when the launch button is clicked, passing the campaign ID and its game type key. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCampaignSelected, const FGuid&, CampaignID, const FString&, GameType);
 
 /** A card widget representing a single campaign entry. Displays the campaign name, last played date, and player count. Fires OnCampaignSelected when the launch button is clicked. */

@@ -1,5 +1,6 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "BaseDiceActor.h"
+
 #include "Kismet/GameplayStatics.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Sound/SoundBase.h"
@@ -72,7 +73,7 @@ FRollResult ABaseDiceActor::GetRolledValue()
 
 	RollResult.DiceActor = this;
 
-	//for 1 die
+	// for 1 die
 	if (!IsMeshValid(Mesh2) || !DiceFaces2)
 	{
 		RollResult.DiceType = DiceFaces1->DiceType;
@@ -84,7 +85,7 @@ FRollResult ABaseDiceActor::GetRolledValue()
 		return RollResult;
 	}
 
-	//for 2 dice
+	// for 2 dice
 	int32 Value1 = GetFaceValue(Mesh1, DiceFaces1);
 	int32 Value2 = GetFaceValue(Mesh2, DiceFaces2);
 	RollResult.DiceType = DiceFaces2->DiceType;

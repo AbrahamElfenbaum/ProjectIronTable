@@ -165,21 +165,6 @@ public:
 
 private:
 
-	/** Called when a mesh physics body enters sleep; fires OnDiceRolled once both meshes are asleep. */
-	UFUNCTION()
-	void OnMeshSleep(UPrimitiveComponent* SleepingComponent, FName BoneName);
-
-	/** Plays a collision sound when a mesh strikes another object; throttled to prevent rapid-fire hits. */
-	UFUNCTION()
-	void OnMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
-
-	/** Returns true if the mesh is non-null and has a valid static mesh asset assigned. */
-	bool IsMeshValid(UStaticMeshComponent* Mesh) const;
-
-	/** Returns the value of the face whose normal is most aligned with world up for the given mesh and data asset. */
-	int32 GetFaceValue(UStaticMeshComponent* Mesh, UDiceData* DiceFaces) const;
-
-
 #pragma region State
 	/** Timer handle for the failsafe destroy. */
 	FTimerHandle FailsafeTimerHandle;
@@ -188,6 +173,24 @@ private:
 	float LastHitTime = 0.f;
 #pragma endregion
 
+#pragma region Private Methods
+	/** Returns true if the mesh is non-null and has a valid static mesh asset assigned. */
+	bool IsMeshValid(UStaticMeshComponent* Mesh) const;
+
+	/** Returns the value of the face whose normal is most aligned with world up for the given mesh and data asset. */
+	int32 GetFaceValue(UStaticMeshComponent* Mesh, UDiceData* DiceFaces) const;
+
 	/** Destroys the actor if it has not fully settled, broadcasting OnFailsafeDestroy first. */
 	void FailsafeDestroy();
+#pragma endregion
+
+#pragma region Event Handlers
+	/** Called when a mesh physics body enters sleep; fires OnDiceRolled once both meshes are asleep. */
+	UFUNCTION()
+	void OnMeshSleep(UPrimitiveComponent* SleepingComponent, FName BoneName);
+
+	/** Plays a collision sound when a mesh strikes another object; throttled to prevent rapid-fire hits. */
+	UFUNCTION()
+	void OnMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+#pragma endregion
 };

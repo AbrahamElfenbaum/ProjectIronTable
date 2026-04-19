@@ -177,9 +177,7 @@ void UCampaignManagerScreen::OnGameTypeSelected(const FString& GameType)
 	}
 }
 
-// Placeholder — launches the selected campaign with the given ID and game type.
-// TODO: ServerTravel must be called on the server, not the client. When this is fully implemented,
-// route through a server RPC. Also replace "MapName" with the actual session level path.
+// Validates the player ID and travels to the session map via a server RPC.
 void UCampaignManagerScreen::OnCampaignSelected(const FGuid& CampaignID, const FString& GameType)
 {
 	USessionInstance* SessionInstance = Cast<USessionInstance>(UGameplayStatics::GetGameInstance(this));

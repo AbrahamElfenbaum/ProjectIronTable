@@ -31,7 +31,7 @@ UTaskbarButton* UTaskbar::RegisterWidget(UUserWidget* Widget, const FString& Lab
 // Resets all panels to their default sizes and positions by broadcasting a message to all taskbar buttons.
 void UTaskbar::ResetLayout()
 {
-	for(UWidget* ButtonWidget : ButtonContainer->GetAllChildren())
+	for (UWidget* ButtonWidget : ButtonContainer->GetAllChildren())
 	{
 		if (UTaskbarButton* TaskbarButton = Cast<UTaskbarButton>(ButtonWidget))
 		{

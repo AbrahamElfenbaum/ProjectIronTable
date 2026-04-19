@@ -37,7 +37,7 @@ public:
 
 #pragma region State
 	/** Human-readable name shown on the tab for this channel. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly)
 	FString DisplayName;
 
 	/** Names of players in this private channel; empty means the channel is the public server channel. */

@@ -26,6 +26,7 @@ public:
 	/** Disables tick and enables replication so server RPCs function correctly. */
 	USessionUIComponent();
 
+	/** Creates and initializes all session UI widgets, binds delegates, and loads the saved panel layout. */
 	void Init();
 
 #pragma region Config
@@ -105,6 +106,7 @@ private:
 	void SavePanelLayout();
 #pragma endregion
 
+#pragma region Private Methods
 	/** Finds a DraggablePanel by widget name, registers it with the Taskbar, and returns it. Logs a warning if not found. */
 	UDraggablePanel* FindAndRegisterPanel(const FName& WidgetName, const FString& Label);
 
@@ -116,4 +118,5 @@ private:
 
 	/** Reads the given panel's layout data from the save object and applies it if a matching key exists. */
 	void ApplyPanelLayout(UDraggablePanel* Panel, UPanelLayoutSave* LoadedLayout);
+#pragma endregion
 };

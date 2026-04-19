@@ -11,6 +11,7 @@ class UDiceTray;
 class UDraggablePanel;
 class UPlayerList;
 
+/** Actor component attached to ASessionController that manages chat routing, dice roll messages, and player addressing. */
 UCLASS(Blueprintable, ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class PROJECTIRONTABLE_API USessionChatComponent : public UActorComponent
 {
@@ -42,6 +43,7 @@ private:
 
 public:
 
+	/** Caches widget references from the UI component and binds delegates for dice roll results and player addressing. */
 	void Init();
 
 #pragma region Replicated Chat Methods

@@ -40,16 +40,6 @@ private:
 	TObjectPtr<UButton> DecreaseButton;
 #pragma endregion
 
-#pragma region Event Handlers
-	/** Increments DiceCount and broadcasts OnCountChanged. */
-	UFUNCTION()
-	void IncreaseDiceCount();
-
-	/** Decrements DiceCount if above zero and broadcasts OnCountChanged. */
-	UFUNCTION()
-	void DecreaseDiceCount();
-#pragma endregion
-
 public:
 
 #pragma region Config
@@ -77,5 +67,17 @@ public:
 #pragma region Public Methods
 	/** Resets DiceCount to zero and broadcasts OnCountChanged. */
 	void ResetCount();
+#pragma endregion
+
+private:
+
+#pragma region Event Handlers
+	/** Increments DiceCount and broadcasts OnCountChanged. */
+	UFUNCTION()
+	void IncreaseDiceCount();
+
+	/** Decrements DiceCount if above zero and broadcasts OnCountChanged. */
+	UFUNCTION()
+	void DecreaseDiceCount();
 #pragma endregion
 };

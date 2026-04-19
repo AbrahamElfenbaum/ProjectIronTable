@@ -1,5 +1,6 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "SessionPlayerState.h"
+
 #include "Net/UnrealNetwork.h"
 
 // Register replicated properties

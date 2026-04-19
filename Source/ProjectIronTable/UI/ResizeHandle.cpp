@@ -1,5 +1,6 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "ResizeHandle.h"
+
 #include "DraggablePanel.h"
 #include "MacroLibrary.h"
 

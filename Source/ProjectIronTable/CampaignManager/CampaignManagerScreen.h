@@ -7,7 +7,6 @@
 
 class UScrollBox;
 class UWrapBox;
-class UGameTypeButton;
 class UGameTypeTab;
 class UCampaignCard;
 

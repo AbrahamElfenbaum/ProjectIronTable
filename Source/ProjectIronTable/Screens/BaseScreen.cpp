@@ -1,5 +1,6 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "BaseScreen.h"
+
 #include "Components/Button.h"
 
 // Binds the back button click delegate.

@@ -23,6 +23,7 @@ USessionChatComponent::USessionChatComponent()
 	SetIsReplicatedByDefault(true);
 }
 
+// Caches widget references from UIComponent and binds delegates for roll results, failsafes, and player addressing.
 void USessionChatComponent::Init()
 {
 	SessionControllerRef = Cast<ASessionController>(GetOwner());

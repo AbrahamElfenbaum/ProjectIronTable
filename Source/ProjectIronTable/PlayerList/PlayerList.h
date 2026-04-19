@@ -26,17 +26,17 @@ private:
 	TObjectPtr<UButton> ToggleButton;
 #pragma endregion
 
+#pragma region State
+	/** Tracks whether the scroll box is currently visible. */
+	bool bIsExpanded = false;
+#pragma endregion
+
 public:
 
 #pragma region Config
 	/** The widget class instantiated for each player row. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UPlayerRow> PlayerRowClass;
-#pragma endregion
-
-#pragma region State
-	/** Tracks whether the scroll box is currently visible. */
-	bool bIsExpanded = false;
 #pragma endregion
 
 public:

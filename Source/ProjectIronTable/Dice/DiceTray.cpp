@@ -33,7 +33,7 @@ void UDiceTray::RollDice()
 {
 	if (!IsValid(SpawnVolume))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UDiceTray::RollDice — SpawnVolume is not set."));
+		UE_LOG(LogTemp, Warning, TEXT("UDiceTray::RollDice ï¿½ SpawnVolume is not set."));
 		bRollInProgress = false;
 		return;
 	}
@@ -41,7 +41,7 @@ void UDiceTray::RollDice()
 	UWorld* World = GetWorld();
 	if (!World)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UDiceTray::RollDice — GetWorld() returned null."));
+		UE_LOG(LogTemp, Warning, TEXT("UDiceTray::RollDice ï¿½ GetWorld() returned null."));
 		return;
 	}
 
@@ -127,6 +127,7 @@ void UDiceTray::RollDice()
 	}
 }
 
+// Collects the result and broadcasts OnAllDiceRolled once all expected results have arrived.
 void UDiceTray::OnDiceRolledHandler(FRollResult Result)
 {
 	PendingResults.Add(Result);
@@ -153,7 +154,7 @@ void UDiceTray::OnDiceRolledHandler(FRollResult Result)
 		}
 		else
 		{
-			// Debug: log each result to the output log
+			// Log each result to the output.
 			for (const FRollResult& RollResult : PendingResults)
 			{
 				FString DiceTypeName = UEnum::GetValueAsString(RollResult.DiceType);
@@ -328,7 +329,7 @@ void UDiceTray::UpdateAdvantageButtonState()
 }
 
 // Adds a uniform random offset within [-Range, Range] to each component of the base vector.
-FVector  UDiceTray::GetRandomizedVector(const FVector& BaseVector, const float& Range, bool bUseZAxis)
+FVector UDiceTray::GetRandomizedVector(const FVector& BaseVector, const float& Range, bool bUseZAxis)
 {
 	float Z = bUseZAxis ? FMath::FRandRange(-Range, Range) : 0.f;
 	return BaseVector + FVector(FMath::FRandRange(-Range, Range),

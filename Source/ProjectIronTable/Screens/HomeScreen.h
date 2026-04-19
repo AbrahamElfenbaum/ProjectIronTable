@@ -6,9 +6,16 @@
 
 class UButton;
 
+/** Fired when the user requests to open the Campaign Manager screen. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCampaignManagerRequested);
+
+/** Fired when the user requests to open the Campaign Browser screen. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCampaignBrowserRequested);
+
+/** Fired when the user requests to open the Asset Library screen. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAssetLibraryRequested);
+
+/** Fired when the user requests to open the Settings screen. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSettingsRequested);
 
 /** Home screen widget. Binds all home screen buttons and broadcasts delegates for navigation events that require parent coordination. */
@@ -19,8 +26,10 @@ class PROJECTIRONTABLE_API UHomeScreen : public UUserWidget
 
 public:
 
+#pragma region Public Methods
 	/** Binds all button click delegates. */
 	void Init();
+#pragma endregion
 
 private:
 
