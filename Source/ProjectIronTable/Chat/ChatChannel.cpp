@@ -30,19 +30,6 @@ void UChatChannel::SetChatEntryClass(TSubclassOf<UChatEntry> EntryClass)
 	ChatEntryClass = EntryClass;
 }
 
-// Adjusts the scroll offset by ScrollMultiplier in the requested direction, clamped to valid range.
-void UChatChannel::Scroll(bool bUp)
-{
-	if (!ScrollBox) return;
-
-	int32 ScrollDirection = bUp ? 1 : -1;
-	ScrollBox->SetScrollOffset(
-		FMath::Clamp(
-			ScrollBox->GetScrollOffset() + (ScrollMultiplier * ScrollDirection),
-			0.0f,
-			ScrollBox->GetScrollOffsetOfEnd()));
-}
-
 // Appends a previously saved message directly to the scroll box without triggering any routing or notification logic.
 void UChatChannel::RestoreMessage(const FString& SenderName, const FString& Message)
 {

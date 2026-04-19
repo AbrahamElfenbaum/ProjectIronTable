@@ -9,8 +9,10 @@
 #include "Components/Button.h"
 #include "Components/EditableText.h"
 
-#include "ChatEntry.h"
+#include "BaseChannel.h"
+#include "BaseChannelTab.h"
 #include "ChatTab.h"
+#include "ChatEntry.h"
 #include "ChatChannel.h"
 #include "ChatChannelListEntry.h"
 #include "ContextMenu.h"
@@ -145,16 +147,24 @@ UChatChannel* UChatBox::CreateChannel(const TArray<FString>& Participants)
 }
 
 // Makes the given channel visible in the switcher and clears its unread notification.
-void UChatBox::SwitchToChannel(UChatChannel* Channel)
+void UChatBox::SwitchToChannel(UBaseChannel* Channel)
 {
+	UChatChannel* ChatChannel = Cast<UChatChannel>(Channel);
+	if (!ChatChannel)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UChatBox::SwitchToChannel — Channel is not a UChatChannel"));
+		return;
+	}
+
 	if (IsValid(ActiveChannel))
 	{
 		ChannelTabMap[ActiveChannel]->SetInteractable(true);
 	}
-	ActiveChannel = Channel;
+
+	ActiveChannel = ChatChannel;
 	ChannelTabMap[ActiveChannel]->SetInteractable(false);
-	ChannelContainer->SetActiveWidget(Channel);
-	ChannelTabMap[Channel]->ClearNotification();
+	ChannelContainer->SetActiveWidget(ChatChannel);
+	ChannelTabMap[ChatChannel]->ClearNotification();
 	EditableText->SetText(FText::GetEmpty());
 }
 
@@ -330,16 +340,19 @@ void UChatBox::CloseChannel(UChatChannel* Channel)
 }
 
 // Removes the given channel from the closed set, restores its tab, switches to it, and collapses the list panel.
-void UChatBox::ReopenChannel(UChatChannel* Channel)
+void UChatBox::ReopenChannel(UBaseChannel* Channel)
 {
-	ClosedChannels.Remove(Channel);
+	UChatChannel* ChatChannel = Cast<UChatChannel>(Channel);
+	if (!ChatChannel)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UChatBox::ReopenChannel — Channel is not a UChatChannel"));
+		return;
+	}
 
-	ChannelTabMap[Channel]->SetVisibility(ESlateVisibility::Visible);
-
-	SwitchToChannel(Channel);
-
+	ClosedChannels.Remove(ChatChannel);
+	ChannelTabMap[ChatChannel]->SetVisibility(ESlateVisibility::Visible);
+	SwitchToChannel(ChatChannel);
 	RefreshChannelList();
-
 	ClosedChannelContainer->SetVisibility(ESlateVisibility::Collapsed);
 }
 
@@ -362,9 +375,16 @@ void UChatBox::RefreshChannelList()
 }
 
 // Spawns a context menu at the cursor with Rename and Close options when a non-Server tab is right-clicked.
-void UChatBox::OnTabRightClickedHandler(UChatChannel* Channel)
+void UChatBox::OnTabRightClickedHandler(UBaseChannel* Channel)
 {
-	if (Channel->Participants.IsEmpty())
+	UChatChannel* ChatChannel = Cast<UChatChannel>(Channel);
+	if (!ChatChannel)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UChatBox::OnTabRightClickedHandler — Channel is not a UChatChannel"));
+		return;
+	}
+
+	if (ChatChannel->Participants.IsEmpty())
 	{
 		return;
 	}
@@ -380,17 +400,17 @@ void UChatBox::OnTabRightClickedHandler(UChatChannel* Channel)
 	FContextMenuOption RenameOption;
 
 	RenameOption.ButtonName = TEXT("Rename");
-	RenameOption.OnClicked.BindLambda([this, Channel]()
+	RenameOption.OnClicked.BindLambda([this, ChatChannel]()
 		{
-			GetTabForChannel(Channel)->EnterRenameMode();
+			GetTabForChannel(ChatChannel)->EnterRenameMode();
 		});
 
 	FContextMenuOption CloseOption;
 
 	CloseOption.ButtonName = TEXT("Close");
-	CloseOption.OnClicked.BindLambda([this, Channel]()
+	CloseOption.OnClicked.BindLambda([this, ChatChannel]()
 		{
-			CloseChannel(Channel);
+			CloseChannel(ChatChannel);
 		});
 
 	ContextMenu->SetMenuOptions({ RenameOption, CloseOption });
@@ -404,12 +424,25 @@ void UChatBox::OnTabRightClickedHandler(UChatChannel* Channel)
 }
 
 // Updates the session save with the new name for the given tab's channel, using the participant list as the key to persist across sessions.
-void UChatBox::OnTabRenamedHandler(UChatTab* Tab, const FString& NewName)
+void UChatBox::OnTabRenamedHandler(UBaseChannelTab* Tab, const FString& NewName)
 {
 	USessionSave* SessionSave = UFunctionLibrary::LoadSessionSave(this);
 	if (IsValid(SessionSave))
 	{
-		FString ParticipantsKey = UFunctionLibrary::MakeParticipantKey(Tab->GetChannel()->Participants);
+		UChatTab* ChatTab = Cast<UChatTab>(Tab);
+		if (!ChatTab)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("UChatBox::OnTabRenamedHandler — Tab is not a UChatTab"));
+			return;
+		}
+
+		UChatChannel* ChatChannel = Cast<UChatChannel>(Tab->GetChannel());
+		if (!ChatChannel)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("UChatBox::OnTabRenamedHandler — Channel is not a UChatChannel"));
+			return;
+		}
+		FString ParticipantsKey = UFunctionLibrary::MakeParticipantKey(ChatChannel->Participants);
 		SessionSave->ChatTabNames.Add(ParticipantsKey, NewName);
 		UGameplayStatics::SaveGameToSlot(SessionSave, UFunctionLibrary::GetSessionSaveSlotName(GetGameInstance<USessionInstance>()), 0);
 	}

@@ -2,46 +2,39 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "ChatBox.generated.h"
+#include "BaseChannelPanel.generated.h"
 
+class UBaseChannel;
+class UBaseChannelTab;
+class UBaseChannelListEntry;
+class UContextMenu;
 class UHorizontalBox;
-class UEditableText;
 class UVerticalBox;
 class UWidgetSwitcher;
 class UButton;
-class USessionChatComponent;
-class UChatEntry;
-class UChatChannel;
-class UChatTab;
-class UChatChannelListEntry;
-class UContextMenu;
-class UBaseChannel;
-class UBaseChannelTab;
 
-/** Root chat widget that manages multiple named channels, a tab bar, and the message input field. */
+/**
+ * 
+ */
 UCLASS()
-class PROJECTIRONTABLE_API UChatBox : public UUserWidget
+class PROJECTIRONTABLE_API UBaseChannelPanel : public UUserWidget
 {
 	GENERATED_BODY()
-
+	
 public:
 
 #pragma region Config
-	/** Widget class used when creating new chat channel widgets. */
+	/** Widget class used when creating new session notes channel widgets. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UChatChannel> ChannelClass;
+	TSubclassOf<UBaseChannel> ChannelClass;
 
-	/** Widget class used when creating new channel tab widgets. */
+	/** Widget class used when creating new session notes tab widgets. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UChatTab> TabClass;
-
-	/** Widget class forwarded to each channel for spawning individual message entries. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UChatEntry> ChatEntryClass;
+	TSubclassOf<UBaseChannelTab> TabClass;
 
 	/** Widget class used when creating entries in the closed channel list. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UChatChannelListEntry> ChannelListEntryClass;
+	TSubclassOf<UBaseChannelListEntry> ChannelListEntryClass;
 
 	/** Widget class used for the context menu when right-clicking a channel tab. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -70,10 +63,6 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidgetSwitcher> ChannelContainer;
 
-	/** Editable text field where the player types messages. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UEditableText> EditableText;
-
 	/** Button that toggles the closed channel list panel. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> ChannelListButton;
@@ -82,25 +71,19 @@ private:
 #pragma region State
 	/** All channels that have been created, including the default server channel. */
 	UPROPERTY()
-	TArray<TObjectPtr<UChatChannel>> Channels;
+	TArray<TObjectPtr<UBaseChannel>> Channels;
 
 	/** Maps each channel to its corresponding tab widget. */
 	UPROPERTY()
-	TMap<UChatChannel*, UChatTab*> ChannelTabMap;
+	TMap<UBaseChannel*, UBaseChannelTab*> ChannelTabMap;
 
 	/** The channel currently displayed in the widget switcher. */
 	UPROPERTY()
-	TObjectPtr<UChatChannel> ActiveChannel;
-
-	/** True while the chat input is focused and accepting keyboard input. */
-	bool bChatFocused;
-
-	/** Set before calling FocusChat() on Enter commit to absorb the OnUserMovedFocus Slate fires immediately after. */
-	bool bPendingRefocus;
+	TObjectPtr<UBaseChannel> ActiveChannel;
 
 	/** Set of channels that have been closed and hidden from the tab bar. */
 	UPROPERTY()
-	TSet<TObjectPtr<UChatChannel>> ClosedChannels;
+	TSet<TObjectPtr<UBaseChannel>> ClosedChannels;
 #pragma endregion
 
 public:
@@ -109,44 +92,22 @@ public:
 	/** Scrolls the active channel up or down. */
 	void Scroll(bool bUp);
 
-	/** Focuses the editable text field and switches input mode to UI only. */
-	void FocusChat();
-
-	/** Clears and disables the input field and restores game-and-UI input mode. */
-	void ExitChat();
-
 	/** Creates a new channel for the given participant list, adds it to the tab bar, and returns it. */
-	UChatChannel* CreateChannel(const TArray<FString>& Participants);
-
-	/** Routes a message to the correct channel (creating one if needed) and shows a notification if not active. */
-	void AddChatMessage(const FString& Message, const TArray<FString>& Participants, bool bIsSender);
-
-	/** Appends text to the current contents of the input field. */
-	void AppendToInput(const FString& Text);
+	UBaseChannel* CreateChannel(const TArray<FString>& Participants);
 
 	/** Returns the participant list of the currently active channel. */
 	TArray<FString> GetActiveChannelParticipants();
 
-	/** If the current input starts with a private message command, sends it and clears the input. */
-	void TrySendPrivateRollMessage();
-
 	/** Returns the channel matching the given participant list, creating one if none exists. */
-	UChatChannel* FindOrCreateChannel(const TArray<FString>& Participants);
+	UBaseChannel* FindOrCreateChannel(const TArray<FString>& Participants);
 
 	/** Returns the tab associated with the given channel, or nullptr if not found. */
-	UChatTab* GetTabForChannel(UChatChannel* Channel) const;
-
-	/** Sets the chat component reference used to send messages to the server. Called by USessionChatComponent after Init. */
-	void SetChatComponent(USessionChatComponent* InChatComponent);
+	UBaseChannelTab* GetTabForChannel(UBaseChannel* Channel) const;
 #pragma endregion
 
-private:
+protected:
 
 #pragma region Runtime References
-	/** Reference to the owning chat component, used to send chat messages to the server. */
-	UPROPERTY()
-	TObjectPtr<USessionChatComponent> ChatComponentRef;
-
 	/** Cached reference to the currently visible context menu, used to dismiss it before spawning a new one. */
 	UPROPERTY()
 	TObjectPtr<UContextMenu> ActiveContextMenuRef;
@@ -157,17 +118,13 @@ private:
 	UFUNCTION()
 	void SwitchToChannel(UBaseChannel* Channel);
 
-	/** Sends the typed message to the server on Enter, or exits chat on focus loss. */
-	UFUNCTION()
-	void OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod);
-
 	/** Toggles the closed channel list panel between visible and collapsed. */
 	UFUNCTION()
 	void OnChannelListButtonClicked();
 
 	/** Hides the tab for the given channel and adds it to the closed set; switches to Server if it was active. */
 	UFUNCTION()
-	void CloseChannel(UChatChannel* Channel);
+	void CloseChannel(UBaseChannel* Channel);
 
 	/** Removes the given channel from the closed set, restores its tab, and switches to it. */
 	UFUNCTION()
@@ -183,9 +140,6 @@ private:
 #pragma endregion
 
 #pragma region Private Methods
-	/** Splits a message string into @mention recipients and the remaining message body. */
-	void ParseMentions(const FString& Message, TArray<FString>& OutRecipients, FString& OutBody) const;
-
 	/** Clears and repopulates the closed channel list panel from the current ClosedChannels set. */
 	void RefreshChannelList();
 #pragma endregion

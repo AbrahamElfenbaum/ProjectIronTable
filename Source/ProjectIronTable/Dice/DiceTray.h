@@ -117,7 +117,7 @@ private:
 
 #pragma region State
 	/** The currently active roll mode; controls advantage/disadvantage behaviour. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dice")
+	UPROPERTY()
 	EDiceRollMode RollMode = EDiceRollMode::Normal;
 #pragma endregion
 

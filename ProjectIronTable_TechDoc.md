@@ -36,7 +36,7 @@ Source/ProjectIronTable/
 ├── SessionNotes/      — Session notes panel widget (SessionNotesPanel)
 ├── Settings/          — Settings widget classes (CameraSettingsPanel, SettingsScreen, SettingsSlider)
 ├── UI/                — Reusable UI primitives (DraggablePanel, DragHandle, ResizeHandle, Taskbar, TaskbarButton, ContextMenu, ContextMenuButton)
-└── Utility/           — Function libraries and general-purpose helpers
+└── Utility/           — Function libraries, helpers, and base channel/panel classes
 ```
 
 ### Content Browser (`Content/`)
@@ -181,6 +181,8 @@ Tabbed chat container. Manages channels, routing, and input.
 
 > **Note:** Channel matching checks `Participants.Num()` equality before content — required to avoid partial matches.
 >
+> **Note:** Event handler signatures (`SwitchToChannel`, `ReopenChannel`, `OnTabRightClickedHandler`, `OnTabRenamedHandler`) take `UBaseChannel*` / `UBaseChannelTab*` parameters — forced by delegate declarations in the base classes. Each handler casts to `UChatChannel*` / `UChatTab*` internally and logs a warning on null cast.
+>
 > **Note:** `SwitchToChannel` must be `UFUNCTION()` for `AddDynamic` to work.
 >
 > **Note:** `ExitChat` must not clear the input — players type `@Names` before clicking Roll.
@@ -190,39 +192,22 @@ Tabbed chat container. Manages channels, routing, and input.
 ---
 
 #### UChatChannel
-**Type:** `UUserWidget` | **Blueprint:** `WE_ChatChanel`
+**Type:** `UBaseChannel` | **Blueprint:** `WE_ChatChanel`
 
-Represents one channel/tab's message list.
+Represents one channel/tab's message list. Inherits `ScrollBox`, `DisplayName`, `Participants`, `ScrollMultiplier`, and `Scroll()` from `UBaseChannel`.
 
-**Bound Widgets:** `ScrollBox` (`UScrollBox`)
-
-**Config (EditAnywhere):** `ChatEntryClass`, `ScrollMultiplier` (default 60)
-
-**State (VisibleAnywhere):** `DisplayName` (client-local label — safe to rename; routing uses `Participants`), `Participants` (`TArray<FString>`)
+**Config (EditAnywhere, own):** `ChatEntryClass`
 
 **Key Methods:**
 - `AddChatMessage(FString)` — creates and appends a `UChatEntry`; logs warning if `ChatEntryClass` is null
 - `RestoreMessage(SenderName, Message)` — recreates a saved message entry directly in the scroll box, bypassing routing and notification logic. Used by `USessionUIComponent` to restore chat log on session load.
-- `Scroll(bool bUp)` — adjusts scroll offset by `ScrollMultiplier`
 
 ---
 
 #### UChatTab
-**Type:** `UUserWidget` | **Blueprint:** `WE_ChatTab`
+**Type:** `UBaseChannelTab` | **Blueprint:** `WE_ChatTab`
 
-Clickable tab button in the tab bar. Supports left-click to switch channel, right-click to open a context menu with Rename and Close options, and inline rename via `UEditableText`.
-
-**Bound Widgets:** `TabButton` (`UButton`), `TabLabel` (`UTextBlock`), `EditLabel` (`UEditableText`), `NotificationIndicator` (`UWidget`)
-
-**Key Methods:**
-- `GetChannel()` — returns the `UChatChannel*` this tab represents
-- `SetInteractable(bool)` — enables/disables `TabButton` (active tab is disabled so it can't be re-clicked)
-- `ShowNotification()` / `ClearNotification()`
-- `EnterRenameMode()` — hides `TabLabel`, shows and focuses `EditLabel` pre-populated with the current label text. Commit via Enter saves the name; any other commit method (focus loss, Escape) cancels.
-
-**Delegates:** `OnTabClicked` (→`UChatChannel*`), `OnTabRightClicked` (→`UChatChannel*`), `OnTabRenamed` (→`UChatTab*, FString NewName`)
-
-> **Note:** `OnTabRenamedCompleted` only broadcasts `OnTabRenamed` if `CommitMethod == OnEnter && !Text.IsEmpty()` — focus loss or Escape cancels silently.
+Empty typed subclass of `UBaseChannelTab`. Exists solely as a Blueprint parent — all tab behavior lives in the base class. Reparented to `UChatTab` in the Blueprint editor.
 
 ---
 
@@ -234,11 +219,9 @@ Single message row. **Bound Widget:** `TextBlock`. **Expose on Spawn:** `Message
 ---
 
 #### UChatChannelListEntry
-**Type:** `UUserWidget` | **Blueprint:** `WE_ChatChannelListEntry`
+**Type:** `UBaseChannelListEntry` | **Blueprint:** `WE_ChatChannelListEntry`
 
-Row in the closed channels dropdown. **Bound Widgets:** `EntryButton`, `EntryLabel`.
-
-**Delegate:** `OnEntryClicked` (→`UChatChannel*`)
+Empty typed subclass of `UBaseChannelListEntry`. Exists as a Blueprint parent — all entry behavior lives in the base class.
 
 ---
 
@@ -834,6 +817,90 @@ ChatComponent = CreateDefaultSubobject<USessionChatComponent>(TEXT("ChatComponen
 
 ### Utility/
 
+#### UBaseChannel
+**Type:** `UUserWidget`
+
+Base class for all channel content widgets (chat, notes, etc.). Provides the scroll box, scroll behavior, and participant/display-name state shared by all channel types.
+
+**Bound Widgets (protected):** `ScrollBox` (`UScrollBox`) — must be `protected` so subclasses can add children
+
+**Config (EditAnywhere):** `ScrollMultiplier` (default 60)
+
+**State (VisibleAnywhere):** `DisplayName` (`FString`), `Participants` (`TArray<FString>`)
+
+**Key Methods:**
+- `Scroll(bool bUp)` — adjusts `ScrollBox` offset by `ScrollMultiplier`
+
+---
+
+#### UBaseChannelTab
+**Type:** `UUserWidget`
+
+Base class for all channel tab widgets. Handles left-click, right-click, notification indicator, and inline rename. All delegates use `UBaseChannel*` / `UBaseChannelTab*` parameter types so typed subclass handlers must cast internally.
+
+**Bound Widgets (protected):** `TabButton` (`UButton`), `TabLabel` (`UTextBlock`), `EditLabel` (`UEditableText`), `NotificationIndicator` (`UWidget`)
+
+**Key Methods:**
+- `SetChannel(UBaseChannel*)` / `GetChannel()` — stores the associated channel
+- `SetLabel(FString)` — sets `TabLabel` text
+- `SetInteractable(bool)` — enables/disables `TabButton`
+- `ShowNotification()` / `ClearNotification()` — toggles `NotificationIndicator` visibility
+- `EnterRenameMode()` — hides `TabLabel`, shows and focuses `EditLabel` pre-populated with current label. Enter commits; any other commit method cancels silently.
+
+**Delegates:**
+- `OnTabClicked` (`FOnTabClicked`, `UBaseChannel*`) — broadcast on left-click
+- `OnTabRightClicked` (`FOnTabRightClicked`, `UBaseChannel*`) — broadcast on right-click
+- `OnTabRenamed` (`FOnTabRenamed`, `UBaseChannelTab*, FString`) — broadcast on Enter commit in rename mode
+
+> **Note:** `BaseTab.h` is a redirect stub (`#include "BaseChannelTab.h"`) kept for backwards compatibility. Use `BaseChannelTab.h` directly in new code.
+>
+> **Note:** Delegate parameter types are `UBaseChannel*` / `UBaseChannelTab*` — `AddDynamic` handler signatures must match exactly. Cast to the typed subclass internally.
+
+---
+
+#### UBaseChannelListEntry
+**Type:** `UUserWidget`
+
+Base class for closed-channel list entries. Stores the channel ref, sets the label from `DisplayName`, and broadcasts a click delegate.
+
+**Bound Widgets:** `EntryButton` (`UButton`), `EntryLabel` (`UTextBlock`)
+
+**State:** `Channel` (`TObjectPtr<UBaseChannel>`)
+
+**Delegate:** `OnEntryClicked` (`FOnEntryClicked`, `UBaseChannel*`)
+
+**Key Methods:**
+- `SetChannel(UBaseChannel*)` — stores ref and sets `EntryLabel` from `Channel->DisplayName`
+
+---
+
+#### UBaseChannelPanel
+**Type:** `UUserWidget`
+
+Base class for all tabbed channel panel widgets (chat box, session notes panel, etc.). Manages tab bar, channel switcher, closed channel list, and shared tab/channel lifecycle. Chat-specific and notes-specific logic is overridden in subclasses.
+
+**Config (EditAnywhere):** `ChannelClass`, `TabClass`, `ChannelListEntryClass`, `ContextMenuClass` (all `TSubclassOf<T>`)
+
+**Bound Widgets (private):** `TabBar` (`UHorizontalBox`), `ClosedChannelContainer` (`UVerticalBox`), `ChannelContainer` (`UWidgetSwitcher`), `ChannelListButton` (`UButton`)
+
+**State:** `Channels` (`TArray<UBaseChannel*>`), `ChannelTabMap` (`TMap<UBaseChannel*, UBaseChannelTab*>`), `ActiveChannel`, `ClosedChannels` (`TSet<UBaseChannel*>`)
+
+**Key Methods (public):**
+- `Scroll(bool bUp)` — delegates to `ActiveChannel`
+- `CreateChannel(TArray<FString> Participants)` — to be overridden in subclasses; base signature only
+- `GetActiveChannelParticipants()` — returns active channel's `Participants` or `{}`
+- `FindOrCreateChannel(TArray<FString> Participants)` — searches `Channels` for a match, calls `CreateChannel` if not found
+- `GetTabForChannel(UBaseChannel*)` — looks up in `ChannelTabMap`, returns tab or nullptr
+
+**Event Handlers (protected):**
+- `SwitchToChannel(UBaseChannel*)`, `OnChannelListButtonClicked()`, `CloseChannel(UBaseChannel*)`, `ReopenChannel(UBaseChannel*)`, `OnTabRightClickedHandler(UBaseChannel*)`, `OnTabRenamedHandler(UBaseChannelTab*, FString)`, `RefreshChannelList()`
+
+> **Note:** `UChatBox` does not yet inherit from `UBaseChannelPanel` — migration is pending.
+>
+> **Note:** `UBaseChannelPanel` method bodies are partially empty pending subclass extraction. `CreateChannel` still contains chat-specific label logic that must move to `UChatBox` when inheritance is wired.
+
+---
+
 #### UFunctionLibrary
 **Type:** `UBlueprintFunctionLibrary`
 
@@ -956,17 +1023,18 @@ Home screen widget. Owns all five home screen buttons and exposes delegates for 
 #### USessionNotesPanel
 **Type:** `UUserWidget` | **Blueprint:** `WE_SessionNotesPanel`
 
-Scrollable multi-line text area for session notes. Auto-scrolls to the bottom when content grows.
+Multi-tab notes panel. Redesign in progress — will inherit from `UBaseChannelPanel` and use `USessionNotesChannel` / `USessionNotesTab` subclasses to mirror chat tab architecture.
 
-**Bound Widgets:** `NotesScroll` (`UScrollBox`), `NotesText` (`UMultiLineEditableText`)
+**Current state:** Foundation from previous session (single scroll box + multiline text) is being replaced with the base class hierarchy. `UBaseChannelPanel` method bodies are not yet implemented; `UChatBox` does not yet inherit from it.
 
-**Blueprint layout:** `Border → SizeBox (400×250) → ScrollBox → MultiLineEditableText (Auto Wrap Text: on)`
+> **Note:** Save/load (FString per tab in USessionSave), input context (IMC_Notes), hover-scroll, and multi-tab inheritance are all pending.
 
-**Key Behavior:**
-- `NativeConstruct` — binds `NotesText::OnTextChanged → OnNotesTextChanged`
-- `OnNotesTextChanged` — calls `NotesScroll->ScrollToEnd()` on each text change
+---
 
-> **Note:** This is the foundation only. Save/load, input context management (Escape), and hover-scroll are not yet implemented.
+#### USessionNotesTab
+**Type:** `UBaseChannelTab`
+
+Empty typed subclass of `UBaseChannelTab`. Blueprint parent for the notes tab widget. All behavior inherits from `UBaseChannelTab`.
 
 ---
 
@@ -1150,7 +1218,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - [ ] Session player cap (default 8, removable)
 - [x] Tab renaming (client-local) — right-click opens `UContextMenu` with Rename and Close options; rename persisted to `USessionSave::ChatTabNames`; close button removed from tab in favour of context menu
 - [x] Chat log persistence
-- [~] Shared notes — `USessionNotesPanel` created; scrollable `UMultiLineEditableText` with auto-scroll-to-bottom; registered as `UDraggablePanel` in `USessionUIComponent`; save/load, input context (Escape), and hover-scroll not yet implemented
+- [~] Shared notes — Multi-tab architecture designed; base class hierarchy (`UBaseChannel`, `UBaseChannelTab`, `UBaseChannelListEntry`, `UBaseChannelPanel`) added to `Utility/`; `USessionNotesTab` created; `USessionNotesPanel` redesign in progress; `UBaseChannelPanel` method bodies not yet implemented; `UChatBox` inheritance migration pending; save/load, input context, and hover-scroll not yet implemented
 - [ ] Pre-session lobby (waiting room; pre-game chat; character sheet accessible while waiting; Host sees connection status and launches when ready)
 - [ ] Session discovery and join flow
   - [ ] Invite code — immediate join, no approval
@@ -1376,6 +1444,8 @@ Sessions are stored using Unreal's built-in save slot system — no custom file 
 This approach keeps all save I/O within UE's native save game system and makes a future dedicated-server migration straightforward — the index and session slots move to wherever the server runs, no path logic to change.
 
 ---
+
+*Last updated: 2026-04-19* — Base channel class hierarchy added to `Utility/`: `UBaseChannel` (scroll box, DisplayName, Participants, Scroll()), `UBaseChannelTab` (all tab behavior — click, right-click, rename, notification; delegates use `UBaseChannel*` param types forcing internal casts in typed handlers), `UBaseChannelListEntry` (entry button + label + OnEntryClicked delegate), `UBaseChannelPanel` (tab bar, switcher, closed list; method bodies partially empty pending subclass extraction). `UChatChannel` now inherits `UBaseChannel`. `UChatTab` and `UChatChannelListEntry` reduced to empty typed subclasses of the base classes for Blueprint parenting. `USessionNotesTab` added as empty subclass of `UBaseChannelTab`. `UChatBox` handlers updated to accept base-type params and cast internally. `BaseTab.h/.cpp` kept as redirect stubs for backwards compatibility. New gotchas: `BindWidget` in base must be `protected`; delegate param types lock handler signatures; deleting a C++ class orphans Blueprints (reparent required).
 
 *Last updated: 2026-04-18 (updated)* — `USessionChatComponent` completed: dice-to-chat handlers (`AddRollResultToChat`, `OnDiceFailsafeHandler`, `OnRollInitiated`, `OnPlayerAddressClicked`) moved from `#if 0` blocks in `USessionUIComponent` into `USessionChatComponent`; bound to `DiceTrayRef` and `PlayerListRef` in `Init()`. `USessionUIComponent` gains `GetDiceTray()` and `GetPlayerList()` getters alongside `GetChatBox()`. `BeginPlay` stubs removed from `USessionUIComponent` and `USessionChatComponent`. **Private Methods** region added to class layout standard (position 7, between Public Methods and Runtime References) — catch-all for internal helpers that aren't event handlers.
 

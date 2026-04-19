@@ -8,6 +8,7 @@
 
 #include "ChatBox.h"
 #include "ChatChannel.h"
+#include "BaseChannelTab.h"
 #include "ChatTab.h"
 #include "DiceTray.h"
 #include "PlayerList.h"
