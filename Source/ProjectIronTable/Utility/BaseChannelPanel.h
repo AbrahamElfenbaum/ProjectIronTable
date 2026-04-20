@@ -13,22 +13,20 @@ class UVerticalBox;
 class UWidgetSwitcher;
 class UButton;
 
-/**
- * 
- */
+/** Shared base widget for channel panel types; manages the tab bar, channel switcher, and closed-channel list. */
 UCLASS()
 class PROJECTIRONTABLE_API UBaseChannelPanel : public UUserWidget
 {
 	GENERATED_BODY()
-	
+
 public:
 
 #pragma region Config
-	/** Widget class used when creating new session notes channel widgets. */
+	/** Widget class used when creating new channel widgets. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UBaseChannel> ChannelClass;
 
-	/** Widget class used when creating new session notes tab widgets. */
+	/** Widget class used when creating new tab widgets. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UBaseChannelTab> TabClass;
 
@@ -42,13 +40,8 @@ public:
 #pragma endregion
 
 protected:
-	/** Caches the HUD component reference, binds delegates, and creates the default server channel. */
+	/** Binds the channel list button delegate, collapses the closed list, and creates the default server channel. */
 	virtual void NativeConstruct() override;
-
-	/** Focuses the chat box when clicked while unfocused. */
-	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-
-private:
 
 #pragma region Widget References
 	/** Horizontal box that holds all channel tab widgets. */
@@ -93,7 +86,7 @@ public:
 	void Scroll(bool bUp);
 
 	/** Creates a new channel for the given participant list, adds it to the tab bar, and returns it. */
-	UBaseChannel* CreateChannel(const TArray<FString>& Participants);
+	virtual UBaseChannel* CreateChannel(const TArray<FString>& Participants);
 
 	/** Returns the participant list of the currently active channel. */
 	TArray<FString> GetActiveChannelParticipants();
@@ -106,6 +99,23 @@ public:
 #pragma endregion
 
 protected:
+
+#pragma region Private Methods
+	/** Builds and returns the display label for a new tab based on its participant list. */
+	virtual FString CreateTabLabel(const TArray<FString>& Participants) const;
+
+	/** Called after channel creation; subclasses override to persist tab data to their save format. */
+	virtual void SaveCreatedTab();
+
+	/** Called after a tab rename commits; subclasses override to persist the new name to their save format. */
+	virtual void OnChannelRenamed(UBaseChannelTab* Tab, const FString& NewName, const FString& ParticipantsKey);
+
+	/** Called after SwitchToChannel completes; subclasses override for panel-specific switch behavior. */
+	virtual void OnChannelSwitched(UBaseChannel* Channel);
+
+	/** Clears and repopulates the closed channel list panel from the current ClosedChannels set. */
+	void RefreshChannelList();
+#pragma endregion
 
 #pragma region Runtime References
 	/** Cached reference to the currently visible context menu, used to dismiss it before spawning a new one. */
@@ -137,10 +147,5 @@ protected:
 	/** Persists the new tab label to the session save when the user commits a rename. */
 	UFUNCTION()
 	void OnTabRenamedHandler(UBaseChannelTab* Tab, const FString& NewName);
-#pragma endregion
-
-#pragma region Private Methods
-	/** Clears and repopulates the closed channel list panel from the current ClosedChannels set. */
-	void RefreshChannelList();
 #pragma endregion
 };

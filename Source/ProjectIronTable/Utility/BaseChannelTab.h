@@ -26,12 +26,6 @@ class PROJECTIRONTABLE_API UBaseChannelTab : public UUserWidget
 
 protected:
 
-#pragma region State
-	/** The channel this tab controls. */
-	UPROPERTY()
-	TObjectPtr<UBaseChannel> Channel;
-#pragma endregion
-
 #pragma region Widget References
 	/** Button the player clicks to switch to this channel. */
 	UPROPERTY(meta = (BindWidget))
@@ -48,6 +42,12 @@ protected:
 	/** Small indicator widget shown when there are unread messages. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UWidget> NotificationIndicator;
+#pragma endregion
+
+#pragma region State
+	/** The channel this tab controls. */
+	UPROPERTY()
+	TObjectPtr<UBaseChannel> Channel;
 #pragma endregion
 
 	/** Binds tab button and rename field delegates. */

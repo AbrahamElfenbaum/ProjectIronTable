@@ -82,7 +82,12 @@ void USessionUIComponent::Init()
 					TArray<FString> Recipients;
 					ChatLog.Key.ParseIntoArray(Recipients, TEXT("|"), 1);
 
-					UChatChannel* Channel = ChatBoxRef->FindOrCreateChannel(Recipients);
+					UChatChannel* Channel = Cast<UChatChannel>(ChatBoxRef->FindOrCreateChannel(Recipients));
+					if (!Channel)
+					{
+						UE_LOG(LogTemp, Warning, TEXT("USessionUIComponent::Init — Failed to cast channel to UChatChannel during chat log restore"));
+						continue;
+					}
 
 					const TArray<FChatMessageRecord>& Messages = ChatLog.Value.Messages;
 					for (const FChatMessageRecord& Message : Messages)
@@ -99,8 +104,8 @@ void USessionUIComponent::Init()
 					Names.Remove(PlayerName);
 					if (!Names.IsEmpty())
 					{
-						UChatChannel* Channel = ChatBoxRef->FindOrCreateChannel(Names);
-						UChatTab* Tab = ChatBoxRef->GetTabForChannel(Channel);
+						UBaseChannel* Channel = ChatBoxRef->FindOrCreateChannel(Names);
+						UBaseChannelTab* Tab = ChatBoxRef->GetTabForChannel(Channel);
 						if (IsValid(Tab))
 						{
 							Tab->SetLabel(ChatTabName.Value);

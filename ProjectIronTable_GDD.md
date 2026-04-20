@@ -607,6 +607,8 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 
 ---
 
+*Last updated: 2026-04-20* — No design decisions changed. Internal implementation: `UBaseChannelPanel` base class fully implemented and `UChatBox` reparented to it. Design decision confirmed: notes channels cannot use participant-list identity (multiple tabs can share the same participants; list changes via invite). Notes will use GUID-based channel identity instead.
+
 *Last updated: 2026-04-16* — Session notes foundation added: `USessionNotesPanel` is a plain-text, scrollable notes widget registered as a draggable panel. Rich-text formatting (bold, italic, underline) and collaborative editing deferred — plain text first. Design decision: no separate "Edit mode" button; clicking the text field activates editing, clicking away or pressing Escape returns to read mode (not yet implemented — foundation only). Hover-scroll (scroll without focus) identified as a desired improvement for both notes and chat; deferred. Server RPC infrastructure: `ServerTravel` now always executes on the server via `ASessionController::Server_TravelToSession`; client-side direct `ServerTravel` calls removed.
 
 *Last updated: 2026-04-15* — No design changes; internal code quality pass only. See TechDoc for details.
