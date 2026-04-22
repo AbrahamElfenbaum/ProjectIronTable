@@ -1,50 +1,19 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #pragma once
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "BaseChannelPanel.h"
 #include "SessionNotesPanel.generated.h"
 
-class UScrollBox;
 class UMultiLineEditableText;
-class USessionNotesChannel;
-class USessionNotesTab;
-class USessionNotesChannelListEntry;
-class UContextMenu;
 
 /** Widget panel that provides a scrollable, editable multi-line text area for session notes. */
 UCLASS()
-class PROJECTIRONTABLE_API USessionNotesPanel : public UUserWidget
+class PROJECTIRONTABLE_API USessionNotesPanel : public UBaseChannelPanel
 {
 	GENERATED_BODY()
-
-public:
-
-#pragma region Config
-	/** Widget class used when creating new session notes channel widgets. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<USessionNotesChannel> ChannelClass;
-
-	/** Widget class used when creating new session notes tab widgets. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<USessionNotesTab> TabClass;
-
-	/** Widget class used when creating entries in the closed channel list. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<USessionNotesChannelListEntry> SessionNotesListEntryClass;
-
-	/** Widget class used for the context menu when right-clicking a channel tab. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UContextMenu> ContextMenuClass;
-#pragma endregion
-
-
 private:
 
 #pragma region Widget References
-	/** Scroll box wrapping the notes text area; scrolled to the end when new content is added. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UScrollBox> NotesScroll;
-
 	/** Editable multi-line text field where the player writes session notes. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UMultiLineEditableText> NotesText;
@@ -62,4 +31,22 @@ private:
 	void OnNotesTextChanged(const FText& Text);
 #pragma endregion
 
+public:
+
+#pragma region Public Methods
+	/** Creates a new USessionNotesChannel, assigns it a GUID, and returns it. Calls Super to handle tab wiring. */
+	UBaseChannel* CreateChannel(const TArray<FString>& Participants) override;
+
+	/** Returns a display label for a new notes tab (e.g. "Notes", "Notes 2"). */
+	FString CreateTabLabel(const TArray<FString>& Participants) const override;
+
+	/** Persists the newly created tab's GUID and label to USessionSave. */
+	void SaveCreatedTab() override;
+
+	/** Updates the saved tab label in USessionSave when the user renames a notes tab. */
+	void OnChannelRenamed(UBaseChannelTab* Tab, const FString& NewName, const FString& ParticipantsKey) override;
+
+	/** Loads saved content for the switched-to channel and displays it in the notes field. */
+	void OnChannelSwitched(UBaseChannel* Channel) override;
+#pragma endregion
 };
