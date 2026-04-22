@@ -216,7 +216,7 @@ Audio is GM-controlled during a session. All sound types are supported with no r
 Any user can create a notes document within the session. By default a note is private (visible only to its creator). The creator can share it with specific users or with the entire group, and can grant read-only or edit access.
 
 - Multiple users can edit a shared document simultaneously, with changes visible in real time (collaborative editing, similar to Google Docs)
-- Notes support basic rich-text formatting: headers, bullet points, bold, italic
+- Notes support rich-text formatting: bold, italic, underline, strikethrough, headers, bullet points — standard word-processor features
 - Notes are saved as part of the session and persist across reloads
 - Notes are also accessible outside of an active session via the Campaign Manager — players can read and edit their notes between sessions without launching a game
 - Typical uses: session recap, lore the party has discovered, quest tracking, GM prep notes shared selectively with players
@@ -556,6 +556,8 @@ The following are explicitly not planned for the current development arc:
 - Mobile or web platforms (PC-first)
 - A marketplace or community asset library
 - Real-time physics on miniatures (minis snap to grid, no physics simulation)
+- **Notes formatting beyond standard word-processor features** — Bold, italic, underline, strikethrough, headers, and bullets are in scope. Whether TTRPG players want or need anything beyond that — custom styles, track changes, inline comments, collaborative edit history, or other Google Docs / Word extended features — is unknown. Demand and feasibility are both TBD; nothing beyond the standard set is planned for the current arc.
+- **Markdown-with-preview notes editing** — Considered and rejected as a fallback. A markdown input mode is a regression in user experience compared to a WYSIWYG editor, not an enhancement. Not planned.
 
 ---
 
@@ -596,7 +598,7 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 18. ~~Maximum player count per session?~~ — **Resolved:** Default max 8, removable cap, off by default.
 19. ~~What happens when the GM disconnects?~~ — **Partially resolved:** Certain actions lock when no Host is present. Full policy TBD when session management is built. (See open question 2.)
 20. ~~Lobby/matchmaking or direct IP?~~ — **Resolved:** Public browser with filters + direct invite link/code. No separate lobby needed.
-21. ~~Should notes support rich-text formatting?~~ — **Resolved:** Yes. Headers, bullets, bold, italic.
+21. ~~Should notes support rich-text formatting?~~ — **Resolved:** Yes. Bold, italic, underline, strikethrough, headers, bullet points — standard word-processor feature set. Formatting beyond that is out of scope for now; see Out of Scope section.
 22. ~~Should notes be accessible outside of an active session?~~ — **Resolved:** Yes, via Campaign Manager.
 23. ~~Dark/neutral UI theme or fantasy/themed aesthetic?~~ — **Resolved:** No fixed default. Theme is decoupled from game system and customizable per player.
 24. ~~Are UI panels fixed layout or draggable/resizable?~~ — **Resolved:** Fully draggable, resizable, and toggleable. Layout persists per user.
@@ -606,6 +608,8 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 28. ~~How is session save data organized on disk?~~ — **Resolved:** Sessions stored as `"Session_{SessionID}"` save slots via Unreal's native save system. `UCampaignManagerSave` is the authoritative campaign→session index. No custom file paths or directories.
 
 ---
+
+*Last updated: 2026-04-22 (updated)* — Notes rich-text implementation approach revised: custom Slate rich-text editor (built natively in UE C++) chosen over WebBrowser + Quill. Rationale: no browser overhead, full theme control, better UE input integration, and opens the door to TTRPG-specific extensions. Markdown-with-preview rejected as a regression. Notes formatting scope unchanged: bold, italic, underline, strikethrough, headers, bullet lists.
 
 *Last updated: 2026-04-20* — No design decisions changed. Internal implementation: `UBaseChannelPanel` base class fully implemented and `UChatBox` reparented to it. Design decision confirmed: notes channels cannot use participant-list identity (multiple tabs can share the same participants; list changes via invite). Notes will use GUID-based channel identity instead.
 

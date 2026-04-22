@@ -418,6 +418,7 @@ Per-session save file. One instance per game session. `UCampaignManagerSave` is 
 | `LastSaved` | `FDateTime` | — | Used to sort sessions when loading a campaign (most recent first) |
 | `ChatLog` | `TMap<FString, FChatLogRecord>` | — | Keyed by sorted, pipe-joined participant names (e.g. `"Alice\|Bob"`). Empty string key = Server channel. `FChatLogRecord` wraps `TArray<FChatMessageRecord>`; each record holds `SenderName` and `Message` body. |
 | `ChatTabNames` | `TMap<FString, FString>` | — | Keyed by sorted, pipe-joined participant names (same key format as `ChatLog`). Value is the user-assigned display name for that tab. Persisted on rename; restored by `USessionUIComponent::Init` after the chat log is restored. |
+| `NotesTabNames` | `TMap<FGuid, FString>` | — | Keyed by notes channel GUID (`USessionNotesChannel::ChannelID`). Value is the user-assigned display name for that notes tab. Persisted on creation and rename. |
 
 `FChatMessageRecord` and `FChatLogRecord` are declared in `SessionSave.h`.
 
@@ -1025,13 +1026,58 @@ Home screen widget. Owns all five home screen buttons and exposes delegates for 
 ### SessionNotes/
 
 #### USessionNotesPanel
-**Type:** `UUserWidget` | **Blueprint:** `WE_SessionNotesPanel`
+**Type:** `UBaseChannelPanel` | **Blueprint:** `WE_SessionNotesPanel`
 
-Multi-tab notes panel. Will inherit from `UBaseChannelPanel` and use `USessionNotesChannel` / `USessionNotesTab` subclasses to mirror the chat tab architecture. Not yet reparented to `UBaseChannelPanel` — currently a standalone widget with a single scroll box and multiline text field.
+Multi-tab notes panel. Inherits `UBaseChannelPanel`. Uses `USessionNotesChannel` / `USessionNotesTab` subclasses. Overrides five virtual hooks: `CreateChannel`, `CreateTabLabel`, `SaveCreatedTab`, `OnChannelRenamed`, `OnChannelSwitched`.
 
-> **Note:** Notes channels cannot use participant-list identity — multiple notes tabs can share the same participants, and the list changes as users are invited. Notes will use GUID-based channel identity, not `FindOrCreateChannel`.
+Notes support rich-text formatting (bold, italic, underline, strikethrough, headers, bullet lists) via a custom Slate widget (`SRichTextEditor`) wrapped in a UMG widget (`URichTextEditor`). `UMultiLineEditableText` is replaced by `URichTextEditor` inside `USessionNotesChannel`. See **Notes Rich-Text Design** below for full implementation details.
+
+> **Note:** Notes channels use GUID-based identity (not participant-list). Each `USessionNotesChannel` holds a `FGuid ChannelID`. `FindOrCreateChannel` is chat-only — do not use it here.
 >
-> **Note:** Save/load (FString per tab in USessionSave), input context (IMC_Notes), hover-scroll, and multi-tab inheritance are all pending.
+> **Note:** Save/load (`TMap<FGuid, FString>` for tab names and content in `USessionSave`) and input context (`IMC_Notes`) are pending.
+
+---
+
+#### Notes Rich-Text Design
+
+**Approach:** Custom Slate widget (`SRichTextEditor`) built natively in UE C++, wrapped in a UMG widget (`URichTextEditor`) for use in `USessionNotesChannel`. WYSIWYG editing with a formatting toolbar. No browser, no external libraries, no external runtime.
+
+**Why custom Slate over alternatives:**
+- *No browser overhead* — WebBrowser widget runs a full Chromium instance inside the game. A Slate widget is a native UE widget with no additional runtime.
+- *Full theme control* — styled to match the rest of the game UI exactly. WebBrowser output would always look slightly foreign.
+- *Better UE input integration* — Slate integrates naturally with UE's focus system, input contexts, and keyboard handling. WebBrowser has known quirks in this area.
+- *TTRPG-specific extensions* — inline dice roll links, character name references, and other game-specific decorators are straightforward to add to a custom Slate widget; very hard to add to a JS-based editor.
+- *Modding/addon potential* — a native Slate widget can be cleanly exposed to a future addon system; a wrapped WebBrowser cannot.
+
+**Alternatives considered and rejected:**
+- *WebBrowser + Quill.js* — valid interim approach, but outclassed by a native Slate widget on every axis except build time. Rejected in favour of doing it right once.
+- *Markdown + preview pane* — rejected. Markdown input is a regression in UX compared to WYSIWYG. Not planned.
+
+**Feature scope (in scope):** Bold, italic, underline, strikethrough, H1/H2/H3 headers, bullet lists, numbered lists.
+**Feature scope (out of scope):** Track changes, inline comments, collaborative edit history, custom styles, tables, image embeds — anything beyond the standard word-processor set.
+
+**Save format:** HTML string (serialised from the Slate document model). Stored in `USessionSave::NotesTabContent` (`TMap<FGuid, FString>`), keyed by `USessionNotesChannel::ChannelID`. HTML chosen over a custom binary format for readability and future portability.
+
+**Class structure:**
+
+| Class | Type | Role |
+|---|---|---|
+| `SRichTextEditor` | `SCompoundWidget` (Slate) | Full editor logic: document model, cursor, selection, formatting runs, keyboard input, undo/redo |
+| `URichTextEditor` | `UWidget` (UMG wrapper) | Thin UMG wrapper. Creates `SRichTextEditor` via `RebuildWidget()`. Exposes `GetContent()` / `SetContent()` to C++. |
+| `SRichTextToolbar` | `SCompoundWidget` (Slate) | Formatting toolbar (bold, italic, etc.). Owned by `SRichTextEditor`. |
+
+**Document model:** Text is stored as a list of `FRichTextRun` structs — each run is a contiguous range of characters sharing the same formatting flags (bold, italic, underline, strikethrough) and block type (paragraph, H1, H2, H3, bullet, numbered). This is the standard "run-length" model used by all major rich text editors.
+
+**Key systems inside `SRichTextEditor`:**
+- *Cursor and selection* — character-level cursor position; selection is a `[Start, End)` range over the run list
+- *Input handling* — `OnKeyChar` for printable input, `OnKeyDown` for shortcuts (`Ctrl+B` bold, `Ctrl+I` italic, `Ctrl+Z` undo, etc.)
+- *Formatting* — applying a format to a selection splits runs at selection boundaries and sets flags on the covered runs; removing a format merges adjacent runs with identical flags
+- *Undo/redo* — command stack; each edit (insert, delete, format change) is a reversible command object
+- *Rendering* — iterates runs, measures text with `FSlateFontInfo`, draws with `FSlateDrawElement::MakeText`; decorations (underline, strikethrough) drawn as line primitives
+
+**Widget ownership:** `URichTextEditor` lives inside `USessionNotesChannel` (each channel has its own editor instance). The panel switches which channel is visible via `UBaseChannelPanel::SwitchToChannel`; inactive channels are hidden and their editor state is preserved in memory.
+
+**No UE setup required** — Slate is part of the core engine. No plugins to enable, no Build.cs changes beyond what is already present.
 
 ---
 
@@ -1039,6 +1085,54 @@ Multi-tab notes panel. Will inherit from `UBaseChannelPanel` and use `USessionNo
 **Type:** `UBaseChannelTab`
 
 Empty typed subclass of `UBaseChannelTab`. Blueprint parent for the notes tab widget. All behavior inherits from `UBaseChannelTab`.
+
+---
+
+### RichText/
+
+#### FRichTextRun
+**Type:** `USTRUCT`
+
+A single contiguous range of characters sharing the same formatting. The document model is a flat ordered list of these runs.
+
+**Fields:** `Text (FString)`, `FontInfo (FSlateFontInfo)`, `bIsBold`, `bIsItalic`, `bIsUnderline`, `bIsStrikethrough` (all `bool`, default `false`).
+
+**Constructors:** Default (required by UE reflection; `FontInfo` left empty); parameterised `(FString, FSlateFontInfo)` — all flags default false.
+
+---
+
+#### FRichTextDocument
+**Type:** `USTRUCT`
+
+Full content of a single notes channel — a flat ordered list of `FRichTextRun` entries.
+
+**Fields:** `Runs (TArray<FRichTextRun>)` — default empty.
+
+---
+
+#### SRichTextEditor
+**Type:** `SCompoundWidget` (Slate)
+
+Custom Slate rich-text editor widget. Owns the document model, cursor, selection, active format state, and all keyboard input handling. No UE reflection — pure Slate C++.
+
+**Private state:** `Document (FRichTextDocument)`, `CursorPosition (int32, default 0)`, `SelectionStart / SelectionEnd (int32, default -1 = no selection)`, `ActiveFormat (FRichTextRun)` — format carrier for newly typed text; `Text` field unused.
+
+**Public API:** `Construct(FArguments)`, `ToggleBold/Italic/Underline/Strikethrough(bool)`, `GetDocument() const`, `SetDocument(const FRichTextDocument&)`.
+
+> **Note:** `Construct` sets up a placeholder `ChildSlot`. Full layout (toolbar + text area) is pending.
+
+---
+
+#### URichTextEditorWidget
+**Type:** `UWidget` (UMG wrapper)
+
+Thin UMG wrapper around `SRichTextEditor`. Bridges the Slate widget into the UMG widget system so it can be used inside `USessionNotesChannel`.
+
+**Protected overrides:** `RebuildWidget()` — creates `SRichTextEditor` via `SNew`, returns it as `TSharedRef<SWidget>`; `ReleaseSlateResources(bool)` — calls Super, resets the shared pointer.
+
+**Private:** `RichTextEditor (TSharedPtr<SRichTextEditor>)`.
+
+> **Note:** Pass-through public methods (`GetDocument`, `SetDocument`, format toggles) are pending.
 
 ---
 
@@ -1097,7 +1191,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - All source subdirectories must be added to `PublicIncludePaths` in `ProjectIronTable.Build.cs`
 - Uses `Path.Combine(ModuleDirectory, "FolderName")` — requires `using System.IO;` at the top
 - This allows `#include "FileName.h"` with no path prefix from any folder in the module
-- **Current registered folders:** `AssetLibrary`, `CampaignBrowser`, `CampaignManager`, `Chat`, `Components`, `Dice`, `GameModes`, `GameStates`, `GameInstances`, `PlayerControllers`, `PlayerList`, `PlayerStates`, `Pawns`, `SaveLoad`, `Screens`, `SessionNotes`, `Settings`, `UI`, `Utility`
+- **Current registered folders:** `AssetLibrary`, `CampaignBrowser`, `CampaignManager`, `Chat`, `Components`, `Dice`, `GameModes`, `GameStates`, `GameInstances`, `PlayerControllers`, `PlayerList`, `PlayerStates`, `Pawns`, `RichText`, `SaveLoad`, `Screens`, `SessionNotes`, `Settings`, `UI`, `Utility`
 - **Pending (Environment system):** Add `Environment` to `PublicIncludePaths` when the `Environment/` source folder is created
 
 ---
@@ -1223,7 +1317,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - [ ] Session player cap (default 8, removable)
 - [x] Tab renaming (client-local) — right-click opens `UContextMenu` with Rename and Close options; rename persisted to `USessionSave::ChatTabNames`; close button removed from tab in favour of context menu
 - [x] Chat log persistence
-- [~] Shared notes — Base class hierarchy (`UBaseChannel`, `UBaseChannelTab`, `UBaseChannelListEntry`, `UBaseChannelPanel`) fully implemented in `Utility/`; `UChatBox` now inherits `UBaseChannelPanel` with all four virtual hooks overridden; `USessionNotesTab` created; `USessionNotesPanel` still a standalone widget — needs to inherit `UBaseChannelPanel`, use GUID channel identity, and add save/load, input context, and hover-scroll
+- [~] Shared notes — `USessionNotesPanel` now inherits `UBaseChannelPanel` with five virtual hook overrides declared; `USessionNotesChannel` created with `ScrollToEnd()`; `FRichTextRun`, `FRichTextDocument`, `SRichTextEditor`, `URichTextEditorWidget` foundation built in `RichText/`; pending: `URichTextEditorWidget` pass-through methods, `SRichTextEditor` full layout (toolbar + text area rendering), `USessionNotesPanel` override bodies, save/load (`NotesTabNames` added to `USessionSave`; content map pending), input context (`IMC_Notes`)
 - [ ] Pre-session lobby (waiting room; pre-game chat; character sheet accessible while waiting; Host sees connection status and launches when ready)
 - [ ] Session discovery and join flow
   - [ ] Invite code — immediate join, no approval
@@ -1457,6 +1551,8 @@ This approach keeps all save I/O within UE's native save game system and makes a
 *Last updated: 2026-04-18 (updated)* — `USessionChatComponent` completed: dice-to-chat handlers (`AddRollResultToChat`, `OnDiceFailsafeHandler`, `OnRollInitiated`, `OnPlayerAddressClicked`) moved from `#if 0` blocks in `USessionUIComponent` into `USessionChatComponent`; bound to `DiceTrayRef` and `PlayerListRef` in `Init()`. `USessionUIComponent` gains `GetDiceTray()` and `GetPlayerList()` getters alongside `GetChatBox()`. `BeginPlay` stubs removed from `USessionUIComponent` and `USessionChatComponent`. **Private Methods** region added to class layout standard (position 7, between Public Methods and Runtime References) — catch-all for internal helpers that aren't event handlers.
 
 *Last updated: 2026-04-18* — Component rename/split: `USessionHUDComponent` split into `USessionUIComponent` (widget management, panel layout, `GetChatBox()` getter) and `USessionChatComponent` (chat RPCs, passthrough methods). `UMainScreenHUDComponent` renamed to `UMainScreenUIComponent` (`SwitchScreen` private helper added). `UGameTypeButton` renamed to `UGameTypeTab`. `UDiceSelectorManager` renamed to `UDiceTray` (default impulse values documented). `ASessionController` updated: creates both components; `BeginPlay` calls `UIComponent->Init()` then `ChatComponent->Init()` (Init pattern replaces BeginPlay ordering). Chat references in `UChatBox` updated: `HUDComponentRef` → `ChatComponentRef` (type `USessionChatComponent*`). New gotcha: widget Init must go in `BeginPlay`, not `OnPossess` — `OnPossess` is server-only in multiplayer.
+
+*Last updated: 2026-04-22* — Rich-text editor foundation built: `RichText/` folder added with `FRichTextRun`, `FRichTextDocument` (structs), `SRichTextEditor` (Slate widget), `URichTextEditorWidget` (UMG wrapper). Custom Slate approach chosen over WebBrowser+Quill — better UE integration, no browser overhead, TTRPG-specific extension potential. `USessionSave` gains `NotesTabNames (TMap<FGuid, FString>)`. `USessionNotesPanel` override method declarations added; `USessionNotesChannel::ScrollToEnd()` extracted from base. `RichText` added to Build.cs `PublicIncludePaths`. `SlateCore` already in `PrivateDependencyModuleNames`.
 
 *Last updated: 2026-04-16* — Server RPC infrastructure: `ASessionController::Server_TravelToSession` added; `UCampaignManagerScreen::OnCampaignSelected` updated to route through RPC instead of calling `ServerTravel` directly. `USessionNotesPanel` added (`SessionNotes/`): scrollable `UMultiLineEditableText` with auto-scroll-to-bottom; registered as `UDraggablePanel` in `USessionHUDComponent`. Source folder restructure: `Screens/` added (`HomeScreen`, `BaseScreen` moved from `UI/`); `DiceSelector`/`DiceSelectorManager` moved to `Dice/`; `SettingsSlider` moved to `Settings/`; `ContextMenu`/`ContextMenuButton` moved to `UI/` from `Utility/`. `Build.cs` updated with `Screens` path. TechDoc class sections reorganized to match new folder structure.
 
