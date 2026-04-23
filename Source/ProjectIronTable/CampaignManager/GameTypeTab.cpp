@@ -4,16 +4,6 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 
-// Binds the tab button click delegate.
-void UGameTypeTab::NativeConstruct()
-{
-	Super::NativeConstruct();
-	if (GameTypeTab)
-	{
-		GameTypeTab->OnClicked.AddDynamic(this, &UGameTypeTab::OnGameTypeTabClicked);
-	}
-}
-
 // Sets the game type label text.
 void UGameTypeTab::SetLabel(const FString& Label)
 {
@@ -64,6 +54,16 @@ void UGameTypeTab::SetSelected(bool bSelected)
 	else
 	{
 		GameTypeTab->SetBackgroundColor(UnselectedTabColor);
+	}
+}
+
+// Binds the tab button click delegate.
+void UGameTypeTab::NativeConstruct()
+{
+	Super::NativeConstruct();
+	if (GameTypeTab)
+	{
+		GameTypeTab->OnClicked.AddDynamic(this, &UGameTypeTab::OnGameTypeTabClicked);
 	}
 }
 

@@ -13,14 +13,6 @@ class PROJECTIRONTABLE_API UBaseScreen : public UUserWidget
 {
 	GENERATED_BODY()
 
-private:
-
-#pragma region Widget References
-	/** Button that returns to the home screen. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> BackButton;
-#pragma endregion
-
 public:
 
 #pragma region Events
@@ -35,11 +27,16 @@ public:
 #pragma endregion
 
 protected:
-
 	/** Binds the back button click delegate. */
 	virtual void NativeConstruct() override;
 
 private:
+
+#pragma region Widget References
+	/** Button that returns to the home screen. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> BackButton;
+#pragma endregion
 
 #pragma region Event Handlers
 	/** Broadcasts OnBackRequested to signal the parent to return to the home screen. */

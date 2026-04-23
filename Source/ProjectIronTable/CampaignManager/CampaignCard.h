@@ -16,6 +16,32 @@ class PROJECTIRONTABLE_API UCampaignCard : public UUserWidget
 {
 	GENERATED_BODY()
 
+public:
+
+#pragma region Events
+	/** Fired when the launch button is clicked, passing the campaign ID and game type. */
+	UPROPERTY(BlueprintAssignable)
+	FOnCampaignSelected OnCampaignSelected;
+#pragma endregion
+
+#pragma region Public Methods
+	/** Sets the displayed campaign name. */
+	void SetCampaignTitle(const FString& Title);
+
+	/** Sets the displayed last played date string. */
+	void SetLastPlayedDate(const FString& Date);
+
+	/** Sets the displayed player count. */
+	void SetNumberOfPlayers(int32 NumPlayers);
+
+	/** Stores the campaign ID and game type to be broadcast when the card is selected. */
+	void SetCampaignData(const FGuid& InCampaignID, const FString& InGameType);
+#pragma endregion
+
+protected:
+	/** Binds the launch button click delegate. */
+	virtual void NativeConstruct() override;
+
 private:
 
 #pragma region Widget References
@@ -43,35 +69,6 @@ private:
 	/** Game type key this campaign belongs to, broadcast when the card is selected. */
 	FString GameType;
 #pragma endregion
-
-public:
-
-#pragma region Events
-	/** Fired when the launch button is clicked, passing the campaign ID and game type. */
-	UPROPERTY(BlueprintAssignable)
-	FOnCampaignSelected OnCampaignSelected;
-#pragma endregion
-
-#pragma region Public Methods
-	/** Sets the displayed campaign name. */
-	void SetCampaignTitle(const FString& Title);
-
-	/** Sets the displayed last played date string. */
-	void SetLastPlayedDate(const FString& Date);
-
-	/** Sets the displayed player count. */
-	void SetNumberOfPlayers(int32 NumPlayers);
-
-	/** Stores the campaign ID and game type to be broadcast when the card is selected. */
-	void SetCampaignData(const FGuid& InCampaignID, const FString& InGameType);
-#pragma endregion
-
-protected:
-
-	/** Binds the launch button click delegate. */
-	virtual void NativeConstruct() override;
-
-private:
 
 #pragma region Event Handlers
 	/** Broadcasts OnCampaignSelected with the stored campaign ID and game type. */

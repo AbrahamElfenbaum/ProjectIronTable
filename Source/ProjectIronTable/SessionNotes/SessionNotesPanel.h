@@ -11,25 +11,6 @@ UCLASS()
 class PROJECTIRONTABLE_API USessionNotesPanel : public UBaseChannelPanel
 {
 	GENERATED_BODY()
-private:
-
-#pragma region Widget References
-	/** Editable multi-line text field where the player writes session notes. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UMultiLineEditableText> NotesText;
-#pragma endregion
-
-protected:
-	/** Binds the text changed delegate to keep the scroll position at the bottom as content grows. */
-	virtual void NativeConstruct() override;
-
-private:
-
-#pragma region Event Handlers
-	/** Scrolls the notes panel to the end whenever the text content changes. */
-	UFUNCTION()
-	void OnNotesTextChanged(const FText& Text);
-#pragma endregion
 
 public:
 
@@ -48,5 +29,24 @@ public:
 
 	/** Loads saved content for the switched-to channel and displays it in the notes field. */
 	void OnChannelSwitched(UBaseChannel* Channel) override;
+#pragma endregion
+
+protected:
+
+	/** Binds the text changed delegate to keep the scroll position at the bottom as content grows. */
+	virtual void NativeConstruct() override;
+
+private:
+
+#pragma region Widget References
+	/** Editable multi-line text field where the player writes session notes. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UMultiLineEditableText> NotesText;
+#pragma endregion
+
+#pragma region Event Handlers
+	/** Scrolls the notes panel to the end whenever the text content changes. */
+	UFUNCTION()
+	void OnNotesTextChanged(const FText& Text);
 #pragma endregion
 };

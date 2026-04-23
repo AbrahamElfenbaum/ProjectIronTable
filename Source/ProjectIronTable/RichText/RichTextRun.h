@@ -39,7 +39,7 @@ struct PROJECTIRONTABLE_API FRichTextRun
 
 	/** Constructs a run with the given text and font. All formatting flags default to false. */
 	FRichTextRun(const FString& InText, const FSlateFontInfo& InFont)
-		: Text(InText), FontInfo(InFont), bIsBold(false), bIsItalic(false),
-		  bIsUnderline(false), bIsStrikethrough(false)
+		: bIsBold(false), bIsItalic(false), bIsUnderline(false), bIsStrikethrough(false),
+		  Text(InText), FontInfo(InFont)
 	{}
 };

@@ -4,16 +4,6 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 
-// Binds the launch button click delegate.
-void UCampaignCard::NativeConstruct()
-{
-	Super::NativeConstruct();
-	if (LaunchCampaignButton)
-	{
-		LaunchCampaignButton->OnClicked.AddDynamic(this, &UCampaignCard::OnLaunchCampaignButtonClicked);
-	}
-}
-
 // Updates the campaign name label.
 void UCampaignCard::SetCampaignTitle(const FString& Title)
 {
@@ -46,6 +36,16 @@ void UCampaignCard::SetCampaignData(const FGuid& InCampaignID, const FString& In
 {
 	CampaignID = InCampaignID;
 	GameType = InGameType;
+}
+
+// Binds the launch button click delegate.
+void UCampaignCard::NativeConstruct()
+{
+	Super::NativeConstruct();
+	if (LaunchCampaignButton)
+	{
+		LaunchCampaignButton->OnClicked.AddDynamic(this, &UCampaignCard::OnLaunchCampaignButtonClicked);
+	}
 }
 
 // Broadcasts OnCampaignSelected with the stored campaign ID and game type.

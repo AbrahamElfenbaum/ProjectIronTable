@@ -3,17 +3,6 @@
 
 #include "Net/UnrealNetwork.h"
 
-// Register replicated properties
-void ASessionGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(ASessionGameState, GameTypeID);
-	DOREPLIFETIME(ASessionGameState, HostPlayerID);
-	DOREPLIFETIME(ASessionGameState, GMPlayerIDs);
-	DOREPLIFETIME(ASessionGameState, PlayerIDs);
-}
-
 // Return the game system identifier
 FString ASessionGameState::GetGameTypeID() const
 {
@@ -96,4 +85,15 @@ FDateTime ASessionGameState::GetLastSaved() const
 void ASessionGameState::SetLastSaved(const FDateTime& InLastSaved)
 {
 	LastSaved = InLastSaved;
+}
+
+// Register replicated properties
+void ASessionGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ASessionGameState, GameTypeID);
+	DOREPLIFETIME(ASessionGameState, HostPlayerID);
+	DOREPLIFETIME(ASessionGameState, GMPlayerIDs);
+	DOREPLIFETIME(ASessionGameState, PlayerIDs);
 }

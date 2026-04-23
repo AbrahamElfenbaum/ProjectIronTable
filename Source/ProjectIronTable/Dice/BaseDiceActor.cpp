@@ -32,40 +32,6 @@ ABaseDiceActor::ABaseDiceActor()
 	Mesh2->SetAngularDamping(AngularDamping);
 }
 
-// Detaches meshes for independent physics simulation and binds sleep delegates; marks Mesh2 as asleep if unused.
-void ABaseDiceActor::BeginPlay()
-{
-	Super::BeginPlay();
-
-	if (IsMeshValid(Mesh1))
-	{
-		Mesh1->BodyInstance.bAutoWeld = false;
-		Mesh1->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-		Mesh1->SetSimulatePhysics(true);
-		Mesh1->RecreatePhysicsState();
-		Mesh1->SetNotifyRigidBodyCollision(true);
-
-		Mesh1->OnComponentSleep.AddDynamic(this, &ABaseDiceActor::OnMeshSleep);
-		Mesh1->OnComponentHit.AddDynamic(this, &ABaseDiceActor::OnMeshHit);
-	}
-
-	if (IsMeshValid(Mesh2))
-	{
-		Mesh2->BodyInstance.bAutoWeld = false;
-		Mesh2->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-		Mesh2->SetSimulatePhysics(true);
-		Mesh2->RecreatePhysicsState();
-		Mesh2->SetNotifyRigidBodyCollision(true);
-
-		Mesh2->OnComponentSleep.AddDynamic(this, &ABaseDiceActor::OnMeshSleep);
-		Mesh2->OnComponentHit.AddDynamic(this, &ABaseDiceActor::OnMeshHit);
-	}
-	else
-	{
-		bMesh2Asleep = true;
-	}
-}
-
 // Returns the roll result by finding the highest dot-product face on each mesh, combining for percentile dice.
 FRollResult ABaseDiceActor::GetRolledValue()
 {
@@ -140,6 +106,84 @@ void ABaseDiceActor::Roll(FVector Impulse, FVector AngularImpulse)
 		false);
 }
 
+// Detaches meshes for independent physics simulation and binds sleep delegates; marks Mesh2 as asleep if unused.
+void ABaseDiceActor::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (IsMeshValid(Mesh1))
+	{
+		Mesh1->BodyInstance.bAutoWeld = false;
+		Mesh1->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+		Mesh1->SetSimulatePhysics(true);
+		Mesh1->RecreatePhysicsState();
+		Mesh1->SetNotifyRigidBodyCollision(true);
+
+		Mesh1->OnComponentSleep.AddDynamic(this, &ABaseDiceActor::OnMeshSleep);
+		Mesh1->OnComponentHit.AddDynamic(this, &ABaseDiceActor::OnMeshHit);
+	}
+
+	if (IsMeshValid(Mesh2))
+	{
+		Mesh2->BodyInstance.bAutoWeld = false;
+		Mesh2->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+		Mesh2->SetSimulatePhysics(true);
+		Mesh2->RecreatePhysicsState();
+		Mesh2->SetNotifyRigidBodyCollision(true);
+
+		Mesh2->OnComponentSleep.AddDynamic(this, &ABaseDiceActor::OnMeshSleep);
+		Mesh2->OnComponentHit.AddDynamic(this, &ABaseDiceActor::OnMeshHit);
+	}
+	else
+	{
+		bMesh2Asleep = true;
+	}
+}
+
+// Returns true only if the mesh pointer is valid and has a static mesh asset assigned.
+bool ABaseDiceActor::IsMeshValid(UStaticMeshComponent* Mesh) const
+{
+	return (Mesh && Mesh->GetStaticMesh());
+}
+
+// Iterates all faces and returns the value of the face whose transformed normal has the highest dot product with world up.
+int32 ABaseDiceActor::GetFaceValue(UStaticMeshComponent* Mesh, UDiceData* DiceFaces) const
+{
+	if (!IsMeshValid(Mesh) || !DiceFaces)
+	{
+		return int32();
+	}
+
+	int32 Result = int32();
+	FTransform World = Mesh->GetComponentTransform();
+	float CurrentMaxDot = -1.0f;
+
+	for (const FFaceData& Face : DiceFaces->Faces)
+	{
+		FVector Direction = World.TransformVectorNoScale(Face.FaceNormal);
+		float Dot = FVector::DotProduct(Direction, FVector::UpVector);
+
+		if (Dot > CurrentMaxDot)
+		{
+			CurrentMaxDot = Dot;
+			Result = Face.FaceValue;
+		}
+	}
+
+	return Result;
+}
+
+// Destroys the actor and broadcasts OnFailsafeDestroy if either mesh has not yet finished settling.
+void ABaseDiceActor::FailsafeDestroy()
+{
+	if (!bMesh1Asleep || !bMesh2Asleep)
+	{
+		EDiceType LostType = (IsMeshValid(Mesh2) && DiceFaces2) ? DiceFaces2->DiceType : DiceFaces1->DiceType;
+		OnFailsafeDestroy.Broadcast(LostType);
+		Destroy();
+	}
+}
+
 // Marks the sleeping mesh's flag and broadcasts OnDiceRolled once both meshes are asleep.
 void ABaseDiceActor::OnMeshSleep(UPrimitiveComponent* SleepingComponent, FName BoneName)
 {
@@ -186,50 +230,5 @@ void ABaseDiceActor::OnMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherA
 		{
 			UGameplayStatics::PlaySoundAtLocation(this, CollisionSoundSurface, GetActorLocation(), Volume);
 		}
-	}
-
-}
-
-// Returns true only if the mesh pointer is valid and has a static mesh asset assigned.
-bool ABaseDiceActor::IsMeshValid(UStaticMeshComponent* Mesh) const
-{
-	return (Mesh && Mesh->GetStaticMesh());
-}
-
-// Iterates all faces and returns the value of the face whose transformed normal has the highest dot product with world up.
-int32 ABaseDiceActor::GetFaceValue(UStaticMeshComponent* Mesh, UDiceData* DiceFaces) const
-{
-	if (!IsMeshValid(Mesh) || !DiceFaces)
-	{
-		return int32();
-	}
-
-	int32 Result = int32();
-	FTransform World = Mesh->GetComponentTransform();
-	float CurrentMaxDot = -1.0f;
-
-	for (const FFaceData& Face : DiceFaces->Faces)
-	{
-		FVector Direction = World.TransformVectorNoScale(Face.FaceNormal);
-		float Dot = FVector::DotProduct(Direction, FVector::UpVector);
-
-		if (Dot > CurrentMaxDot)
-		{
-			CurrentMaxDot = Dot;
-			Result = Face.FaceValue;
-		}
-	}
-
-	return Result;
-}
-
-// Destroys the actor and broadcasts OnFailsafeDestroy if either mesh has not yet finished settling.
-void ABaseDiceActor::FailsafeDestroy()
-{
-	if (!bMesh1Asleep || !bMesh2Asleep)
-	{
-		EDiceType LostType = (IsMeshValid(Mesh2) && DiceFaces2) ? DiceFaces2->DiceType : DiceFaces1->DiceType;
-		OnFailsafeDestroy.Broadcast(LostType);
-		Destroy();
 	}
 }

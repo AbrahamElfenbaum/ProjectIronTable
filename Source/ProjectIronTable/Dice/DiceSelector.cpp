@@ -4,6 +4,14 @@
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
 
+// Resets the count to zero, refreshes the label, and broadcasts the change.
+void UDiceSelector::ResetCount()
+{
+	DiceCount = 0;
+	CountText->SetText(FText::AsNumber(DiceCount));
+	OnCountChanged.Broadcast();
+}
+
 // Initializes the type label, count label, and button delegates.
 void UDiceSelector::NativeConstruct()
 {
@@ -44,12 +52,4 @@ void UDiceSelector::DecreaseDiceCount()
 		CountText->SetText(FText::AsNumber(DiceCount));
 		OnCountChanged.Broadcast();
 	}
-}
-
-// Resets the count to zero, refreshes the label, and broadcasts the change.
-void UDiceSelector::ResetCount()
-{
-	DiceCount = 0;
-	CountText->SetText(FText::AsNumber(DiceCount));
-	OnCountChanged.Broadcast();
 }

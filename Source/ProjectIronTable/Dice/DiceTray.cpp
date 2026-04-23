@@ -7,27 +7,6 @@
 #include "DiceSelector.h"
 #include "DiceSpawnVolume.h"
 
-// Populates selector and button arrays, binds all button delegates, and refreshes initial button states.
-void UDiceTray::NativeConstruct()
-{
-	Super::NativeConstruct();
-
-	Selectors = { D4, D6, D8, D10, D12, D20, D100 };
-	AdvantageButtons = { NormalRollButton, AdvantageRollButton, DisadvantageRollButton };
-	RollButton->OnClicked.AddDynamic(this, &UDiceTray::RollDice);
-	NormalRollButton->OnClicked.AddDynamic(this, &UDiceTray::OnNormalClicked);
-	AdvantageRollButton->OnClicked.AddDynamic(this, &UDiceTray::OnAdvantageClicked);
-	DisadvantageRollButton->OnClicked.AddDynamic(this, &UDiceTray::OnDisadvantageClicked);
-
-	for (auto Selector : Selectors)
-	{
-		Selector->OnCountChanged.AddDynamic(this, &UDiceTray::OnSelectorCountChanged);
-	}
-
-	UpdateRollButtonState();
-	UpdateAdvantageButtonState();
-}
-
 // Spawns and launches all selected dice, clearing leftover dice from the previous roll first.
 void UDiceTray::RollDice()
 {
@@ -125,6 +104,27 @@ void UDiceTray::RollDice()
 		UpdateRollButtonState();
 		UpdateAdvantageButtonState();
 	}
+}
+
+// Populates selector and button arrays, binds all button delegates, and refreshes initial button states.
+void UDiceTray::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	Selectors = { D4, D6, D8, D10, D12, D20, D100 };
+	AdvantageButtons = { NormalRollButton, AdvantageRollButton, DisadvantageRollButton };
+	RollButton->OnClicked.AddDynamic(this, &UDiceTray::RollDice);
+	NormalRollButton->OnClicked.AddDynamic(this, &UDiceTray::OnNormalClicked);
+	AdvantageRollButton->OnClicked.AddDynamic(this, &UDiceTray::OnAdvantageClicked);
+	DisadvantageRollButton->OnClicked.AddDynamic(this, &UDiceTray::OnDisadvantageClicked);
+
+	for (auto Selector : Selectors)
+	{
+		Selector->OnCountChanged.AddDynamic(this, &UDiceTray::OnSelectorCountChanged);
+	}
+
+	UpdateRollButtonState();
+	UpdateAdvantageButtonState();
 }
 
 // Collects the result and broadcasts OnAllDiceRolled once all expected results have arrived.

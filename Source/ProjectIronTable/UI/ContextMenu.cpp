@@ -8,26 +8,6 @@
 #include "ContextMenuButton.h"
 #include "MacroLibrary.h"
 
-// Closes the menu if the click is outside the content box; otherwise passes the event to children.
-FReply UContextMenu::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
-{
-	FGeometry BoxGeometry = ContextBox->GetCachedGeometry();
-	FVector2D AbsPos = BoxGeometry.GetAbsolutePosition();
-	FVector2D AbsSize = BoxGeometry.GetAbsoluteSize();
-	FVector2D MousePos = InMouseEvent.GetScreenSpacePosition();
-
-	bool bInsideBox = MousePos.X >= AbsPos.X && MousePos.X <= AbsPos.X + AbsSize.X
-		&& MousePos.Y >= AbsPos.Y && MousePos.Y <= AbsPos.Y + AbsSize.Y;
-
-	if (!bInsideBox)
-	{
-		CloseMenu();
-		return FReply::Handled();
-	}
-
-	return FReply::Unhandled();
-}
-
 // Clears existing buttons and spawns a new button for each provided option.
 void UContextMenu::SetMenuOptions(const TArray<FContextMenuOption>& Options)
 {
@@ -80,4 +60,24 @@ void UContextMenu::SetMenuPosition(FVector2D Position)
 void UContextMenu::CloseMenu()
 {
 	RemoveFromParent();
+}
+
+// Closes the menu if the click is outside the content box; otherwise passes the event to children.
+FReply UContextMenu::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	FGeometry BoxGeometry = ContextBox->GetCachedGeometry();
+	FVector2D AbsPos = BoxGeometry.GetAbsolutePosition();
+	FVector2D AbsSize = BoxGeometry.GetAbsoluteSize();
+	FVector2D MousePos = InMouseEvent.GetScreenSpacePosition();
+
+	bool bInsideBox = MousePos.X >= AbsPos.X && MousePos.X <= AbsPos.X + AbsSize.X
+		&& MousePos.Y >= AbsPos.Y && MousePos.Y <= AbsPos.Y + AbsSize.Y;
+
+	if (!bInsideBox)
+	{
+		CloseMenu();
+		return FReply::Handled();
+	}
+
+	return FReply::Unhandled();
 }

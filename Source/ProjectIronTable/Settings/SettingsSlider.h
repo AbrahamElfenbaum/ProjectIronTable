@@ -46,6 +46,17 @@ public:
 	bool bIsMin;
 #pragma endregion
 
+#pragma region Public Methods
+	/** Returns the current slider value. */
+	float GetValue() const;
+
+	/** Sets the slider and text to the given value without triggering paired clamping. */
+	void SetValue(float Value);
+
+	/** Resets the slider to DefaultValue. */
+	void ResetToDefault();
+#pragma endregion
+
 protected:
 	/** Applies config to widgets and binds slider and text delegates. */
 	virtual void NativeConstruct() override;
@@ -66,21 +77,6 @@ private:
 	TObjectPtr<UEditableText> ValueText;
 #pragma endregion
 
-public:
-
-#pragma region Public Methods
-	/** Returns the current slider value. */
-	float GetValue() const;
-
-	/** Sets the slider and text to the given value without triggering paired clamping. */
-	void SetValue(float Value);
-
-	/** Resets the slider to DefaultValue. */
-	void ResetToDefault();
-#pragma endregion
-
-private:
-
 #pragma region Event Handlers
 	/** Syncs the text field and enforces paired clamping when the slider value changes. */
 	UFUNCTION()
@@ -95,5 +91,4 @@ private:
 	/** Returns Value clamped relative to the paired slider's value, or unchanged if no pair is set. */
 	float ClampToPair(float Value);
 #pragma endregion
-
 };

@@ -17,31 +17,9 @@ class PROJECTIRONTABLE_API USessionChatComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-public:	
+public:
 	/** Disables tick and enables replication so server RPCs function correctly. */
 	USessionChatComponent();
-
-private:
-
-#pragma region Runtime References
-	/** Cached reference to the owning session controller. */
-	UPROPERTY()
-	TObjectPtr<ASessionController> SessionControllerRef;
-
-	/** Reference to the ChatBox widget found inside the session screen. */
-	UPROPERTY()
-	TObjectPtr<UChatBox> ChatBoxRef;
-
-	/** Reference to the DiceTray widget found inside the session screen. */
-	UPROPERTY()
-	TObjectPtr<UDiceTray> DiceTrayRef;
-
-	/** Reference to the PlayerList widget found inside the session screen. */
-	UPROPERTY()
-	TObjectPtr<UPlayerList> PlayerListRef;
-#pragma endregion
-
-public:
 
 	/** Caches widget references from the UI component and binds delegates for dice roll results and player addressing. */
 	void Init();
@@ -68,6 +46,24 @@ public:
 #pragma endregion
 
 private:
+
+#pragma region Runtime References
+	/** Cached reference to the owning session controller. */
+	UPROPERTY()
+	TObjectPtr<ASessionController> SessionControllerRef;
+
+	/** Reference to the ChatBox widget found inside the session screen. */
+	UPROPERTY()
+	TObjectPtr<UChatBox> ChatBoxRef;
+
+	/** Reference to the DiceTray widget found inside the session screen. */
+	UPROPERTY()
+	TObjectPtr<UDiceTray> DiceTrayRef;
+
+	/** Reference to the PlayerList widget found inside the session screen. */
+	UPROPERTY()
+	TObjectPtr<UPlayerList> PlayerListRef;
+#pragma endregion
 
 #pragma region Event Handlers
 	/** Converts dice roll results into a formatted chat message and sends it to the server. */

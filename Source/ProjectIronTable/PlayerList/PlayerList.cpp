@@ -8,21 +8,6 @@
 
 #include "PlayerRow.h"
 
-// Binds the toggle button, populates the list, and collapses the scroll box initially.
-void UPlayerList::NativeConstruct()
-{
-	Super::NativeConstruct();
-	if (ToggleButton)
-	{
-		ToggleButton->OnClicked.AddDynamic(this, &UPlayerList::OnToggleButtonClicked);
-	}
-	PopulateList();
-	if (ScrollBox)
-	{
-		ScrollBox->SetVisibility(ESlateVisibility::Collapsed);
-	}
-}
-
 // Clears the scroll box and rebuilds it from the current game state's player array.
 void UPlayerList::PopulateList()
 {
@@ -61,6 +46,21 @@ void UPlayerList::PopulateList()
 		PlayerRow->SetPlayerName(Player->GetPlayerName());
 		PlayerRow->OnAddressClicked.AddDynamic(this, &UPlayerList::OnPlayerAddressClicked);
 		ScrollBox->AddChild(PlayerRow);
+	}
+}
+
+// Binds the toggle button, populates the list, and collapses the scroll box initially.
+void UPlayerList::NativeConstruct()
+{
+	Super::NativeConstruct();
+	if (ToggleButton)
+	{
+		ToggleButton->OnClicked.AddDynamic(this, &UPlayerList::OnToggleButtonClicked);
+	}
+	PopulateList();
+	if (ScrollBox)
+	{
+		ScrollBox->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
 

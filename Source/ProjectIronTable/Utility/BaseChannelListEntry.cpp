@@ -7,6 +7,17 @@
 #include "BaseChannel.h"
 #include "MacroLibrary.h"
 
+// Stores the channel reference and updates the label to the channel's display name.
+void UBaseChannelListEntry::SetChannel(UBaseChannel* InChannel)
+{
+	CHECK_IF_VALID(InChannel, );
+	Channel = InChannel;
+	if (EntryLabel)
+	{
+		EntryLabel->SetText(FText::FromString(Channel->DisplayName));
+	}
+}
+
 // Binds the entry button click delegate.
 void UBaseChannelListEntry::NativeConstruct()
 {
@@ -22,15 +33,4 @@ void UBaseChannelListEntry::NativeConstruct()
 void UBaseChannelListEntry::OnEntryButtonClicked()
 {
 	OnEntryClicked.Broadcast(Channel);
-}
-
-// Stores the channel reference and updates the label to the channel's display name.
-void UBaseChannelListEntry::SetChannel(UBaseChannel* InChannel)
-{
-	CHECK_IF_VALID(InChannel, );
-	Channel = InChannel;
-	if (EntryLabel)
-	{
-		EntryLabel->SetText(FText::FromString(Channel->DisplayName));
-	}
 }

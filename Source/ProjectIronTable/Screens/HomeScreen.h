@@ -26,6 +26,24 @@ class PROJECTIRONTABLE_API UHomeScreen : public UUserWidget
 
 public:
 
+#pragma region Events
+	/** Broadcasts when the user requests to open the campaign manager screen. */
+	UPROPERTY(BlueprintAssignable)
+	FOnCampaignManagerRequested OnCampaignManagerRequested;
+
+	/** Broadcasts when the user requests to open the campaign browser screen. */
+	UPROPERTY(BlueprintAssignable)
+	FOnCampaignBrowserRequested OnCampaignBrowserRequested;
+
+	/** Broadcasts when the user requests to open the asset library screen. */
+	UPROPERTY(BlueprintAssignable)
+	FOnAssetLibraryRequested OnAssetLibraryRequested;
+
+	/** Broadcasts when the user requests to open the settings screen. */
+	UPROPERTY(BlueprintAssignable)
+	FOnSettingsRequested OnSettingsRequested;
+#pragma endregion
+
 #pragma region Public Methods
 	/** Binds all button click delegates. */
 	void Init();
@@ -54,28 +72,6 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> QuitButton;
 #pragma endregion
-
-public:
-
-#pragma region Events
-	/** Broadcasts when the user requests to open the campaign manager screen. */
-	UPROPERTY(BlueprintAssignable)
-	FOnCampaignManagerRequested OnCampaignManagerRequested;
-
-	/** Broadcasts when the user requests to open the campaign browser screen. */
-	UPROPERTY(BlueprintAssignable)
-	FOnCampaignBrowserRequested OnCampaignBrowserRequested;
-
-	/** Broadcasts when the user requests to open the asset library screen. */
-	UPROPERTY(BlueprintAssignable)
-	FOnAssetLibraryRequested OnAssetLibraryRequested;
-
-	/** Broadcasts when the user requests to open the settings screen. */
-	UPROPERTY(BlueprintAssignable)
-	FOnSettingsRequested OnSettingsRequested;
-#pragma endregion
-
-private:
 
 #pragma region Event Handlers
 	/** Broadcasts OnCampaignManagerRequested. */

@@ -92,6 +92,18 @@ void UCampaignManagerScreen::PopulateCampaigns(const TArray<FCampaignRecord>& Ca
 	}
 }
 
+// Iterates all active buttons and sets their selected state based on SelectedGameType.
+void UCampaignManagerScreen::SetSelectedGameButton()
+{
+	for (UGameTypeTab* Tab : ActiveTabs)
+	{
+		if (IsValid(Tab))
+		{
+			Tab->SetSelected(Tab->GetLabel() == SelectedGameType);
+		}
+	}
+}
+
 // Returns a hardcoded map of campaign records for testing.
 TMap<FString, FCampaignList> UCampaignManagerScreen::BuildFakeData() const
 {
@@ -146,18 +158,6 @@ TMap<FString, FCampaignList> UCampaignManagerScreen::BuildFakeData() const
 	Records.Add(TEXT("Mothership"),  FCampaignList());
 
 	return Records;
-}
-
-// Iterates all active buttons and sets their selected state based on SelectedGameType.
-void UCampaignManagerScreen::SetSelectedGameButton()
-{
-	for (UGameTypeTab* Tab : ActiveTabs)
-	{
-		if (IsValid(Tab))
-		{
-			Tab->SetSelected(Tab->GetLabel() == SelectedGameType);
-		}
-	}
 }
 
 // Updates the selected game type and refreshes the campaign grid.

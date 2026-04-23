@@ -25,31 +25,6 @@ public:
 	TSubclassOf<UChatEntry> ChatEntryClass;
 #pragma endregion
 
-protected:
-	/** Binds the text committed delegate; base handles channel and button setup. */
-	virtual void NativeConstruct() override;
-
-	/** Focuses the chat box when clicked while unfocused. */
-	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-
-private:
-
-#pragma region Widget References
-	/** Editable text field where the player types messages. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UEditableText> EditableText;
-#pragma endregion
-
-#pragma region State
-	/** True while the chat input is focused and accepting keyboard input. */
-	bool bChatFocused;
-
-	/** Set before calling FocusChat() on Enter commit to absorb the OnUserMovedFocus Slate fires immediately after. */
-	bool bPendingRefocus;
-#pragma endregion
-
-public:
-
 #pragma region Public Methods
 	/** Focuses the editable text field and switches input mode to UI only. */
 	void FocusChat();
@@ -73,7 +48,28 @@ public:
 	void SetChatComponent(USessionChatComponent* InChatComponent);
 #pragma endregion
 
+protected:
+	/** Binds the text committed delegate; base handles channel and button setup. */
+	virtual void NativeConstruct() override;
+
+	/** Focuses the chat box when clicked while unfocused. */
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
 private:
+
+#pragma region Widget References
+	/** Editable text field where the player types messages. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UEditableText> EditableText;
+#pragma endregion
+
+#pragma region State
+	/** True while the chat input is focused and accepting keyboard input. */
+	bool bChatFocused;
+
+	/** Set before calling FocusChat() on Enter commit to absorb the OnUserMovedFocus Slate fires immediately after. */
+	bool bPendingRefocus;
+#pragma endregion
 
 #pragma region Runtime References
 	/** Reference to the owning chat component, used to send chat messages to the server. */

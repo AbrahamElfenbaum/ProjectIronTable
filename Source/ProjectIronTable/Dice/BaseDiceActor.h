@@ -54,6 +54,8 @@ class PROJECTIRONTABLE_API ABaseDiceActor : public AActor
 	GENERATED_BODY()
 
 public:
+	/** Creates root and both mesh subobjects, and applies physics properties to each. */
+	ABaseDiceActor();
 
 #pragma region Components
 	/** Primary die mesh; always present. */
@@ -133,16 +135,6 @@ public:
 	bool bWasKept = true;
 #pragma endregion
 
-public:
-	/** Creates root and both mesh subobjects, and applies physics properties to each. */
-	ABaseDiceActor();
-
-protected:
-	/** Detaches meshes for independent physics simulation and binds sleep and hit delegates. */
-	virtual void BeginPlay() override;
-
-public:
-
 #pragma region Events
 	/** Fired when all meshes have settled and a result is ready. */
 	UPROPERTY(BlueprintAssignable, Category = "Dice")
@@ -162,6 +154,10 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void Roll(FVector Impulse, FVector AngularImpulse);
 #pragma endregion
+
+protected:
+	/** Detaches meshes for independent physics simulation and binds sleep and hit delegates. */
+	virtual void BeginPlay() override;
 
 private:
 

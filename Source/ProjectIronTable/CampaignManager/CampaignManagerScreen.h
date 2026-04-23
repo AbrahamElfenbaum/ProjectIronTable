@@ -40,6 +40,11 @@ public:
 	bool bUseFakeData;
 #pragma endregion
 
+#pragma region Public Methods
+	/** Loads the campaign save, populates game type tabs, and displays the first available campaign list. */
+	virtual void Init() override;
+#pragma endregion
+
 private:
 
 #pragma region Widget References
@@ -72,15 +77,6 @@ private:
 	UPROPERTY()
 	TArray<TObjectPtr<UGameTypeTab>> ActiveTabs;
 #pragma endregion
-
-public:
-
-#pragma region Public Methods
-	/** Loads the campaign save, populates game type tabs, and displays the first available campaign list. */
-	virtual void Init() override;
-#pragma endregion
-
-private:
 
 #pragma region Private Methods
 	/** Clears the campaign grid and creates a card for each record in the given list. */

@@ -21,41 +21,6 @@ ASessionController::ASessionController()
 	ChatComponent = CreateDefaultSubobject<USessionChatComponent>(TEXT("ChatComponent"));
 }
 
-// Caches the pawn reference, registers the session input context, and binds all input actions.
-void ASessionController::OnPossess(APawn* InPawn)
-{
-	Super::OnPossess(InPawn);
-	SessionPawnRef = Cast<ASessionPawn>(InPawn);
-
-	if (IsLocalController())
-	{
-		ULocalPlayer* LP = GetLocalPlayer();
-		if (IsValid(LP))
-		{
-			InputSubsystemRef = LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
-			if (IsValid(InputSubsystemRef))
-			{
-				InputSubsystemRef->AddMappingContext(IMC_Session, 0);
-			}
-		}
-
-		if (UEnhancedInputComponent* EIC = Cast<UEnhancedInputComponent>(InputComponent))
-		{
-			EIC->BindAction(IA_CameraMove, ETriggerEvent::Triggered, this, &ASessionController::Input_CameraMove);
-			EIC->BindAction(IA_CameraPan, ETriggerEvent::Triggered, this, &ASessionController::Input_CameraPan);
-			EIC->BindAction(IA_CameraPan, ETriggerEvent::Started, this, &ASessionController::Input_CameraPan);
-			EIC->BindAction(IA_CameraPan, ETriggerEvent::Completed, this, &ASessionController::Input_CameraPan);
-			EIC->BindAction(IA_CameraPanReset, ETriggerEvent::Triggered, this, &ASessionController::Input_CameraPanReset);
-			EIC->BindAction(IA_CameraSprint, ETriggerEvent::Triggered, this, &ASessionController::Input_CameraSprint);
-			EIC->BindAction(IA_CameraSprint, ETriggerEvent::Completed, this, &ASessionController::Input_CameraSprint);
-			EIC->BindAction(IA_CameraZoom, ETriggerEvent::Triggered, this, &ASessionController::Input_CameraZoom);
-			EIC->BindAction(IA_FocusChat, ETriggerEvent::Triggered, this, &ASessionController::Input_FocusChat);
-			EIC->BindAction(IA_ExitChat, ETriggerEvent::Triggered, this, &ASessionController::Input_ExitChat);
-			EIC->BindAction(IA_ScrollChat, ETriggerEvent::Triggered, this, &ASessionController::Input_ScrollChat);
-		}
-	}
-}
-
 // Clamps all camera config properties to valid ranges; shared between editor validation and runtime apply.
 void ASessionController::ValidateCameraSettings()
 {
@@ -130,14 +95,40 @@ void ASessionController::Server_TravelToSession_Implementation(const FString& Tr
 	World->ServerTravel(TravelURL);
 }
 
-#if WITH_EDITOR
-// Delegates to ValidateCameraSettings so editor and runtime share the same validation logic.
-void ASessionController::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+// Caches the pawn reference, registers the session input context, and binds all input actions.
+void ASessionController::OnPossess(APawn* InPawn)
 {
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-	ValidateCameraSettings();
+	Super::OnPossess(InPawn);
+	SessionPawnRef = Cast<ASessionPawn>(InPawn);
+
+	if (IsLocalController())
+	{
+		ULocalPlayer* LP = GetLocalPlayer();
+		if (IsValid(LP))
+		{
+			InputSubsystemRef = LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
+			if (IsValid(InputSubsystemRef))
+			{
+				InputSubsystemRef->AddMappingContext(IMC_Session, 0);
+			}
+		}
+
+		if (UEnhancedInputComponent* EIC = Cast<UEnhancedInputComponent>(InputComponent))
+		{
+			EIC->BindAction(IA_CameraMove, ETriggerEvent::Triggered, this, &ASessionController::Input_CameraMove);
+			EIC->BindAction(IA_CameraPan, ETriggerEvent::Triggered, this, &ASessionController::Input_CameraPan);
+			EIC->BindAction(IA_CameraPan, ETriggerEvent::Started, this, &ASessionController::Input_CameraPan);
+			EIC->BindAction(IA_CameraPan, ETriggerEvent::Completed, this, &ASessionController::Input_CameraPan);
+			EIC->BindAction(IA_CameraPanReset, ETriggerEvent::Triggered, this, &ASessionController::Input_CameraPanReset);
+			EIC->BindAction(IA_CameraSprint, ETriggerEvent::Triggered, this, &ASessionController::Input_CameraSprint);
+			EIC->BindAction(IA_CameraSprint, ETriggerEvent::Completed, this, &ASessionController::Input_CameraSprint);
+			EIC->BindAction(IA_CameraZoom, ETriggerEvent::Triggered, this, &ASessionController::Input_CameraZoom);
+			EIC->BindAction(IA_FocusChat, ETriggerEvent::Triggered, this, &ASessionController::Input_FocusChat);
+			EIC->BindAction(IA_ExitChat, ETriggerEvent::Triggered, this, &ASessionController::Input_ExitChat);
+			EIC->BindAction(IA_ScrollChat, ETriggerEvent::Triggered, this, &ASessionController::Input_ScrollChat);
+		}
+	}
 }
-#endif
 
 // Sets input mode and cursor, then loads and applies saved camera settings if a save exists.
 void ASessionController::BeginPlay()
@@ -157,6 +148,28 @@ void ASessionController::BeginPlay()
 		CHECK_IF_VALID(LoadedSettings, );
 		ApplyCameraSettings(LoadedSettings);
 	}
+}
+
+#if WITH_EDITOR
+// Delegates to ValidateCameraSettings so editor and runtime share the same validation logic.
+void ASessionController::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+	ValidateCameraSettings();
+}
+#endif
+
+// Returns movement speed proportional to spring arm length, clamped between min and max.
+float ASessionController::CalculateCameraMovementSpeed() const
+{
+	if (IsValid(SessionPawnRef))
+	{
+		return FMath::Clamp(SessionPawnRef->SpringArm->TargetArmLength / 100.f,
+							MinCameraMovementSpeed,
+							MaxCameraMovementSpeed);
+	}
+
+	return 10.f;
 }
 
 // Translates the pawn along the XY plane using the scaled movement speed.
@@ -240,17 +253,4 @@ void ASessionController::Input_ScrollChat(const FInputActionValue& Value)
 	float ScrollInput = Value.Get<float>();
 
 	if (IsValid(ChatComponent)) ChatComponent->ScrollChat(ScrollInput > 0);
-}
-
-// Returns movement speed proportional to spring arm length, clamped between min and max.
-float ASessionController::CalculateCameraMovementSpeed() const
-{
-	if (IsValid(SessionPawnRef))
-	{
-		return FMath::Clamp(SessionPawnRef->SpringArm->TargetArmLength / 100.f,
-							MinCameraMovementSpeed,
-							MaxCameraMovementSpeed);
-	}
-
-	return 10.f;
 }

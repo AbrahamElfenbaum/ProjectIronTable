@@ -75,6 +75,8 @@ Within a UCLASS, members are grouped using `#pragma region` / `#pragma endregion
 
 `#pragma region` / `#pragma endregion` are used in `.h` files only, not in `.cpp` files.
 
+The numbered order above also governs physical access specifier order in the file — **public sections always appear before private sections**. Within each access specifier block, members follow the region order for that access level.
+
 ---
 
 ## 5. UPROPERTY Specifiers
@@ -353,7 +355,13 @@ This order ensures that `MyWidget.h` is self-contained (missing includes surface
 
 ---
 
-## 19. Garbage Collection Safety
+## 19. Function Order in `.cpp`
+
+Function definitions in `.cpp` must appear in the **same order** as their declarations in the `.h`. If the `.h` declaration order changes, the `.cpp` must be reordered to match.
+
+---
+
+## 20. Garbage Collection Safety
 
 Every `UObject`-derived pointer stored as a class member **must** be covered by `UPROPERTY()`. A raw pointer with no `UPROPERTY` is invisible to Unreal's garbage collector — the object it points to can be collected while the pointer still holds an address, producing a dangling pointer that `IsValid()` will not reliably catch.
 

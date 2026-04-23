@@ -3,15 +3,6 @@
 
 #include "Net/UnrealNetwork.h"
 
-// Register replicated properties
-void ASessionPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(ASessionPlayerState, SessionPlayerID);
-	DOREPLIFETIME(ASessionPlayerState, bIsGM);
-	DOREPLIFETIME(ASessionPlayerState, bIsHost);
-}
-
 // Return the persistent session identity GUID
 FGuid ASessionPlayerState::GetSessionPlayerID() const
 {
@@ -46,4 +37,13 @@ bool ASessionPlayerState::GetIsHost() const
 void ASessionPlayerState::SetIsHost(bool bInIsHost)
 {
 	bIsHost = bInIsHost;
+}
+
+// Register replicated properties
+void ASessionPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ASessionPlayerState, SessionPlayerID);
+	DOREPLIFETIME(ASessionPlayerState, bIsGM);
+	DOREPLIFETIME(ASessionPlayerState, bIsHost);
 }

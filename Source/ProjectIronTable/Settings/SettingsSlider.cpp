@@ -5,6 +5,36 @@
 #include "Components/TextBlock.h"
 #include "Components/Slider.h"
 
+// Returns the current slider value, or 0 if the slider is not bound.
+float USettingsSlider::GetValue() const
+{
+	if (ValueSlider)
+	{
+		return ValueSlider->GetValue();
+	}
+	return 0.f;
+}
+
+// Sets the text field and slider directly; used for loading saved values and reset without triggering paired clamping.
+void USettingsSlider::SetValue(float Value)
+{
+	if (ValueText)
+	{
+		ValueText->SetText(FText::FromString(FString::SanitizeFloat(Value)));
+	}
+
+	if (ValueSlider)
+	{
+		ValueSlider->SetValue(Value);
+	}
+}
+
+// Resets the slider to the configured default value.
+void USettingsSlider::ResetToDefault()
+{
+	SetValue(DefaultValue);
+}
+
 // Applies config to widgets and binds slider and text delegates.
 void USettingsSlider::NativeConstruct()
 {
@@ -25,36 +55,6 @@ void USettingsSlider::NativeConstruct()
 	if (ValueText)
 	{
 		ValueText->OnTextCommitted.AddDynamic(this, &USettingsSlider::OnTextCommitted);
-	}
-}
-
-// Returns the current slider value, or 0 if the slider is not bound.
-float USettingsSlider::GetValue() const
-{
-	if (ValueSlider)
-	{
-		return ValueSlider->GetValue();
-	}
-	return 0.f;
-}
-
-// Resets the slider to the configured default value.
-void USettingsSlider::ResetToDefault()
-{
-	SetValue(DefaultValue);
-}
-
-// Sets the text field and slider directly; used for loading saved values and reset without triggering paired clamping.
-void USettingsSlider::SetValue(float Value)
-{
-	if (ValueText)
-	{
-		ValueText->SetText(FText::FromString(FString::SanitizeFloat(Value)));
-	}
-	
-	if (ValueSlider)
-	{
-		ValueSlider->SetValue(Value);
 	}
 }
 

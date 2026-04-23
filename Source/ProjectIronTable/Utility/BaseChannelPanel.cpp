@@ -13,24 +13,6 @@
 #include "FunctionLibrary.h"
 #include "MacroLibrary.h"
 
-// Binds the channel list button delegate, collapses the closed list, and creates the default server channel.
-void UBaseChannelPanel::NativeConstruct()
-{
-	Super::NativeConstruct();
-
-	if (ChannelListButton)
-	{
-		ChannelListButton->OnClicked.AddDynamic(this, &UBaseChannelPanel::OnChannelListButtonClicked);
-	}
-
-	if (ClosedChannelContainer)
-	{
-		ClosedChannelContainer->SetVisibility(ESlateVisibility::Collapsed);
-	}
-
-	SwitchToChannel(CreateChannel({}));
-}
-
 // Delegates scroll to the active channel.
 void UBaseChannelPanel::Scroll(bool bUp)
 {
@@ -101,6 +83,63 @@ UBaseChannelTab* UBaseChannelPanel::GetTabForChannel(UBaseChannel* Channel) cons
 {
 	UBaseChannelTab* const* Tab = ChannelTabMap.Find(Channel);
 	return Tab ? *Tab : nullptr;
+}
+
+// Binds the channel list button delegate, collapses the closed list, and creates the default server channel.
+void UBaseChannelPanel::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	if (ChannelListButton)
+	{
+		ChannelListButton->OnClicked.AddDynamic(this, &UBaseChannelPanel::OnChannelListButtonClicked);
+	}
+
+	if (ClosedChannelContainer)
+	{
+		ClosedChannelContainer->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	SwitchToChannel(CreateChannel({}));
+}
+
+// Returns an empty string; subclasses override to provide their label-building logic.
+FString UBaseChannelPanel::CreateTabLabel(const TArray<FString>& Participants) const
+{
+	return FString();
+}
+
+// No-op in base; subclasses override to persist tab data after channel creation.
+void UBaseChannelPanel::SaveCreatedTab()
+{
+}
+
+// No-op in base; subclasses override to persist the new tab name after a rename.
+void UBaseChannelPanel::OnChannelRenamed(UBaseChannelTab* Tab, const FString& NewName, const FString& ParticipantsKey)
+{
+}
+
+// No-op in base; subclasses override for panel-specific behavior after a channel switch.
+void UBaseChannelPanel::OnChannelSwitched(UBaseChannel* Channel)
+{
+}
+
+// Clears and repopulates the closed channel list panel from the current ClosedChannels set.
+void UBaseChannelPanel::RefreshChannelList()
+{
+	ClosedChannelContainer->ClearChildren();
+	for (UBaseChannel* Channel : ClosedChannels)
+	{
+		UBaseChannelListEntry* Entry = CreateWidget<UBaseChannelListEntry>(this, ChannelListEntryClass);
+		if (!IsValid(Entry))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("UBaseChannelPanel::RefreshChannelList — Failed to create ChannelListEntry widget"));
+			continue;
+		}
+		Entry->SetChannel(Channel);
+		Entry->OnEntryClicked.AddDynamic(this, &UBaseChannelPanel::ReopenChannel);
+		ClosedChannelContainer->AddChild(Entry);
+	}
 }
 
 // Sets the old active tab interactable, switches to the new channel, and calls OnChannelSwitched.
@@ -207,43 +246,4 @@ void UBaseChannelPanel::OnTabRenamedHandler(UBaseChannelTab* Tab, const FString&
 	}
 	FString ParticipantsKey = UFunctionLibrary::MakeParticipantKey(Channel->Participants);
 	OnChannelRenamed(Tab, NewName, ParticipantsKey);
-}
-
-// Returns an empty string; subclasses override to provide their label-building logic.
-FString UBaseChannelPanel::CreateTabLabel(const TArray<FString>& Participants) const
-{
-	return FString();
-}
-
-// No-op in base; subclasses override to persist tab data after channel creation.
-void UBaseChannelPanel::SaveCreatedTab()
-{
-}
-
-// No-op in base; subclasses override to persist the new tab name after a rename.
-void UBaseChannelPanel::OnChannelRenamed(UBaseChannelTab* Tab, const FString& NewName, const FString& ParticipantsKey)
-{
-}
-
-// No-op in base; subclasses override for panel-specific behavior after a channel switch.
-void UBaseChannelPanel::OnChannelSwitched(UBaseChannel* Channel)
-{
-}
-
-// Clears and repopulates the closed channel list panel from the current ClosedChannels set.
-void UBaseChannelPanel::RefreshChannelList()
-{
-	ClosedChannelContainer->ClearChildren();
-	for (UBaseChannel* Channel : ClosedChannels)
-	{
-		UBaseChannelListEntry* Entry = CreateWidget<UBaseChannelListEntry>(this, ChannelListEntryClass);
-		if (!IsValid(Entry))
-		{
-			UE_LOG(LogTemp, Warning, TEXT("UBaseChannelPanel::RefreshChannelList — Failed to create ChannelListEntry widget"));
-			continue;
-		}
-		Entry->SetChannel(Channel);
-		Entry->OnEntryClicked.AddDynamic(this, &UBaseChannelPanel::ReopenChannel);
-		ClosedChannelContainer->AddChild(Entry);
-	}
 }

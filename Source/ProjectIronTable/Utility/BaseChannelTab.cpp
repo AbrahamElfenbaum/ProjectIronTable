@@ -5,37 +5,6 @@
 #include "Components/Button.h"
 #include "Components/EditableText.h"
 
-// Binds tab button click and rename field commit delegates; collapses the edit label by default.
-void UBaseChannelTab::NativeConstruct()
-{
-	Super::NativeConstruct();
-
-	if (TabButton)
-	{
-		TabButton->OnClicked.AddDynamic(this, &UBaseChannelTab::OnTabButtonClicked);
-	}
-
-	if (EditLabel)
-	{
-		EditLabel->OnTextCommitted.AddDynamic(this, &UBaseChannelTab::OnTabRenamedCompleted);
-		EditLabel->SetVisibility(ESlateVisibility::Collapsed);
-	}
-}
-
-// Detects right-click to broadcast OnTabRightClicked; left-click falls through to Super.
-FReply UBaseChannelTab::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
-{
-	if (InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
-	{
-		OnTabButtonRightClicked();
-	}
-	else
-	{
-		Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
-	}
-	return FReply::Handled();
-}
-
 // Returns the channel this tab represents.
 UBaseChannel* UBaseChannelTab::GetChannel() const
 {
@@ -81,6 +50,37 @@ void UBaseChannelTab::EnterRenameMode()
 	TabLabel->SetVisibility(ESlateVisibility::Collapsed);
 	EditLabel->SetVisibility(ESlateVisibility::Visible);
 	EditLabel->SetKeyboardFocus();
+}
+
+// Binds tab button click and rename field commit delegates; collapses the edit label by default.
+void UBaseChannelTab::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	if (TabButton)
+	{
+		TabButton->OnClicked.AddDynamic(this, &UBaseChannelTab::OnTabButtonClicked);
+	}
+
+	if (EditLabel)
+	{
+		EditLabel->OnTextCommitted.AddDynamic(this, &UBaseChannelTab::OnTabRenamedCompleted);
+		EditLabel->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+// Detects right-click to broadcast OnTabRightClicked; left-click falls through to Super.
+FReply UBaseChannelTab::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+	{
+		OnTabButtonRightClicked();
+	}
+	else
+	{
+		Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+	}
+	return FReply::Handled();
 }
 
 // Broadcasts OnTabClicked with the assigned channel.

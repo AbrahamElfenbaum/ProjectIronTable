@@ -22,7 +22,7 @@ class PROJECTIRONTABLE_API USessionUIComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-public:	
+public:
 	/** Disables tick and enables replication so server RPCs function correctly. */
 	USessionUIComponent();
 
@@ -33,6 +33,17 @@ public:
 	/** The root session screen widget class to instantiate and add to the viewport. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UUserWidget> SessionScreenClass;
+#pragma endregion
+
+#pragma region Public Methods
+	/** Returns a reference to the chat box widget. */
+	UChatBox* GetChatBox() const;
+
+	/** Returns a reference to the dice tray widget. */
+	UDiceTray* GetDiceTray() const;
+
+	/** Returns a reference to the player list widget. */
+	UPlayerList* GetPlayerList() const;
 #pragma endregion
 
 private:
@@ -86,19 +97,6 @@ private:
 	UPROPERTY()
 	TArray<TObjectPtr<UDraggablePanel>> Panels;
 #pragma endregion
-
-public:
-
-	/** Returns a reference to the chat box widget. */
-	UChatBox* GetChatBox() const;
-
-	/** Returns a reference to the dice tray widget. */
-	UDiceTray* GetDiceTray() const;
-
-	/** Returns a reference to the player list widget. */
-	UPlayerList* GetPlayerList() const;
-
-private:
 
 #pragma region Event Handlers
 	/** Saves the current layout of all draggable panels to a save game object. Called when a panel is dragged, resized, or toggled. */

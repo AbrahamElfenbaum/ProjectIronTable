@@ -20,6 +20,10 @@ public:
 	FString Message;
 #pragma endregion
 
+protected:
+	/** Populates the text block with the message string. */
+	virtual void NativeConstruct() override;
+
 private:
 
 #pragma region Widget References
@@ -27,9 +31,4 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> TextBlock;
 #pragma endregion
-
-protected:
-
-	/** Populates the text block with the message string. */
-	virtual void NativeConstruct() override;
 };

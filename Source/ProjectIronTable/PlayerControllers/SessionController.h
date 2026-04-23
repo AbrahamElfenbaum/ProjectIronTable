@@ -22,20 +22,6 @@ public:
 	/** Creates and attaches the UI and chat component subobjects. */
 	ASessionController();
 
-protected:
-	/** Caches the pawn reference, registers the gameplay input context, and binds all input actions. */
-	virtual void OnPossess(APawn* InPawn) override;
-
-	/** Sets input mode, shows cursor, and loads saved camera settings. */
-	virtual void BeginPlay() override;
-
-#if WITH_EDITOR
-	/** Delegates to ValidateCameraSettings so editor validation uses the same rules as runtime. */
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-#endif
-
-public:
-
 #pragma region Components
 	/** The HUD component owned by this controller, responsible for all UI widgets. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -149,11 +135,29 @@ public:
 #pragma endregion
 
 protected:
+	/** Caches the pawn reference, registers the gameplay input context, and binds all input actions. */
+	virtual void OnPossess(APawn* InPawn) override;
+
+	/** Sets input mode, shows cursor, and loads saved camera settings. */
+	virtual void BeginPlay() override;
+
+#if WITH_EDITOR
+	/** Delegates to ValidateCameraSettings so editor validation uses the same rules as runtime. */
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 
 	/** Returns a movement speed scaled by the current spring arm length, clamped to the configured min/max. */
 	UFUNCTION(BlueprintCallable, Category = "Camera")
 	float CalculateCameraMovementSpeed() const;
 
+private:
+
+#pragma region State
+	/** Active speed multiplier; 1.0 normally, CameraSpeedMultiplier while sprinting. */
+	float CurrentCameraSpeedMultiplier = 1.f;
+#pragma endregion
+
+#pragma region Runtime References
 	/** Cached reference to the possessed session pawn. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<ASessionPawn> SessionPawnRef;
@@ -161,12 +165,6 @@ protected:
 	/** Reference to the Enhanced Input subsystem for managing mapping contexts. */
 	UPROPERTY()
 	TObjectPtr<UEnhancedInputLocalPlayerSubsystem> InputSubsystemRef;
-
-private:
-
-#pragma region State
-	/** Active speed multiplier; 1.0 normally, CameraSpeedMultiplier while sprinting. */
-	float CurrentCameraSpeedMultiplier = 1.f;
 #pragma endregion
 
 #pragma region Input Handlers

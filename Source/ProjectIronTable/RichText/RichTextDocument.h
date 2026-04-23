@@ -13,5 +13,4 @@ struct PROJECTIRONTABLE_API FRichTextDocument
 	/** The ordered list of text runs that make up this document. */
 	UPROPERTY()
 	TArray<FRichTextRun> Runs;
-
 };

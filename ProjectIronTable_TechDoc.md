@@ -1062,9 +1062,8 @@ Notes support rich-text formatting (bold, italic, underline, strikethrough, head
 
 | Class | Type | Role |
 |---|---|---|
-| `SRichTextEditor` | `SCompoundWidget` (Slate) | Full editor logic: document model, cursor, selection, formatting runs, keyboard input, undo/redo |
-| `URichTextEditor` | `UWidget` (UMG wrapper) | Thin UMG wrapper. Creates `SRichTextEditor` via `RebuildWidget()`. Exposes `GetContent()` / `SetContent()` to C++. |
-| `SRichTextToolbar` | `SCompoundWidget` (Slate) | Formatting toolbar (bold, italic, etc.). Owned by `SRichTextEditor`. |
+| `SRichTextEditor` | `SCompoundWidget` (Slate) | Full editor logic: document model, cursor, selection, formatting runs, keyboard input. Toolbar is inline (not a separate class). |
+| `URichTextEditorWidget` | `UWidget` (UMG wrapper) | Thin UMG wrapper. Creates `SRichTextEditor` via `RebuildWidget()`. Exposes `GetDocument()` / `SetDocument()` and format toggles to C++. |
 
 **Document model:** Text is stored as a list of `FRichTextRun` structs — each run is a contiguous range of characters sharing the same formatting flags (bold, italic, underline, strikethrough) and block type (paragraph, H1, H2, H3, bullet, numbered). This is the standard "run-length" model used by all major rich text editors.
 
@@ -1113,13 +1112,19 @@ Full content of a single notes channel — a flat ordered list of `FRichTextRun`
 #### SRichTextEditor
 **Type:** `SCompoundWidget` (Slate)
 
-Custom Slate rich-text editor widget. Owns the document model, cursor, selection, active format state, and all keyboard input handling. No UE reflection — pure Slate C++.
+Custom Slate rich-text editor widget. Owns the document model, cursor, selection, active format state, and formatting toolbar. No UE reflection — pure Slate C++.
 
-**Private state:** `Document (FRichTextDocument)`, `CursorPosition (int32, default 0)`, `SelectionStart / SelectionEnd (int32, default -1 = no selection)`, `ActiveFormat (FRichTextRun)` — format carrier for newly typed text; `Text` field unused.
+**Private state:** `Document (FRichTextDocument)`, `CursorPosition (int32, default 0)`, `SelectionStart / SelectionEnd (int32, default -1 = no selection)`, `ActiveFormat (FRichTextRun)` — format carrier for newly typed text; `Text` field unused. `TextArea (TSharedPtr<SMultiLineEditableText>)`. Four `TSharedPtr<SCheckBox>` toolbar refs: `BoldCheckbox`, `ItalicCheckbox`, `UnderlineCheckbox`, `StrikethroughCheckbox`.
+
+**Private helpers:** `MakeFormatCheckbox(TSharedPtr<SCheckBox>& OutRef, TFunction<void(bool)> Callback, const TCHAR* Label)` — builds one toolbar checkbox, assigns the shared pointer, wires `OnCheckStateChanged` via `FOnCheckStateChanged::CreateLambda`.
 
 **Public API:** `Construct(FArguments)`, `ToggleBold/Italic/Underline/Strikethrough(bool)`, `GetDocument() const`, `SetDocument(const FRichTextDocument&)`.
 
-> **Note:** `Construct` sets up a placeholder `ChildSlot`. Full layout (toolbar + text area) is pending.
+**Layout:** `Construct` builds a `SVerticalBox` — `AutoHeight` slot holds a `SHorizontalBox` toolbar (four `SCheckBox` buttons: B, I, U, S); `FillHeight(1.0f)` slot holds a `SScrollBox` containing `SAssignNew(TextArea, SMultiLineEditableText)`.
+
+**Document sync:** `GetDocument` pulls text from `TextArea` and returns it wrapped in a single `FRichTextRun` (single-run placeholder pending full multi-run rendering). `SetDocument` pushes `Runs[0].Text` into `TextArea`. Both are no-ops if `TextArea` is not yet valid or the document has no runs.
+
+> **Note:** Input handling (cursor-driven `ActiveFormat` updates, selection-based formatting) and rich rendering (per-run bold/italic/underline/strikethrough) are pending.
 
 ---
 
@@ -1128,11 +1133,11 @@ Custom Slate rich-text editor widget. Owns the document model, cursor, selection
 
 Thin UMG wrapper around `SRichTextEditor`. Bridges the Slate widget into the UMG widget system so it can be used inside `USessionNotesChannel`.
 
+**Public methods:** `GetDocument() const`, `SetDocument(const FRichTextDocument&)`, `ToggleBold/Italic/Underline/Strikethrough(bool)` — each checks `RichTextEditor.IsValid()` before calling through; `GetDocument` returns a default-constructed `FRichTextDocument` if the editor is not yet built.
+
 **Protected overrides:** `RebuildWidget()` — creates `SRichTextEditor` via `SNew`, returns it as `TSharedRef<SWidget>`; `ReleaseSlateResources(bool)` — calls Super, resets the shared pointer.
 
 **Private:** `RichTextEditor (TSharedPtr<SRichTextEditor>)`.
-
-> **Note:** Pass-through public methods (`GetDocument`, `SetDocument`, format toggles) are pending.
 
 ---
 
@@ -1551,6 +1556,8 @@ This approach keeps all save I/O within UE's native save game system and makes a
 *Last updated: 2026-04-18 (updated)* — `USessionChatComponent` completed: dice-to-chat handlers (`AddRollResultToChat`, `OnDiceFailsafeHandler`, `OnRollInitiated`, `OnPlayerAddressClicked`) moved from `#if 0` blocks in `USessionUIComponent` into `USessionChatComponent`; bound to `DiceTrayRef` and `PlayerListRef` in `Init()`. `USessionUIComponent` gains `GetDiceTray()` and `GetPlayerList()` getters alongside `GetChatBox()`. `BeginPlay` stubs removed from `USessionUIComponent` and `USessionChatComponent`. **Private Methods** region added to class layout standard (position 7, between Public Methods and Runtime References) — catch-all for internal helpers that aren't event handlers.
 
 *Last updated: 2026-04-18* — Component rename/split: `USessionHUDComponent` split into `USessionUIComponent` (widget management, panel layout, `GetChatBox()` getter) and `USessionChatComponent` (chat RPCs, passthrough methods). `UMainScreenHUDComponent` renamed to `UMainScreenUIComponent` (`SwitchScreen` private helper added). `UGameTypeButton` renamed to `UGameTypeTab`. `UDiceSelectorManager` renamed to `UDiceTray` (default impulse values documented). `ASessionController` updated: creates both components; `BeginPlay` calls `UIComponent->Init()` then `ChatComponent->Init()` (Init pattern replaces BeginPlay ordering). Chat references in `UChatBox` updated: `HUDComponentRef` → `ChatComponentRef` (type `USessionChatComponent*`). New gotcha: widget Init must go in `BeginPlay`, not `OnPossess` — `OnPossess` is server-only in multiplayer.
+
+*Last updated: 2026-04-23* — `SRichTextEditor::Construct` implemented: toolbar (`SHorizontalBox` with four `SCheckBox` buttons wired via `MakeFormatCheckbox` helper) + scrollable `SMultiLineEditableText` text area. `GetDocument`/`SetDocument` now sync through `TextArea` (single-run placeholder). `URichTextEditorWidget` pass-through public methods implemented (`GetDocument`, `SetDocument`, four format toggles). Two new coding standards added to `ProjectIronTable_CodingStandards.md`: `.cpp` function definitions must mirror `.h` declaration order; public sections physically precede private sections in `.h`.
 
 *Last updated: 2026-04-22* — Rich-text editor foundation built: `RichText/` folder added with `FRichTextRun`, `FRichTextDocument` (structs), `SRichTextEditor` (Slate widget), `URichTextEditorWidget` (UMG wrapper). Custom Slate approach chosen over WebBrowser+Quill — better UE integration, no browser overhead, TTRPG-specific extension potential. `USessionSave` gains `NotesTabNames (TMap<FGuid, FString>)`. `USessionNotesPanel` override method declarations added; `USessionNotesChannel::ScrollToEnd()` extracted from base. `RichText` added to Build.cs `PublicIncludePaths`. `SlateCore` already in `PrivateDependencyModuleNames`.
 

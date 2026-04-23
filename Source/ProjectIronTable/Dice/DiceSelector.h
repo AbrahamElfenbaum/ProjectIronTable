@@ -16,29 +16,6 @@ UCLASS()
 class PROJECTIRONTABLE_API UDiceSelector : public UUserWidget
 {
 	GENERATED_BODY()
-protected:
-	/** Initializes the type label, count label, and button delegates. */
-	virtual void NativeConstruct() override;
-
-private:
-
-#pragma region Widget References
-	/** Displays the die type label (e.g. "D20"). */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> TypeText;
-
-	/** Displays the current selected count. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> CountText;
-
-	/** Increments the die count by one. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> IncreaseButton;
-
-	/** Decrements the die count by one (minimum zero). */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> DecreaseButton;
-#pragma endregion
 
 public:
 
@@ -69,7 +46,29 @@ public:
 	void ResetCount();
 #pragma endregion
 
+protected:
+	/** Initializes the type label, count label, and button delegates. */
+	virtual void NativeConstruct() override;
+
 private:
+
+#pragma region Widget References
+	/** Displays the die type label (e.g. "D20"). */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> TypeText;
+
+	/** Displays the current selected count. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> CountText;
+
+	/** Increments the die count by one. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> IncreaseButton;
+
+	/** Decrements the die count by one (minimum zero). */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> DecreaseButton;
+#pragma endregion
 
 #pragma region Event Handlers
 	/** Increments DiceCount and broadcasts OnCountChanged. */

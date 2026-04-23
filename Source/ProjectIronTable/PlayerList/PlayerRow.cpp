@@ -4,16 +4,6 @@
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
 
-// Binds the address button click delegate.
-void UPlayerRow::NativeConstruct()
-{
-	Super::NativeConstruct();
-	if (AddressButton)
-	{
-		AddressButton->OnClicked.AddDynamic(this, &UPlayerRow::OnAddressButtonClicked);
-	}
-}
-
 // Stores the name and updates the name label text.
 void UPlayerRow::SetPlayerName(const FString& Name)
 {
@@ -21,6 +11,16 @@ void UPlayerRow::SetPlayerName(const FString& Name)
 	if (NameLabel)
 	{
 		NameLabel->SetText(FText::FromString(Name));
+	}
+}
+
+// Binds the address button click delegate.
+void UPlayerRow::NativeConstruct()
+{
+	Super::NativeConstruct();
+	if (AddressButton)
+	{
+		AddressButton->OnClicked.AddDynamic(this, &UPlayerRow::OnAddressButtonClicked);
 	}
 }
 

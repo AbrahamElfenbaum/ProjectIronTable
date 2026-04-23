@@ -17,24 +17,6 @@ class PROJECTIRONTABLE_API UTaskbarButton : public UUserWidget
 {
 	GENERATED_BODY()
 
-private:
-
-#pragma region Widget References
-	/** Button the player clicks to toggle the tracked widget. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> ToggleButton;
-
-	/** Displays the name of the tracked widget. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> WidgetLabel;
-#pragma endregion
-
-#pragma region Runtime References
-	/** The widget this button controls. */
-	UPROPERTY()
-	TObjectPtr<UUserWidget> TrackedWidget;
-#pragma endregion
-
 public:
 
 #pragma region Events
@@ -52,11 +34,26 @@ public:
 #pragma endregion
 
 protected:
-
 	/** Binds the toggle button click event. */
 	virtual void NativeConstruct() override;
 
 private:
+
+#pragma region Widget References
+	/** Button the player clicks to toggle the tracked widget. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> ToggleButton;
+
+	/** Displays the name of the tracked widget. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> WidgetLabel;
+#pragma endregion
+
+#pragma region Runtime References
+	/** The widget this button controls. */
+	UPROPERTY()
+	TObjectPtr<UUserWidget> TrackedWidget;
+#pragma endregion
 
 #pragma region Event Handlers
 	/** Toggles the tracked widget between Visible and Collapsed. */

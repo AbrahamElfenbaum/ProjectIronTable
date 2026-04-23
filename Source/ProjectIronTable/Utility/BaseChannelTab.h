@@ -24,38 +24,6 @@ class PROJECTIRONTABLE_API UBaseChannelTab : public UUserWidget
 {
 	GENERATED_BODY()
 
-protected:
-
-#pragma region Widget References
-	/** Button the player clicks to switch to this channel. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> TabButton;
-
-	/** Label displaying the channel name. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> TabLabel;
-
-	/** Inline text field shown during rename mode; hidden by default. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UEditableText> EditLabel;
-
-	/** Small indicator widget shown when there are unread messages. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UWidget> NotificationIndicator;
-#pragma endregion
-
-#pragma region State
-	/** The channel this tab controls. */
-	UPROPERTY()
-	TObjectPtr<UBaseChannel> Channel;
-#pragma endregion
-
-	/** Binds tab button and rename field delegates. */
-	virtual void NativeConstruct() override;
-
-	/** Detects right-click to broadcast OnTabRightClicked; left-click falls through to Super. */
-	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-
 public:
 
 #pragma region Events
@@ -93,6 +61,37 @@ public:
 
 	/** Shows the editable text field and hides the label, placing focus on the field for immediate input. */
 	void EnterRenameMode();
+#pragma endregion
+
+protected:
+	/** Binds tab button and rename field delegates. */
+	virtual void NativeConstruct() override;
+
+	/** Detects right-click to broadcast OnTabRightClicked; left-click falls through to Super. */
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
+#pragma region Widget References
+	/** Button the player clicks to switch to this channel. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> TabButton;
+
+	/** Label displaying the channel name. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> TabLabel;
+
+	/** Inline text field shown during rename mode; hidden by default. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UEditableText> EditLabel;
+
+	/** Small indicator widget shown when there are unread messages. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UWidget> NotificationIndicator;
+#pragma endregion
+
+#pragma region State
+	/** The channel this tab controls. */
+	UPROPERTY()
+	TObjectPtr<UBaseChannel> Channel;
 #pragma endregion
 
 private:

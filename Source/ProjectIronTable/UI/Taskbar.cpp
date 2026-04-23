@@ -8,16 +8,6 @@
 #include "DraggablePanel.h"
 #include "MacroLibrary.h"
 
-// Binds the reset button click event.
-void UTaskbar::NativeConstruct()
-{
-	Super::NativeConstruct();
-	if (ResetButton)
-	{
-		ResetButton->OnClicked.AddDynamic(this, &UTaskbar::ResetLayout);
-	}
-}
-
 // Creates a TaskbarButton for the widget, assigns it a label, and adds it to the button container.
 UTaskbarButton* UTaskbar::RegisterWidget(UUserWidget* Widget, const FString& Label)
 {
@@ -26,6 +16,16 @@ UTaskbarButton* UTaskbar::RegisterWidget(UUserWidget* Widget, const FString& Lab
 	TaskbarButton->SetTrackedWidget(Widget, Label);
 	ButtonContainer->AddChild(TaskbarButton);
 	return TaskbarButton;
+}
+
+// Binds the reset button click event.
+void UTaskbar::NativeConstruct()
+{
+	Super::NativeConstruct();
+	if (ResetButton)
+	{
+		ResetButton->OnClicked.AddDynamic(this, &UTaskbar::ResetLayout);
+	}
 }
 
 // Resets all panels to their default sizes and positions by broadcasting a message to all taskbar buttons.

@@ -6,16 +6,6 @@
 
 #include "MacroLibrary.h"
 
-// Binds the toggle button click event.
-void UTaskbarButton::NativeConstruct()
-{
-	Super::NativeConstruct();
-	if (ToggleButton)
-	{
-		ToggleButton->OnClicked.AddDynamic(this, &UTaskbarButton::OnToggleClicked);
-	}
-}
-
 // Stores the widget reference and sets the label text.
 void UTaskbarButton::SetTrackedWidget(UUserWidget* Widget, const FString& Label)
 {
@@ -30,6 +20,16 @@ void UTaskbarButton::SetTrackedWidget(UUserWidget* Widget, const FString& Label)
 UUserWidget* UTaskbarButton::GetTrackedWidget() const
 {
 	return TrackedWidget;
+}
+
+// Binds the toggle button click event.
+void UTaskbarButton::NativeConstruct()
+{
+	Super::NativeConstruct();
+	if (ToggleButton)
+	{
+		ToggleButton->OnClicked.AddDynamic(this, &UTaskbarButton::OnToggleClicked);
+	}
 }
 
 // Collapses the tracked widget if visible, or restores it if collapsed.
