@@ -117,16 +117,16 @@ Defines the spawn area for dice. `USessionUIComponent` finds it at runtime via `
 Parent class for all dice. Handles physics, sleep detection, roll result reading, and collision sounds.
 
 **Config (set in Blueprint):**
-| Property | Type | Default | Description |
-|---|---|---|---|
-| `Mass` | float | — | Rigid body mass |
-| `LinearDamping` / `AngularDamping` | float | — | Physics damping |
-| `ImpulseRange` / `AngularImpulseRange` | float | — | Roll impulse range |
-| `FailSafeTime` | float | 10s | Auto-destroy if not settled |
-| `CollisionSoundSurface` | USoundBase | — | Sound when hitting non-die surface |
-| `CollisionSoundDice` | USoundBase | — | Sound when hitting another die |
-| `ThrottleInterval` | float | 0.1s | Min time between collision sounds |
-| `ImpulseVolumeScale` | float | 1000 | Divides impulse magnitude to get volume |
+| Property                               | Type       | Default | Description                             |
+|----------------------------------------|------------|---------|-----------------------------------------|
+| `Mass`                                 | float      | —       | Rigid body mass                         |
+| `LinearDamping` / `AngularDamping`     | float      | —       | Physics damping                         |
+| `ImpulseRange` / `AngularImpulseRange` | float      | —       | Roll impulse range                      |
+| `FailSafeTime`                         | float      | 10s     | Auto-destroy if not settled             |
+| `CollisionSoundSurface`                | USoundBase | —       | Sound when hitting non-die surface      |
+| `CollisionSoundDice`                   | USoundBase | —       | Sound when hitting another die          |
+| `ThrottleInterval`                     | float      | 0.1s    | Min time between collision sounds       |
+| `ImpulseVolumeScale`                   | float      | 1000    | Divides impulse magnitude to get volume |
 
 **Key Behavior:**
 - `BeginPlay` — calls `SetNotifyRigidBodyCollision(true)` and binds `OnComponentHit` on both meshes
@@ -156,8 +156,8 @@ Stores per-die configuration (mesh, face values, die type, etc.).
 Tabbed chat container. Inherits tab bar, channel switcher, closed channel list, and all shared lifecycle from `UBaseChannelPanel`. Adds the message input field and chat-specific routing, persistence, and focus management.
 
 **Own Bound Widget:**
-| Name | Type |
-|---|---|
+| Name           | Type            |
+|----------------|-----------------|
 | `EditableText` | `UEditableText` |
 
 *(Tab bar, channel container, closed channel list, and channel list button are all owned by `UBaseChannelPanel`.)*
@@ -375,17 +375,17 @@ Persists all campaigns grouped by game type.
 
 Persists all nine camera config properties across sessions.
 
-| Field | Default |
-|---|---|
-| `MinCameraMovementSpeed` | 5 |
-| `MaxCameraMovementSpeed` | 20 |
-| `CameraSpeedMultiplier` | 2 |
-| `MinCameraPitch` | -15 |
-| `MaxCameraPitch` | 45 |
-| `CameraPanSpeedMultiplier` | 5 |
-| `MinZoomLength` | 100 |
-| `MaxZoomLength` | 2500 |
-| `ZoomSpeed` | 50 |
+| Field                      | Default |
+|----------------------------|---------|
+| `MinCameraMovementSpeed`   | 5       |
+| `MaxCameraMovementSpeed`   | 20      |
+| `CameraSpeedMultiplier`    | 2       |
+| `MinCameraPitch`           | -15     |
+| `MaxCameraPitch`           | 45      |
+| `CameraPanSpeedMultiplier` | 5       |
+| `MinZoomLength`            | 100     |
+| `MaxZoomLength`            | 2500    |
+| `ZoomSpeed`                | 50      |
 
 ---
 
@@ -395,8 +395,8 @@ Persists all nine camera config properties across sessions.
 Stores the player's permanent identity GUID. Created on first launch by `USessionInstance::Init` with a newly generated GUID; reloaded every session after. The `PlayerID` is appended to the `ServerTravel` URL as `?PlayerID=<guid>` and read by `ASessionGameMode::PostLogin` via `UGameplayStatics::ParseOption`.
 
 **Fields:**
-| Field | Type | Notes |
-|---|---|---|
+| Field      | Type    | Notes                                                     |
+|------------|---------|-----------------------------------------------------------|
 | `PlayerID` | `FGuid` | Permanent player identity. Generated once; never changes. |
 
 ---
@@ -407,18 +407,18 @@ Stores the player's permanent identity GUID. Created on first launch by `USessio
 Per-session save file. One instance per game session. `UCampaignManagerSave` is the authoritative index — `FCampaignRecord.SessionIDs` lists all sessions for a campaign. To open a campaign, read its `SessionIDs` and load the most recent by `LastSaved`.
 
 **Fields:**
-| Field | Type | Replicated | Notes |
-|---|---|---|---|
-| `GameTypeID` | `FString` | — | Game system key (e.g. `"DnD5e"`); matches `UCampaignManagerSave` key |
-| `CampaignID` | `FGuid` | — | Campaign this session belongs to |
-| `SessionID` | `FGuid` | — | Unique session identity; used to build save slot name |
-| `HostPlayerID` | `FGuid` | — | Server Owner. One per session, non-transferable |
-| `GMPlayerIDs` | `TArray<FGuid>` | — | All active GMs. Multiple supported; transferable; default = campaign creator |
-| `PlayerIDs` | `TArray<FGuid>` | — | All non-GM players |
-| `LastSaved` | `FDateTime` | — | Used to sort sessions when loading a campaign (most recent first) |
-| `ChatLog` | `TMap<FString, FChatLogRecord>` | — | Keyed by sorted, pipe-joined participant names (e.g. `"Alice\|Bob"`). Empty string key = Server channel. `FChatLogRecord` wraps `TArray<FChatMessageRecord>`; each record holds `SenderName` and `Message` body. |
-| `ChatTabNames` | `TMap<FString, FString>` | — | Keyed by sorted, pipe-joined participant names (same key format as `ChatLog`). Value is the user-assigned display name for that tab. Persisted on rename; restored by `USessionUIComponent::Init` after the chat log is restored. |
-| `NotesTabNames` | `TMap<FGuid, FString>` | — | Keyed by notes channel GUID (`USessionNotesChannel::ChannelID`). Value is the user-assigned display name for that notes tab. Persisted on creation and rename. |
+| Field           | Type                            | Replicated | Notes                                                                                                                                                                                                                             |
+|-----------------|---------------------------------|------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `GameTypeID`    | `FString`                       | —          | Game system key (e.g. `"DnD5e"`); matches `UCampaignManagerSave` key                                                                                                                                                              |
+| `CampaignID`    | `FGuid`                         | —          | Campaign this session belongs to                                                                                                                                                                                                  |
+| `SessionID`     | `FGuid`                         | —          | Unique session identity; used to build save slot name                                                                                                                                                                             |
+| `HostPlayerID`  | `FGuid`                         | —          | Server Owner. One per session, non-transferable                                                                                                                                                                                   |
+| `GMPlayerIDs`   | `TArray<FGuid>`                 | —          | All active GMs. Multiple supported; transferable; default = campaign creator                                                                                                                                                      |
+| `PlayerIDs`     | `TArray<FGuid>`                 | —          | All non-GM players                                                                                                                                                                                                                |
+| `LastSaved`     | `FDateTime`                     | —          | Used to sort sessions when loading a campaign (most recent first)                                                                                                                                                                 |
+| `ChatLog`       | `TMap<FString, FChatLogRecord>` | —          | Keyed by sorted, pipe-joined participant names (e.g. `"Alice\|Bob"`). Empty string key = Server channel. `FChatLogRecord` wraps `TArray<FChatMessageRecord>`; each record holds `SenderName` and `Message` body.                  |
+| `ChatTabNames`  | `TMap<FString, FString>`        | —          | Keyed by sorted, pipe-joined participant names (same key format as `ChatLog`). Value is the user-assigned display name for that tab. Persisted on rename; restored by `USessionUIComponent::Init` after the chat log is restored. |
+| `NotesTabNames` | `TMap<FGuid, FString>`          | —          | Keyed by notes channel GUID (`USessionNotesChannel::ChannelID`). Value is the user-assigned display name for that notes tab. Persisted on creation and rename.                                                                    |
 
 `FChatMessageRecord` and `FChatLogRecord` are declared in `SessionSave.h`.
 
@@ -432,11 +432,11 @@ Per-session save file. One instance per game session. `UCampaignManagerSave` is 
 Persistent game instance that survives level transitions. Carries session context and the player's permanent identity. On startup (`Init`), loads `UPlayerSave` from disk and stores `PlayerID`; creates and saves a new one if none exists. `CampaignID` and `SessionID` are set before `ServerTravel` and read in `InitGame`.
 
 **Fields:**
-| Field | Type | Notes |
-|---|---|---|
-| `CampaignID` | `FGuid` | Campaign context — not used to locate the save file, but carried for bookkeeping |
-| `SessionID` | `FGuid` | Used to build the save slot name: `"Session_{SessionID}"` |
-| `PlayerID` | `FGuid` | Persistent player identity loaded from `UPlayerSave` on startup. Appended to travel URL as `?PlayerID=<guid>`. |
+| Field        | Type    | Notes                                                                                                          |
+|--------------|---------|----------------------------------------------------------------------------------------------------------------|
+| `CampaignID` | `FGuid` | Campaign context — not used to locate the save file, but carried for bookkeeping                               |
+| `SessionID`  | `FGuid` | Used to build the save slot name: `"Session_{SessionID}"`                                                      |
+| `PlayerID`   | `FGuid` | Persistent player identity loaded from `UPlayerSave` on startup. Appended to travel URL as `?PlayerID=<guid>`. |
 
 **Public API:** `GetCampaignID`, `SetCampaignID`, `GetSessionID`, `SetSessionID`, `GetPlayerID`, `SetPlayerID`
 
@@ -450,15 +450,15 @@ Persistent game instance that survives level transitions. Carries session contex
 Runtime session state replicated to all clients. Mirrors `USessionSave` at runtime — loaded from disk on session start by `ASessionGameMode::InitGame`, written back on save. Server is authoritative; all fields have public getters and setters.
 
 **Fields:**
-| Field | Type | Replicated | Notes |
-|---|---|---|---|
-| `GameTypeID` | `FString` | Yes | Game system identifier |
-| `CampaignID` | `FGuid` | No | Server bookkeeping only |
-| `SessionID` | `FGuid` | No | Server bookkeeping only |
-| `HostPlayerID` | `FGuid` | Yes | Server Owner identity |
-| `GMPlayerIDs` | `TArray<FGuid>` | Yes | All active GMs |
-| `PlayerIDs` | `TArray<FGuid>` | Yes | All non-GM players |
-| `LastSaved` | `FDateTime` | No | Save logic only |
+| Field          | Type            | Replicated | Notes                   |
+|----------------|-----------------|------------|-------------------------|
+| `GameTypeID`   | `FString`       | Yes        | Game system identifier  |
+| `CampaignID`   | `FGuid`         | No         | Server bookkeeping only |
+| `SessionID`    | `FGuid`         | No         | Server bookkeeping only |
+| `HostPlayerID` | `FGuid`         | Yes        | Server Owner identity   |
+| `GMPlayerIDs`  | `TArray<FGuid>` | Yes        | All active GMs          |
+| `PlayerIDs`    | `TArray<FGuid>` | Yes        | All non-GM players      |
+| `LastSaved`    | `FDateTime`     | No         | Save logic only         |
 
 > Uses `AGameStateBase`, not `AGameState` — avoids match state logic and built-in `PlayerArray` that are designed for arena/shooter games.
 
@@ -472,11 +472,11 @@ Runtime session state replicated to all clients. Mirrors `USessionSave` at runti
 Per-player runtime state replicated to all clients. Holds role flags derived from `ASessionGameState` — set by the server in `PostLogin`. Not persisted to disk; repopulated each session from `USessionSave`.
 
 **Fields:**
-| Field | Type | Replicated | Notes |
-|---|---|---|---|
-| `SessionPlayerID` | `FGuid` | Yes | Persistent player identity GUID — distinct from engine's built-in `int32 PlayerID` |
-| `bIsGM` | `bool` | Yes | Derived from `ASessionGameState::GMPlayerIDs` |
-| `bIsHost` | `bool` | Yes | Derived from `ASessionGameState::HostPlayerID` |
+| Field             | Type    | Replicated | Notes                                                                              |
+|-------------------|---------|------------|------------------------------------------------------------------------------------|
+| `SessionPlayerID` | `FGuid` | Yes        | Persistent player identity GUID — distinct from engine's built-in `int32 PlayerID` |
+| `bIsGM`           | `bool`  | Yes        | Derived from `ASessionGameState::GMPlayerIDs`                                      |
+| `bIsHost`         | `bool`  | Yes        | Derived from `ASessionGameState::HostPlayerID`                                     |
 
 **Public API:** `GetSessionPlayerID`, `SetSessionPlayerID`, `GetIsGM`, `SetIsGM`, `GetIsHost`, `SetIsHost`
 
@@ -710,14 +710,14 @@ Labeled slider paired with an editable text field. Supports optional pairing wit
 **Bound Widgets:** `TitleText` (`UTextBlock`), `ValueSlider` (`USlider`), `ValueText` (`UEditableText`)
 
 **Config (EditAnywhere):**
-| Property | Type | Default | Description |
-|---|---|---|---|
-| `Title` | FText | — | Label text |
-| `SliderMin` / `SliderMax` | float | 0 / 1 | Slider range |
-| `DefaultValue` | float | 0 | Value on reset |
-| `PairedSlider` | USettingsSlider* | null | Other slider in a min/max pair |
-| `PairGap` | float | 0.1 | Minimum gap between paired values |
-| `bIsMin` | bool | false | If true, this slider is capped below the paired slider |
+| Property                  | Type             | Default | Description                                            |
+|---------------------------|------------------|---------|--------------------------------------------------------|
+| `Title`                   | FText            | —       | Label text                                             |
+| `SliderMin` / `SliderMax` | float            | 0 / 1   | Slider range                                           |
+| `DefaultValue`            | float            | 0       | Value on reset                                         |
+| `PairedSlider`            | USettingsSlider* | null    | Other slider in a min/max pair                         |
+| `PairGap`                 | float            | 0.1     | Minimum gap between paired values                      |
+| `bIsMin`                  | bool             | false   | If true, this slider is capped below the paired slider |
 
 **Key Methods:**
 - `GetValue()` — returns current slider value
@@ -769,30 +769,30 @@ ChatComponent = CreateDefaultSubobject<USessionChatComponent>(TEXT("ChatComponen
 
 **Input (bound in `OnPossess`):**
 
-| Action | Type | Behavior |
-|---|---|---|
-| `IA_CameraMove` | Vector2D | Move along pawn forward/right; `Delta.Z` zeroed for flat movement |
-| `IA_CameraPan` | bool | Hold to rotate pawn: mouse X → Yaw, mouse Y → Pitch (clamped) |
-| `IA_CameraPanReset` | — | Reset pitch to -15, preserve yaw |
-| `IA_CameraSprint` | bool | Hold: apply `CameraSpeedMultiplier`; release: restore 1x |
-| `IA_CameraZoom` | float | Adjust `SpringArm->TargetArmLength` by `Sign * ZoomSpeed` (clamped) |
-| `IA_FocusChat` | — | Swap in `IMC_Chat` (priority 1), delegate to `ChatComponent` |
-| `IA_ExitChat` | — | Swap out `IMC_Chat`, delegate to `ChatComponent` |
-| `IA_ScrollChat` | float | Delegate sign to `ChatComponent->ScrollChat()` |
+| Action              | Type     | Behavior                                                            |
+|---------------------|----------|---------------------------------------------------------------------|
+| `IA_CameraMove`     | Vector2D | Move along pawn forward/right; `Delta.Z` zeroed for flat movement   |
+| `IA_CameraPan`      | bool     | Hold to rotate pawn: mouse X → Yaw, mouse Y → Pitch (clamped)       |
+| `IA_CameraPanReset` | —        | Reset pitch to -15, preserve yaw                                    |
+| `IA_CameraSprint`   | bool     | Hold: apply `CameraSpeedMultiplier`; release: restore 1x            |
+| `IA_CameraZoom`     | float    | Adjust `SpringArm->TargetArmLength` by `Sign * ZoomSpeed` (clamped) |
+| `IA_FocusChat`      | —        | Swap in `IMC_Chat` (priority 1), delegate to `ChatComponent`        |
+| `IA_ExitChat`       | —        | Swap out `IMC_Chat`, delegate to `ChatComponent`                    |
+| `IA_ScrollChat`     | float    | Delegate sign to `ChatComponent->ScrollChat()`                      |
 
 **Camera Properties (defaults):**
 
-| Property | Default |
-|---|---|
-| `MinCameraMovementSpeed` | 5 |
-| `MaxCameraMovementSpeed` | 20 |
-| `CameraSpeedMultiplier` | 2 |
-| `MinCameraPitch` | -15 |
-| `MaxCameraPitch` | 45 |
-| `CameraPanSpeedMultiplier` | 5 |
-| `MinZoomLength` | 100 |
-| `MaxZoomLength` | 2500 |
-| `ZoomSpeed` | 50 |
+| Property                   | Default |
+|----------------------------|---------|
+| `MinCameraMovementSpeed`   | 5       |
+| `MaxCameraMovementSpeed`   | 20      |
+| `CameraSpeedMultiplier`    | 2       |
+| `MinCameraPitch`           | -15     |
+| `MaxCameraPitch`           | 45      |
+| `CameraPanSpeedMultiplier` | 5       |
+| `MinZoomLength`            | 100     |
+| `MaxZoomLength`            | 2500    |
+| `ZoomSpeed`                | 50      |
 
 **Settings Methods:**
 - `ValidateCameraSettings()` — clamps all 9 properties to valid ranges; called by `PostEditChangeProperty` and `ApplyCameraSettings`
@@ -1060,10 +1060,10 @@ Notes support rich-text formatting (bold, italic, underline, strikethrough, head
 
 **Class structure:**
 
-| Class | Type | Role |
-|---|---|---|
-| `SRichTextEditor` | `SCompoundWidget` (Slate) | Full editor logic: document model, cursor, selection, formatting runs, keyboard input. Toolbar is inline (not a separate class). |
-| `UEditableRichText` | `UWidget` (UMG wrapper) | Thin UMG wrapper. Creates `SRichTextEditor` via `RebuildWidget()`. Exposes `GetDocument()` / `SetDocument()` and format toggles to C++. |
+| Class               | Type                      | Role                                                                                                                                    |
+|---------------------|---------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
+| `SRichTextEditor`   | `SCompoundWidget` (Slate) | Full editor logic: document model, cursor, selection, formatting runs, keyboard input. Toolbar is inline (not a separate class).        |
+| `UEditableRichText` | `UWidget` (UMG wrapper)   | Thin UMG wrapper. Creates `SRichTextEditor` via `RebuildWidget()`. Exposes `GetDocument()` / `SetDocument()` and format toggles to C++. |
 
 **Document model:** Text is stored as a list of `FRichTextRun` structs — each run is a contiguous range of characters sharing the same formatting flags (bold, italic, underline, strikethrough) and block type (paragraph, H1, H2, H3, bullet, numbered). This is the standard "run-length" model used by all major rich text editors.
 
@@ -1118,9 +1118,11 @@ Leaf widget responsible for rendering document text and the cursor. Owned by `SR
 
 **SLATE_ARGUMENTs:** `Document (const FRichTextDocument*)`, `CursorPosition (const int32*)`.
 
-**OnPaint:** Splits `Runs[0].Text` on `\n` via `ParseIntoArray` (bCullEmpty=false). Draws each line segment via `FSlateDrawElement::MakeText` at an incrementing Y offset (`GetMaxCharacterHeight` × line index). Then calls `GetCursorPosition` and draws a 1px vertical cursor line via `FSlateDrawElement::MakeLines` from `(CursorX, CursorY)` to `(CursorX, CursorY + LineHeight)`.
+**OnPaint:** Splits `Runs[0].Text` on `\n`. For each line, splits on `\t` into segments; draws each segment via `DrawTextSegment` at an accumulating `XOffset`, advancing by `MeasureText(segment) + TabSpace` after each. Tab stop width = `MeasureText(TEXT("    "), ...)` (4 spaces). Cursor drawn via `FSlateDrawElement::MakeLines`.
 
-**Static helper — `GetCursorPosition(const FRichTextDocument&, int32 InCursorPosition, float InScale) → FVector2f`:** Splits text on `\n`, walks lines accumulating `CharCount` and `CursorY` (by `LineHeight`). When `CharCount + Line.Len() >= InCursorPosition`, measures `Line.Left(InCursorPosition - CharCount)` via `FSlateFontMeasure`, divides by scale to get unscaled X. Returns `FVector2f(CursorX, CursorY)`. Called by `SRichTextEditor::OnUpOrDownPressed` for Up/Down navigation.
+**Private helpers:** `DrawTextSegment(OutElements, LayerId, Geometry, Text, FontInfo, XOffset, YOffset, Color) const` — wraps a single `FSlateDrawElement::MakeText` call at the given X/Y offset. `MeasureText(Text, FontInfo, Scale) → float` (static) — returns layout-space width (DPI scale already divided out).
+
+**Static helper — `GetCursorPosition(const FRichTextDocument&, int32 InCursorPosition, float TabSpace, float InScale) → FVector2f`:** Splits text on `\n`, walks lines. When cursor line found, splits line on `\t` into segments, walks segments accumulating `SegmentOffset` and `SegCharCount`. When cursor falls within a segment, returns `SegmentOffset + MeasureText(prefix) + 1`. Called by `SRichTextEditor::OnKeyDown` and `OnUpOrDownPressed`.
 
 > **Gotcha:** `FSlateFontMeasure::Measure` returns pixel values scaled by the geometry scale. Divide by `InScale` before using as a layout coordinate — otherwise cursor drifts right as more text is typed. Include `"Fonts/FontMeasure.h"` (not `"Framework/Text/SlateFontMeasure.h"`).
 
@@ -1133,11 +1135,13 @@ Custom Slate rich-text editor widget. Owns the document model, cursor, selection
 
 **Private state:** `Document (FRichTextDocument)`, `CursorPosition (int32, default 0)`, `SelectionStart / SelectionEnd (int32, default -1 = no selection)`, `ActiveFormat (FRichTextRun)` — format carrier for newly typed text; `Text` field unused. Four `TSharedPtr<SCheckBox>` toolbar refs: `BoldCheckbox`, `ItalicCheckbox`, `UnderlineCheckbox`, `StrikethroughCheckbox`.
 
-**Private helpers:** `MakeFormatCheckbox(TSharedPtr<SCheckBox>& OutRef, TFunction<void(bool)> Callback, const TCHAR* Label)` — builds one toolbar checkbox, assigns the shared pointer, wires `OnCheckStateChanged` via `FOnCheckStateChanged::CreateLambda`. `FormatsMatch(const FRichTextRun& A, const FRichTextRun& B) const` — returns true if both runs share the same bold, italic, underline, strikethrough flags and `FontInfo`. `OnUpOrDownPressed(const TArray<FString>& Lines, FVector2f CursorPos, float Scale, bool bUp)` — computes `TargetLine` via `GetMaxCharacterHeight`, bounds-checks, walks `Lines[TargetLine]` character-by-character measuring cumulative width until it exceeds `CursorPos.X`, converts character-within-line back to document index, sets `CursorPosition`.
+**Private helpers:** `MakeFormatCheckbox` — builds toolbar checkbox. `FormatsMatch` — compares run format flags. `DrawSpecialCharacter(TCHAR) → FReply` — inserts a non-printable character (`\n` or `\t`) at `CursorPosition` via run-walk, advances cursor. `OnUpOrDownPressed(Lines, CursorPos, TabSpace, Scale, bUp)` — bounds-checks target line, walks characters measuring cumulative width until it exceeds `CursorPos.X`, converts to document index.
 
 **Public API:** `Construct(FArguments)`, `ToggleBold/Italic/Underline/Strikethrough(bool)`, `GetDocument() const`, `SetDocument(const FRichTextDocument&)`.
 
-**Protected overrides:** `OnKeyChar` — walks `Document.Runs` by accumulated character offset, inserts typed character (guards `< 32`). `OnKeyDown` — pre-computes `Lines` and `CursorPos` at top; handles: Backspace, Delete, Left, Right, Home, End (all working); Enter (inserts `\n` via run-walk, same as `OnKeyChar`); Up/Down (delegates to `OnUpOrDownPressed`); Ctrl+A/Z/Y/B/I/U (stubbed `Unhandled`). `OnMouseButtonDown` — calls `FSlateApplication::Get().SetKeyboardFocus(SharedThis(this))`.
+**Protected overrides:** `OnKeyChar` — run-walk insert (guards `< 32`). `OnKeyDown` — pre-computes `Lines`, `CursorPos`, `TabSpace`; handles Backspace, Delete, Left, Right, Home, End, Enter (`→DrawSpecialCharacter('\n')`), Tab (`→DrawSpecialCharacter('\t')`), Up/Down (`→OnUpOrDownPressed`); Ctrl stubs. `OnMouseButtonDown` — `SetKeyboardFocus`.
+
+> **Known bug:** Up/Down navigation into a line containing two consecutive tabs snaps the cursor to the nearest visible character rather than accounting for the tab gap. `OnUpOrDownPressed` walks the target line without tab-stop awareness. Low priority edge case.
 
 **Layout:** `Construct` builds a `SVerticalBox` — `AutoHeight` slot holds a `SHorizontalBox` toolbar (four `SCheckBox` buttons: B, I, U, S); `FillHeight(1.0f)` slot holds `SNew(SRichTextArea).Document(&Document).CursorPosition(&CursorPosition)`. No scroll box — scrolling is owned by the parent panel.
 
@@ -1287,6 +1291,22 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 
 ---
 
+## Bug Log
+
+Bug codes: `Phase.Sequence` — phase is the feature area the bug lives in, sequence is the order it was found within that phase. States: **Known** (open), **In Progress**, **Fixed**.
+
+| Bug # | Description                                                                                                                                                                                        | Scripts                | State |
+|-------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------|-------|
+| 1.1   | `bRollInProgress` was set after the spawn loop, allowing `ResetCount` to reset `RollMode` mid-roll before any dice were spawned                                                                    | `DiceTray.cpp`         | Fixed |
+| 2.1   | `PlayerID` field name shadowed `APlayerState::PlayerID (int32)`, causing a compiler error                                                                                                          | `SessionPlayerState.h` | Fixed |
+| 2.2   | Slate fires a spurious `OnUserMovedFocus` immediately after Enter, which called `ExitChat` right after `FocusChat` — resolved with `bPendingRefocus` flag                                          | `ChatBox.cpp`          | Fixed |
+| 2.3   | `FSlateFontMeasure::Measure` returns DPI-scaled pixel values; using the result without dividing by geometry scale caused the cursor to drift right as text was typed                               | `RichTextArea.cpp`     | Fixed |
+| 2.4   | `SMultiLineEditableText` placed inside `SCompoundWidget` intercepts all keyboard input — `OnKeyChar` and `OnKeyDown` on the parent never fired                                                     | `RichTextEditor.cpp`   | Fixed |
+| 2.5   | `for (auto Run : Document.Runs)` iterates by value — character insertions into `Run.Text` were silently discarded                                                                                  | `RichTextEditor.cpp`   | Fixed |
+| 2.6   | Up/Down navigation into a line containing two consecutive tabs snaps the cursor to the nearest visible character — `OnUpOrDownPressed` does not account for tab stops when walking the target line | `RichTextEditor.cpp`   | Known |
+
+---
+
 ## Roadmap
 
 > Phases are not strictly time-boxed — each phase should be stable and functional before moving to the next.
@@ -1342,7 +1362,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - [ ] Session player cap (default 8, removable)
 - [x] Tab renaming (client-local) — right-click opens `UContextMenu` with Rename and Close options; rename persisted to `USessionSave::ChatTabNames`; close button removed from tab in favour of context menu
 - [x] Chat log persistence
-- [~] Shared notes — `SRichTextEditor` + `SRichTextArea` functional: multi-line text entry and rendering working; cursor visible and tracks correctly; Up/Down/Enter/Left/Right/Home/End/Backspace/Delete all implemented. Pending: format-aware insertion (run splitting), Ctrl+B/I/U shortcuts, cursor-driven `ActiveFormat` sync, selection, `USessionNotesPanel` override bodies, save/load (content map pending), input context (`IMC_Notes`)
+- [~] Shared notes — `SRichTextEditor` + `SRichTextArea` functional: multi-line text entry and rendering working; cursor tracks correctly including tab stops; Enter and Tab implemented via `DrawSpecialCharacter`; Up/Down/Left/Right/Home/End/Backspace/Delete all working. Known bug: Up/Down into a line with two consecutive tabs snaps to nearest visible character (low priority). Pending: format-aware insertion (run splitting), Ctrl+B/I/U shortcuts, cursor-driven `ActiveFormat` sync, selection, `USessionNotesPanel` override bodies, save/load, input context (`IMC_Notes`)
 - [ ] Pre-session lobby (waiting room; pre-game chat; character sheet accessible while waiting; Host sees connection status and launches when ready)
 - [ ] Session discovery and join flow
   - [ ] Invite code — immediate join, no approval
@@ -1509,15 +1529,15 @@ The Campaign Manager is the primary hub between the home screen and an active se
 
 **Session data ownership model:**
 
-| Data | Owner | Storage | Notes |
-|---|---|---|---|
-| Session ID, display name, player cap, game type | Server (Host machine) | `USaveGame` on Host machine + `GameState` at runtime | Save is source of truth; `GameState` is runtime copy |
-| Approved player list | Server (Host machine) | `USaveGame` on Host machine + `GameState` at runtime | Editable in and out of session; in-session changes write back to save |
-| Map state | Server (Host machine) | `USaveGame` on Host machine + `GameState` at runtime | Grows as map builder is built |
-| Combat / initiative state | Server (Host machine) | `USaveGame` on Host machine + `GameState` at runtime | Restored on reload if session closed mid-combat |
-| Chat log | Server (Host machine) | `USaveGame` on Host machine | Persists across sessions |
-| Volatile copies of player data (character sheets, etc.) | Server (runtime only) | `PlayerState` | Populated on join, discarded on disconnect/session end. Never written to disk by the server. |
-| Character sheets, private notes | Player | `USaveGame` on player's machine | Server requests a copy on join; player machine is always the source of truth |
+| Data                                                    | Owner                 | Storage                                              | Notes                                                                                        |
+|---------------------------------------------------------|-----------------------|------------------------------------------------------|----------------------------------------------------------------------------------------------|
+| Session ID, display name, player cap, game type         | Server (Host machine) | `USaveGame` on Host machine + `GameState` at runtime | Save is source of truth; `GameState` is runtime copy                                         |
+| Approved player list                                    | Server (Host machine) | `USaveGame` on Host machine + `GameState` at runtime | Editable in and out of session; in-session changes write back to save                        |
+| Map state                                               | Server (Host machine) | `USaveGame` on Host machine + `GameState` at runtime | Grows as map builder is built                                                                |
+| Combat / initiative state                               | Server (Host machine) | `USaveGame` on Host machine + `GameState` at runtime | Restored on reload if session closed mid-combat                                              |
+| Chat log                                                | Server (Host machine) | `USaveGame` on Host machine                          | Persists across sessions                                                                     |
+| Volatile copies of player data (character sheets, etc.) | Server (runtime only) | `PlayerState`                                        | Populated on join, discarded on disconnect/session end. Never written to disk by the server. |
+| Character sheets, private notes                         | Player                | `USaveGame` on player's machine                      | Server requests a copy on join; player machine is always the source of truth                 |
 
 **Session lifecycle:**
 
