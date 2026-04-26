@@ -1107,6 +1107,8 @@ Full content of a single notes channel — a flat ordered list of `FRichTextRun`
 
 **Fields:** `Runs (TArray<FRichTextRun>)` — default empty.
 
+**Inline method:** `GetFullText() const → FString` — concatenates `Run.Text` from every run in order. Used everywhere line-parsing or length bounds are needed on the full document; replaces the old `Runs[0].Text` pattern that only covered the first run.
+
 ---
 
 #### SRichTextArea
@@ -1118,7 +1120,7 @@ Leaf widget responsible for rendering document text and the cursor. Owned by `SR
 
 **SLATE_ARGUMENTs:** `Document (const FRichTextDocument*)`, `CursorPosition (const int32*)`.
 
-**OnPaint:** Splits `Runs[0].Text` on `\n`. For each line, splits on `\t` into segments; draws each segment via `DrawTextSegment` at an accumulating `XOffset`, advancing by `MeasureText(segment) + TabSpace` after each. Tab stop width = `MeasureText(TEXT("    "), ...)` (4 spaces). Cursor drawn via `FSlateDrawElement::MakeLines`.
+**OnPaint:** Splits `Document->GetFullText()` on `\n`. For each line, splits on `\t` into segments; draws each segment via `DrawTextSegment` at an accumulating `XOffset`, advancing by `MeasureText(segment) + TabSpace` after each. Tab stop width = `MeasureText(TEXT("    "), ...)` (4 spaces). Cursor drawn via `FSlateDrawElement::MakeLines`. Rendering uses `Runs[0].FontInfo` for all segments (visual per-run formatting pending).
 
 **Private helpers:** `DrawTextSegment(OutElements, LayerId, Geometry, Text, FontInfo, XOffset, YOffset, Color) const` — wraps a single `FSlateDrawElement::MakeText` call at the given X/Y offset. `MeasureText(Text, FontInfo, Scale) → float` (static) — returns layout-space width (DPI scale already divided out).
 
@@ -1135,19 +1137,28 @@ Custom Slate rich-text editor widget. Owns the document model, cursor, selection
 
 **Private state:** `Document (FRichTextDocument)`, `CursorPosition (int32, default 0)`, `SelectionStart / SelectionEnd (int32, default -1 = no selection)`, `ActiveFormat (FRichTextRun)` — format carrier for newly typed text; `Text` field unused. Four `TSharedPtr<SCheckBox>` toolbar refs: `BoldCheckbox`, `ItalicCheckbox`, `UnderlineCheckbox`, `StrikethroughCheckbox`.
 
-**Private helpers:** `MakeFormatCheckbox` — builds toolbar checkbox. `FormatsMatch` — compares run format flags. `DrawSpecialCharacter(TCHAR) → FReply` — inserts a non-printable character (`\n` or `\t`) at `CursorPosition` via run-walk, advances cursor. `OnUpOrDownPressed(Lines, CursorPos, TabSpace, Scale, bUp)` — bounds-checks target line, walks characters measuring cumulative width until it exceeds `CursorPos.X`, converts to document index.
+**Private helpers:**
+- `MakeFormatCheckbox` — builds toolbar checkbox.
+- `FormatsMatch(A, B) → bool` — compares bold/italic/underline/strikethrough/FontInfo on two runs.
+- `FindRunAtIndex(CharIndex, OutRunStart&) → int32` — walks `Document.Runs` accumulating offsets; uses `<=` condition (boundary belongs to the earlier run, matching insertion semantics); falls back to last run if out of bounds. Sets `OutRunStart` to where the found run begins. Used by all edit operations in place of manual run-walk loops.
+- `DrawSpecialCharacter(TCHAR) → FReply` — inserts a non-printable character (`\n` or `\t`) at `CursorPosition` via `FindRunAtIndex`, advances cursor, calls `SyncActiveFormat`.
+- `OnBackspaceOrDeletePressed(int32 CursorPos)` — calls `FindRunAtIndex`; if `LocalOffset >= Run.Text.Len()`, redirects to next run with `LocalOffset = 0` (boundary redirect for deletion); calls `RemoveAt(LocalOffset)`; if the run is now empty and `Runs.Num() > 1`, removes the run.
+- `SyncActiveFormat()` — calls `FindRunAtIndex(CursorPosition)`, copies the found run's format flags and `FontInfo` into `ActiveFormat`, then calls `SetIsChecked` on all four toolbar checkboxes. Called after every cursor-moving operation. `SetIsChecked` does **not** trigger `OnCheckStateChanged` — no feedback loop.
+- `OnUpOrDownPressed(Lines, CursorPos, Scale, bUp)` — bounds-checks target line, walks characters measuring cumulative width until it exceeds `CursorPos.X`, converts to document index, calls `SyncActiveFormat`.
 
 **Public API:** `Construct(FArguments)`, `ToggleBold/Italic/Underline/Strikethrough(bool)`, `GetDocument() const`, `SetDocument(const FRichTextDocument&)`.
 
-**Protected overrides:** `OnKeyChar` — run-walk insert (guards `< 32`). `OnKeyDown` — pre-computes `Lines`, `CursorPos`, `TabSpace`; handles Backspace, Delete, Left, Right, Home, End, Enter (`→DrawSpecialCharacter('\n')`), Tab (`→DrawSpecialCharacter('\t')`), Up/Down (`→OnUpOrDownPressed`); Ctrl stubs. `OnMouseButtonDown` — `SetKeyboardFocus`.
+**Protected overrides:** `OnKeyChar` — calls `FindRunAtIndex`; if `FormatsMatch`, inserts directly into the found run; otherwise splits the run into Left/Middle/Right (Middle copies `ActiveFormat`, sets `.Text = FString(1, &Character)`), removes original, inserts three replacements; advances cursor; calls `SyncActiveFormat`. Guards `Character < 32`. `OnKeyDown` — pre-computes `Lines` (from `GetFullText()`), `CursorPos`, `TabSpace`; handles Backspace/Delete via `OnBackspaceOrDeletePressed`; Left/Right/Home/End update `CursorPosition` then call `SyncActiveFormat`; Enter/Tab → `DrawSpecialCharacter`; Up/Down → `OnUpOrDownPressed`; Ctrl+B/I/U toggle `ActiveFormat` flags and call `SetIsChecked`. `OnMouseButtonDown` — `SetKeyboardFocus`.
 
 > **Known bug:** Up/Down navigation into a line containing two consecutive tabs snaps the cursor to the nearest visible character rather than accounting for the tab gap. `OnUpOrDownPressed` walks the target line without tab-stop awareness. Low priority edge case.
 
-**Layout:** `Construct` builds a `SVerticalBox` — `AutoHeight` slot holds a `SHorizontalBox` toolbar (four `SCheckBox` buttons: B, I, U, S); `FillHeight(1.0f)` slot holds `SNew(SRichTextArea).Document(&Document).CursorPosition(&CursorPosition)`. No scroll box — scrolling is owned by the parent panel.
+**Layout:** `Construct` builds a `SVerticalBox` — `AutoHeight` slot holds a `SHorizontalBox` toolbar (four `SCheckBox` buttons: B, I, U, S); `FillHeight(1.0f)` slot holds `SNew(SRichTextArea).Document(&Document).CursorPosition(&CursorPosition)`. No scroll box — scrolling is owned by the parent panel. `Construct` also initializes `ActiveFormat.FontInfo = FCoreStyle::GetDefaultFontStyle("Regular", 12)` — required so `FormatsMatch` correctly matches the initial run's font.
 
 **Document sync:** `GetDocument` returns `Document` directly. `SetDocument` assigns `Document = InDocument` and resets `CursorPosition` to 0.
 
-> **Note:** `OnKeyChar` currently inserts without format awareness (no run splitting). Cursor-driven `ActiveFormat` sync, selection-based formatting, and multi-run rendering are pending.
+> **Gotcha:** `ActiveFormat.FontInfo` must be initialized in `Construct` to match the initial run's font. If left default-constructed (empty), `FormatsMatch` always returns false — every keystroke triggers a run split instead of a direct insert. The key line is `ActiveFormat.FontInfo = FCoreStyle::GetDefaultFontStyle("Regular", 12)`.
+
+> **Gotcha:** `FindRunAtIndex` uses `<=` (cursor at exactly `RunEnd` maps to that run, not the next). This is correct for insertion. For deletion, `LocalOffset >= Run.Text.Len()` means the character is at the start of the next run — redirect to `Index + 1` with `LocalOffset = 0` before calling `RemoveAt`.
 
 ---
 
@@ -1362,7 +1373,7 @@ Bug codes: `Phase.Sequence` — phase is the feature area the bug lives in, sequ
 - [ ] Session player cap (default 8, removable)
 - [x] Tab renaming (client-local) — right-click opens `UContextMenu` with Rename and Close options; rename persisted to `USessionSave::ChatTabNames`; close button removed from tab in favour of context menu
 - [x] Chat log persistence
-- [~] Shared notes — `SRichTextEditor` + `SRichTextArea` functional: multi-line text entry and rendering working; cursor tracks correctly including tab stops; Enter and Tab implemented via `DrawSpecialCharacter`; Up/Down/Left/Right/Home/End/Backspace/Delete all working. Known bug: Up/Down into a line with two consecutive tabs snaps to nearest visible character (low priority). Pending: format-aware insertion (run splitting), Ctrl+B/I/U shortcuts, cursor-driven `ActiveFormat` sync, selection, `USessionNotesPanel` override bodies, save/load, input context (`IMC_Notes`)
+- [~] Shared notes — `SRichTextEditor` + `SRichTextArea` functional: multi-run document model, format-aware insertion (run splitting on `ActiveFormat` mismatch), cursor-driven `ActiveFormat` sync (`SyncActiveFormat`), Ctrl+B/I/U shortcuts, multi-run backspace/delete with boundary redirect, and empty run cleanup after deletion all working. Known bug 2.6: Up/Down into a line with two consecutive tabs snaps to nearest visible character (low priority). Pending: `PruneRuns()` helper (empty runs from splits persist), visual per-run rendering (bold/italic/underline/strikethrough), selection, `USessionNotesPanel` override bodies, save/load, input context (`IMC_Notes`)
 - [ ] Pre-session lobby (waiting room; pre-game chat; character sheet accessible while waiting; Host sees connection status and launches when ready)
 - [ ] Session discovery and join flow
   - [ ] Invite code — immediate join, no approval
@@ -1588,6 +1599,8 @@ Sessions are stored using Unreal's built-in save slot system — no custom file 
 This approach keeps all save I/O within UE's native save game system and makes a future dedicated-server migration straightforward — the index and session slots move to wherever the server runs, no path logic to change.
 
 ---
+
+*Last updated: 2026-04-26* — Multi-run rich text editing complete: `FRichTextDocument::GetFullText()` added (concatenates all runs); `SRichTextEditor` gains `FindRunAtIndex`, `OnBackspaceOrDeletePressed`, and `SyncActiveFormat` private helpers; `OnKeyChar` is now format-aware (splits runs on `ActiveFormat` mismatch: Left/Middle/Right); Ctrl+B/I/U shortcuts wired; all cursor-moving operations call `SyncActiveFormat` to keep toolbar in sync; `OnPaint` and `GetCursorPosition` updated to use `GetFullText()` instead of `Runs[0].Text`. Two new gotchas: `ActiveFormat.FontInfo` must be initialized in `Construct`; `FindRunAtIndex` uses `<=` semantics (boundary redirect required in deletion path).
 
 *Last updated: 2026-04-25* — `SRichTextArea` added: leaf widget handles all text rendering (multi-line via `\n` split) and cursor drawing (`MakeLines`). `SRichTextEditor` now fully wired: Enter inserts `\n`; Up/Down implemented via `OnUpOrDownPressed` private helper (measures target line character by character to find closest X position). `GetCursorPosition` static helper on `SRichTextArea` shared with `SRichTextEditor` for Up/Down navigation. New gotcha: `FSlateFontMeasure::Measure` returns DPI-scaled values — divide by `InAllottedGeometry.Scale` to get layout-space coordinates. Include path: `"Fonts/FontMeasure.h"`.
 

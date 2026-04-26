@@ -30,6 +30,7 @@ void SRichTextEditor::Construct(const FArguments& InArgs)
 
 #if 1
 	Document.Runs.Add(FRichTextRun(TEXT(""), FCoreStyle::GetDefaultFontStyle("Regular", 12)));
+	ActiveFormat.FontInfo = FCoreStyle::GetDefaultFontStyle("Regular", 12);
 	//CursorPosition = Document.Runs[0].Text.Len();
 #endif // 1
 
@@ -82,25 +83,41 @@ bool SRichTextEditor::SupportsKeyboardFocus() const
 FReply SRichTextEditor::OnKeyChar(const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent)
 {
 	TCHAR Character = InCharacterEvent.GetCharacter();
-	int32 RunStart = 0;
 
 	if (Character < 32)
 	{
 		return FReply::Unhandled();
 	}
 
-	for (FRichTextRun& Run : Document.Runs)
+	int32 RunStart = 0;
+	int32 RunIndex = FindRunAtIndex(CursorPosition, RunStart);
+
+	if (FormatsMatch(Document.Runs[RunIndex], ActiveFormat))
 	{
-		int32 RunEnd = RunStart + Run.Text.Len();
-		if (CursorPosition >= RunStart && CursorPosition <= RunEnd)
-		{
-			Run.Text.InsertAt(CursorPosition - RunStart, Character);
-			CursorPosition++;
-			break;
-		}
-		RunStart = RunEnd;
+		Document.Runs[RunIndex].Text.InsertAt(CursorPosition - RunStart, Character);
+	}
+	else
+	{
+		FRichTextRun& FoundRun = Document.Runs[RunIndex];
+
+		FRichTextRun LeftRun = FoundRun;
+		LeftRun.Text = FoundRun.Text.Left(CursorPosition - RunStart);
+
+		FRichTextRun MiddleRun = ActiveFormat;
+		MiddleRun.Text = FString(1, &Character);
+
+		FRichTextRun RightRun = FoundRun;
+		RightRun.Text = FoundRun.Text.Mid(CursorPosition - RunStart);
+
+		Document.Runs.RemoveAt(RunIndex);
+
+		Document.Runs.Insert(LeftRun, RunIndex);
+		Document.Runs.Insert(MiddleRun, RunIndex + 1);
+		Document.Runs.Insert(RightRun, RunIndex + 2);
 	}
 
+	CursorPosition++;
+	SyncActiveFormat();
 	return FReply::Handled();
 }
 
@@ -111,35 +128,40 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 	bool bControlDown = InKeyEvent.IsControlDown();
 
 	TArray<FString> Lines;
-	Document.Runs[0].Text.ParseIntoArray(Lines, TEXT("\n"), false);
-	FVector2f CursorPos = SRichTextArea::GetCursorPosition(Document, CursorPosition, MyGeometry.Scale);
+	Document.GetFullText().ParseIntoArray(Lines, TEXT("\n"), false);
+	float TabSpace = SRichTextArea::MeasureText(TEXT("    "), Document.Runs[0].FontInfo, MyGeometry.Scale);
+	FVector2f CursorPos = SRichTextArea::GetCursorPosition(Document, CursorPosition, TabSpace, MyGeometry.Scale);
 
 	if (DownKey == EKeys::BackSpace)
 	{
 		if (CursorPosition != 0)
 		{
-			Document.Runs[0].Text.RemoveAt(CursorPosition - 1);
+			OnBackspaceOrDeletePressed(CursorPosition - 1);
 			CursorPosition = FMath::Max(0, CursorPosition - 1);
+			SyncActiveFormat();
 			return FReply::Handled();
 		}
 
 	}
 	else if (DownKey == EKeys::Delete)
 	{
-		if (CursorPosition != Document.Runs[0].Text.Len())
+		if (CursorPosition != Document.GetFullText().Len())
 		{
-			Document.Runs[0].Text.RemoveAt(CursorPosition);
+			OnBackspaceOrDeletePressed(CursorPosition);
+			SyncActiveFormat();
 			return FReply::Handled();
 		}
 	}
 	else if (DownKey == EKeys::Left)
 	{
 		CursorPosition = FMath::Max(0, CursorPosition - 1);
+		SyncActiveFormat();
 		return FReply::Handled();
 	}
 	else if (DownKey == EKeys::Right)
 	{
-		CursorPosition = FMath::Min(Document.Runs[0].Text.Len(), CursorPosition + 1);
+		CursorPosition = FMath::Min(Document.GetFullText().Len(), CursorPosition + 1);
+		SyncActiveFormat();
 		return FReply::Handled();
 	}
 	else if (DownKey == EKeys::Up)
@@ -153,29 +175,22 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 	else if (DownKey == EKeys::Home)
 	{
 		CursorPosition = 0;
+		SyncActiveFormat();
 		return FReply::Handled();
 	}
 	else if (DownKey == EKeys::End)
 	{
-		CursorPosition = Document.Runs[0].Text.Len();
+		CursorPosition = Document.GetFullText().Len();
+		SyncActiveFormat();
 		return FReply::Handled();
 	}
 	else if (DownKey == EKeys::Enter)
 	{
-		int32 RunStart = 0;
-		for (FRichTextRun& Run : Document.Runs)
-		{
-			int32 RunEnd = RunStart + Run.Text.Len();
-			if (CursorPosition >= RunStart && CursorPosition <= RunEnd)
-			{
-				Run.Text.InsertAt(CursorPosition - RunStart, '\n');
-				CursorPosition++;
-				break;
-			}
-			RunStart = RunEnd;
-		}
-
-		return FReply::Handled();
+		return DrawSpecialCharacter('\n');
+	}
+	else if (DownKey == EKeys::Tab)
+	{
+		return DrawSpecialCharacter('\t');
 	}
 	else if (bControlDown && DownKey == EKeys::A)
 	{
@@ -191,15 +206,21 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 	}
 	else if (bControlDown && DownKey == EKeys::B)
 	{
-		return FReply::Unhandled();
+		ActiveFormat.bIsBold = !ActiveFormat.bIsBold;
+		BoldCheckbox->SetIsChecked(ActiveFormat.bIsBold ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+		return FReply::Handled();
 	}
 	else if (bControlDown && DownKey == EKeys::I)
 	{
-		return FReply::Unhandled();
+		ActiveFormat.bIsItalic = !ActiveFormat.bIsItalic;
+		ItalicCheckbox->SetIsChecked(ActiveFormat.bIsItalic ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+		return FReply::Handled();
 	}
 	else if (bControlDown && DownKey == EKeys::U)
 	{
-		return FReply::Unhandled();
+		ActiveFormat.bIsUnderline = !ActiveFormat.bIsUnderline;
+		UnderlineCheckbox->SetIsChecked(ActiveFormat.bIsUnderline ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+		return FReply::Handled();
 	}
 
 	return FReply::Handled();
@@ -210,6 +231,26 @@ FReply SRichTextEditor::OnMouseButtonDown(const FGeometry& MyGeometry, const FPo
 {
 	FSlateApplication::Get().SetKeyboardFocus(SharedThis(this));
 	return FReply::Handled();
+}
+
+// Walks Document.Runs, accumulating character offsets, and returns the index of the run whose range spans CharIndex.
+int32 SRichTextEditor::FindRunAtIndex(int32 CharIndex, int32& OutRunStart) const
+{
+	int32 CurrentIndex = 0;
+	int32 RunIndex = 0;
+	for (const FRichTextRun& Run : Document.Runs)
+	{
+		if (CharIndex <= CurrentIndex + Run.Text.Len())
+		{
+			OutRunStart = CurrentIndex;
+			return RunIndex;
+		}
+		RunIndex++;
+		CurrentIndex += Run.Text.Len();
+	}
+
+	OutRunStart = CurrentIndex;
+	return Document.Runs.Num() - 1;
 }
 
 // Creates a checkbox wired to the given callback and labeled with the given string, assigning the shared pointer for later access.
@@ -254,6 +295,38 @@ bool SRichTextEditor::FormatsMatch(const FRichTextRun& A, const FRichTextRun& B)
 	return true;
 }
 
+// Inserts a non-printable character at CursorPosition via the same run-walk as OnKeyChar, then advances the cursor.
+FReply SRichTextEditor::DrawSpecialCharacter(TCHAR SpecialCharacter)
+{
+	int32 RunStart = 0;
+	int32 RunIndex = FindRunAtIndex(CursorPosition, RunStart);
+	Document.Runs[RunIndex].Text.InsertAt(CursorPosition - RunStart, SpecialCharacter);
+	CursorPosition++;
+
+	SyncActiveFormat();
+	return FReply::Handled();
+}
+
+// Finds the run at CursorPos, redirects to the next run if CursorPos is on a boundary, then removes the character at the resolved local offset.
+void SRichTextEditor::OnBackspaceOrDeletePressed(int32 CursorPos)
+{
+	int32 RunStart = 0;
+	int32 Index = FindRunAtIndex(CursorPos, RunStart);
+	int32 LocalOffset = CursorPos - RunStart;
+	if (LocalOffset >= Document.Runs[Index].Text.Len())
+	{
+		RunStart += Document.Runs[Index].Text.Len();
+		Index++;
+		LocalOffset = 0;
+	}
+	Document.Runs[Index].Text.RemoveAt(LocalOffset);
+
+	if (Document.Runs[Index].Text.IsEmpty() && Document.Runs.Num() > 1)
+	{
+		Document.Runs.RemoveAt(Index);
+	}
+}
+
 // Moves the cursor up or down one line, finding the character on the target line closest to the cursor's X pixel position.
 FReply SRichTextEditor::OnUpOrDownPressed(const TArray<FString>& Lines, FVector2f CursorPos, float Scale, bool bUp)
 {
@@ -272,7 +345,7 @@ FReply SRichTextEditor::OnUpOrDownPressed(const TArray<FString>& Lines, FVector2
 	for (int32 i = 0; i < Lines[TargetLine].Len(); i++)
 	{
 		float CharWidth = FSlateApplication::Get().GetRenderer()->GetFontMeasureService()
-											->Measure(Lines[TargetLine].Left(i + 1), Document.Runs[0].FontInfo, Scale).X / Scale;
+			->Measure(Lines[TargetLine].Left(i + 1), Document.Runs[0].FontInfo, Scale).X / Scale;
 		if (CharWidth > CursorPos.X)
 		{
 			break;
@@ -288,5 +361,20 @@ FReply SRichTextEditor::OnUpOrDownPressed(const TArray<FString>& Lines, FVector2
 	NewCursorPosition += CharInLine;
 	CursorPosition = NewCursorPosition;
 
+	SyncActiveFormat();
 	return FReply::Handled();
+}
+
+// Copies the format flags of the run under CursorPosition into ActiveFormat so newly typed text inherits the correct formatting.
+void SRichTextEditor::SyncActiveFormat()
+{
+	int32 RunStart = 0;
+	int32 RunIndex = FindRunAtIndex(CursorPosition, RunStart);
+	ActiveFormat = Document.Runs[RunIndex];
+
+
+	BoldCheckbox->SetIsChecked(ActiveFormat.bIsBold ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+	ItalicCheckbox->SetIsChecked(ActiveFormat.bIsItalic ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+	UnderlineCheckbox->SetIsChecked(ActiveFormat.bIsUnderline ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+	StrikethroughCheckbox->SetIsChecked(ActiveFormat.bIsStrikethrough ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
 }

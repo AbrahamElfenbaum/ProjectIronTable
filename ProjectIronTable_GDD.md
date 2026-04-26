@@ -609,6 +609,8 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 
 ---
 
+*Last updated: 2026-04-26* — No design decisions changed. Internal (session 1): Tab key support added; `DrawSpecialCharacter` helper consolidates Enter/Tab insertion; `SRichTextArea` rendering and cursor positioning are now tab-aware. Internal (session 2): Multi-run document model fully functional — format-aware insertion, cursor-driven `ActiveFormat` sync, Ctrl+B/I/U shortcuts, multi-run backspace/delete. Known bug 2.6: Up/Down into a line with two consecutive tabs snaps to nearest visible character (low priority). Pending: `PruneRuns()`, visual per-run rendering (bold/italic/underline/strikethrough), selection.
+
 *Last updated: 2026-04-25* — No design decisions changed. Internal: multi-line text entry, cursor rendering, and Up/Down/Enter navigation implemented in `SRichTextEditor` / `SRichTextArea`.
 
 *Last updated: 2026-04-23* — No design decisions changed. Internal: `OnKeyChar` implemented on `SRichTextEditor`; `URichTextEditorWidget` renamed to `UEditableRichText`. Coding standards layout rule updated (fields before functions, private→protected→public).

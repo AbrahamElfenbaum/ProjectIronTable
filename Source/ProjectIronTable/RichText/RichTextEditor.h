@@ -77,12 +77,24 @@ private:
 	/** Toolbar checkbox for toggling strikethrough formatting. */
 	TSharedPtr<SCheckBox> StrikethroughCheckbox;
 
+	/** Finds the run in Document.Runs that spans CharIndex and sets OutRunStart to the character index where that run begins. Returns the index of the run in Document.Runs. */
+	int32 FindRunAtIndex(int32 CharIndex, int32& OutRunStart) const;
+
 	/** Builds a single toolbar checkbox wired to the given format callback and labeled with the given string. */
 	TSharedRef<SWidget> MakeFormatCheckbox(TSharedPtr<SCheckBox>& Checkbox, TFunction<void(bool)> Callback, const TCHAR* Label);
 
 	/** Returns true if both runs share the same bold, italic, underline, strikethrough flags and font info. */
 	bool FormatsMatch(const FRichTextRun& A, const FRichTextRun& B) const;
 
+	/** Inserts a non-printable character (e.g. newline, tab) at CursorPosition using the same run-walk as OnKeyChar, then advances the cursor. */
+	FReply DrawSpecialCharacter(TCHAR SpecialCharacter);
+
+	/** Removes the character at the given document index, resolving the correct run using FindRunAtIndex and redirecting to the next run if the index falls on a run boundary. */
+	void OnBackspaceOrDeletePressed(int32 CursorPos);
+
 	/** Moves the cursor up or down one line, landing on the character closest to the current X pixel position. */
 	FReply OnUpOrDownPressed(const TArray<FString>& Lines, FVector2f CursorPos, float Scale, bool bUp);
+
+	/** Updates ActiveFormat to match the format flags of the run currently under the cursor. Called after any operation that moves CursorPosition. */
+	void SyncActiveFormat();
 };

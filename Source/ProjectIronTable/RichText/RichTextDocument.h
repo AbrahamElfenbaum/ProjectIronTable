@@ -13,4 +13,16 @@ struct PROJECTIRONTABLE_API FRichTextDocument
 	/** The ordered list of text runs that make up this document. */
 	UPROPERTY()
 	TArray<FRichTextRun> Runs;
+
+	FString GetFullText() const
+	{
+		FString FullText;
+
+		for (FRichTextRun Run : Runs)
+		{
+			FullText.Append(Run.Text);
+		}
+
+		return FullText;
+	}
 };

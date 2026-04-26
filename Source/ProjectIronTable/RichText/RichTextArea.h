@@ -32,7 +32,16 @@ public:
 	int32 OnPaint(const FPaintArgs& InArgs, const FGeometry& InAllottedGeometry, const FSlateRect& InMyCullingRect, FSlateWindowElementList& InOutDrawElements,
 		int32 InLayerId, const FWidgetStyle& InInWidgetStyle, bool InbParentEnabled) const override;
 
-	/** Returns the pixel X and Y position of the cursor within the document, based on font measurement and line splitting. Used by SRichTextEditor for Up/Down navigation. */
-	static FVector2f GetCursorPosition(const FRichTextDocument& InDocument, int32 InCursorPosition, float InScale);
+	/** Draws a single text string at the given X and Y offset within the geometry. Used by OnPaint to render each tab-split segment. */
+	void DrawTextSegment(FSlateWindowElementList& OutElements, int32 LayerId,
+		const FGeometry& Geometry, const FString& Text,
+		const FSlateFontInfo& FontInfo, float XOffset, float YOffset,
+		const FLinearColor& Color) const;
+
+	/** Returns the pixel X and Y position of the cursor within the document, accounting for tab stops and newlines. TabSpace is the pre-measured width of a single tab gap in layout coordinates. Used by SRichTextEditor for Up/Down navigation. */
+	static FVector2f GetCursorPosition(const FRichTextDocument& InDocument, int32 InCursorPosition, float TabSpace, float InScale);
+
+	/** Returns the layout-space pixel width of the given text string using the given font and scale. Scale division is applied internally — result is in unscaled layout coordinates. */
+	static float MeasureText(const FString& Text, const FSlateFontInfo& FontInfo, float InScale);
 };
 
