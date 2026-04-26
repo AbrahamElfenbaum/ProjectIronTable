@@ -69,7 +69,7 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - `PlayerStates/` — Player state classes (`ASessionPlayerState`)
 - `SaveLoad/` — Save game classes (`UPanelLayoutSave`, `UCameraSettingsSave`, `UCampaignManagerSave`, `USessionSave`, `UPlayerSave`)
 - `Screens/` — Generic screen widgets (`UBaseScreen`, `UHomeScreen`)
-- `RichText/` — Custom Slate rich-text editor (`FRichTextRun`, `FRichTextDocument`, `SRichTextEditor`, `URichTextEditorWidget`)
+- `RichText/` — Custom Slate rich-text editor (`FRichTextRun`, `FRichTextDocument`, `SRichTextEditor`, `UEditableRichText`)
 - `SessionNotes/` — Session notes panel and channel widgets (`USessionNotesPanel`, `USessionNotesChannel`, `USessionNotesTab`)
 - `Settings/` — Settings widget classes (`UCameraSettingsPanel`, `USettingsScreen`, `USettingsSlider`)
 - `UI/` — Reusable UI primitives (`UDraggablePanel`, `UDragHandle`, `UResizeHandle`, `UTaskbar`, `UTaskbarButton`, `UContextMenu`, `UContextMenuButton`)

@@ -159,7 +159,7 @@ private:
 
 #pragma region Runtime References
 	/** Cached reference to the possessed session pawn. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY()
 	TObjectPtr<ASessionPawn> SessionPawnRef;
 
 	/** Reference to the Enhanced Input subsystem for managing mapping contexts. */

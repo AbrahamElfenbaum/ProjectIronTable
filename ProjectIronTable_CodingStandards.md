@@ -54,28 +54,24 @@ class UTextBlock;
 
 ## 4. Class Layout and Access
 
-Within a UCLASS, members are grouped using `#pragma region` / `#pragma endregion` and ordered as follows:
+Within a UCLASS, members are grouped using `#pragma region` / `#pragma endregion`. Fields come before functions. Within each group, order is private → protected → public.
 
-1. **Config** — `EditAnywhere` UPROPERTYs set in Blueprint defaults
-2. **Components** — Subobject pointers created in the constructor
-3. **Widget References** — `BindWidget` UPROPERTYs
-4. **State** — Runtime state variables
-5. **Events** — Delegates (public, `BlueprintAssignable`)
-6. **Public Methods** — Setters, public API
-7. **Private Methods** — Internal helpers that don't fit other regions (private)
-8. **Runtime References** — Cached pointers set at runtime (private)
-9. **Event Handlers** — `UFUNCTION()` AddDynamic targets (private)
+**Fields:**
+1. **Widget References** — `BindWidget` UPROPERTYs (private)
+2. **State** — Runtime state variables (private)
+3. **Runtime References** — Cached pointers set at runtime (private)
+4. **Config** — `EditAnywhere` UPROPERTYs set in Blueprint defaults (public)
+5. **Components** — Subobject pointers created in the constructor (public)
+6. **Events** — Delegates (`BlueprintAssignable`, public)
 
-**Access rules:**
-- Widget references: **private**
-- Runtime cached pointers (e.g. `HUDComponentRef`): **private**
-- Delegates: **public**
-- Public API / setters: **public**
-- `AddDynamic` handler functions: **private**
+**Functions:**
+7. **Private Methods** — Internal helpers (private)
+8. **Event Handlers** — `UFUNCTION()` AddDynamic targets (private)
+9. **Public Methods** — Setters, public API (public)
 
 `#pragma region` / `#pragma endregion` are used in `.h` files only, not in `.cpp` files.
 
-The numbered order above also governs physical access specifier order in the file — **public sections always appear before private sections**. Within each access specifier block, members follow the region order for that access level.
+Fields precede functions in the file. Within each group, access specifiers follow **private → protected → public**. Never collapse `protected:` to `private:`; `protected` is intentional and grants subclass access. Lifecycle overrides (`NativeConstruct`, `BeginPlay`, `OnPossess`, etc.) belong under `protected:` in the functions group.
 
 ---
 

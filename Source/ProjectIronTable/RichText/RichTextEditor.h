@@ -4,7 +4,6 @@
 #include "Widgets/SCompoundWidget.h"
 #include "RichTextDocument.h"
 
-class SMultiLineEditableText;
 class SCheckBox;
 
 class SRichTextEditor : public SCompoundWidget
@@ -35,6 +34,20 @@ public:
 	/** Replaces the current document with the given one, used when loading saved content. */
 	void SetDocument(const FRichTextDocument& InDocument);
 
+	/** Returns true so the widget can receive keyboard focus. */
+	bool SupportsKeyboardFocus() const override;
+
+protected:
+
+	/** Handles character input events. */
+	FReply OnKeyChar(const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent) override;
+
+	/** Handles key down events for cursor movement, deletion, and format shortcuts. */
+	FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
+
+	/** Requests keyboard focus when the widget is clicked. */
+	FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+
 private:
 
 	/** Start of the active text selection as a character index. -1 when nothing is selected. */
@@ -52,9 +65,6 @@ private:
 	/** Formatting state applied to newly typed text. Updated when the cursor moves or a format toggle is pressed. Text field is unused — this is a format carrier only. */
 	FRichTextRun ActiveFormat;
 
-	/** The multiline text input area where the user types. */
-	TSharedPtr<SMultiLineEditableText> TextArea;
-
 	/** Toolbar checkbox for toggling bold formatting. */
 	TSharedPtr<SCheckBox> BoldCheckbox;
 
@@ -69,4 +79,10 @@ private:
 
 	/** Builds a single toolbar checkbox wired to the given format callback and labeled with the given string. */
 	TSharedRef<SWidget> MakeFormatCheckbox(TSharedPtr<SCheckBox>& Checkbox, TFunction<void(bool)> Callback, const TCHAR* Label);
+
+	/** Returns true if both runs share the same bold, italic, underline, strikethrough flags and font info. */
+	bool FormatsMatch(const FRichTextRun& A, const FRichTextRun& B) const;
+
+	/** Moves the cursor up or down one line, landing on the character closest to the current X pixel position. */
+	FReply OnUpOrDownPressed(const TArray<FString>& Lines, FVector2f CursorPos, float Scale, bool bUp);
 };

@@ -609,7 +609,11 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 
 ---
 
-*Last updated: 2026-04-22 (updated)* — Notes rich-text implementation approach revised: custom Slate rich-text editor (built natively in UE C++) chosen over WebBrowser + Quill. Rationale: no browser overhead, full theme control, better UE input integration, and opens the door to TTRPG-specific extensions. Markdown-with-preview rejected as a regression. Notes formatting scope unchanged: bold, italic, underline, strikethrough, headers, bullet lists.
+*Last updated: 2026-04-25* — No design decisions changed. Internal: multi-line text entry, cursor rendering, and Up/Down/Enter navigation implemented in `SRichTextEditor` / `SRichTextArea`.
+
+*Last updated: 2026-04-23* — No design decisions changed. Internal: `OnKeyChar` implemented on `SRichTextEditor`; `URichTextEditorWidget` renamed to `UEditableRichText`. Coding standards layout rule updated (fields before functions, private→protected→public).
+
+*2026-04-22 (updated)* — Notes rich-text implementation approach revised: custom Slate rich-text editor (built natively in UE C++) chosen over WebBrowser + Quill. Rationale: no browser overhead, full theme control, better UE input integration, and opens the door to TTRPG-specific extensions. Markdown-with-preview rejected as a regression. Notes formatting scope unchanged: bold, italic, underline, strikethrough, headers, bullet lists.
 
 *Last updated: 2026-04-20* — No design decisions changed. Internal implementation: `UBaseChannelPanel` base class fully implemented and `UChatBox` reparented to it. Design decision confirmed: notes channels cannot use participant-list identity (multiple tabs can share the same participants; list changes via invite). Notes will use GUID-based channel identity instead.
 

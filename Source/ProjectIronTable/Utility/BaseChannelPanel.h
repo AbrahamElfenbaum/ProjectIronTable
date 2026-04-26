@@ -113,8 +113,6 @@ protected:
 	void RefreshChannelList();
 #pragma endregion
 
-private:
-
 #pragma region Runtime References
 	/** Cached reference to the currently visible context menu, used to dismiss it before spawning a new one. */
 	UPROPERTY()

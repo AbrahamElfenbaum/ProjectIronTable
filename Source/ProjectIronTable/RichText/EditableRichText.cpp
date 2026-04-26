@@ -1,8 +1,8 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
-#include "RichTextEditorWidget.h"
+#include "EditableRichText.h"
 
 // Passes bold toggle through to the Slate editor if it is valid.
-void URichTextEditorWidget::ToggleBold(bool bEnable)
+void UEditableRichText::ToggleBold(bool bEnable)
 {
 	if (RichTextEditor)
 	{
@@ -11,7 +11,7 @@ void URichTextEditorWidget::ToggleBold(bool bEnable)
 }
 
 // Passes italic toggle through to the Slate editor if it is valid.
-void URichTextEditorWidget::ToggleItalic(bool bEnable)
+void UEditableRichText::ToggleItalic(bool bEnable)
 {
 	if (RichTextEditor)
 	{
@@ -20,7 +20,7 @@ void URichTextEditorWidget::ToggleItalic(bool bEnable)
 }
 
 // Passes underline toggle through to the Slate editor if it is valid.
-void URichTextEditorWidget::ToggleUnderline(bool bEnable)
+void UEditableRichText::ToggleUnderline(bool bEnable)
 {
 	if (RichTextEditor)
 	{
@@ -29,7 +29,7 @@ void URichTextEditorWidget::ToggleUnderline(bool bEnable)
 }
 
 // Passes strikethrough toggle through to the Slate editor if it is valid.
-void URichTextEditorWidget::ToggleStrikethrough(bool bEnable)
+void UEditableRichText::ToggleStrikethrough(bool bEnable)
 {
 	if (RichTextEditor)
 	{
@@ -38,7 +38,7 @@ void URichTextEditorWidget::ToggleStrikethrough(bool bEnable)
 }
 
 // Returns the editor's current document, or a default-constructed document if the editor is not yet built.
-FRichTextDocument URichTextEditorWidget::GetDocument() const
+FRichTextDocument UEditableRichText::GetDocument() const
 {
 	if (RichTextEditor)
 	{
@@ -48,7 +48,7 @@ FRichTextDocument URichTextEditorWidget::GetDocument() const
 }
 
 // Passes the document to the Slate editor for display and editing if it is valid.
-void URichTextEditorWidget::SetDocument(const FRichTextDocument& InDocument)
+void UEditableRichText::SetDocument(const FRichTextDocument& InDocument)
 {
 	if (RichTextEditor)
 	{
@@ -57,14 +57,14 @@ void URichTextEditorWidget::SetDocument(const FRichTextDocument& InDocument)
 }
 
 // Creates the SRichTextEditor Slate widget and returns it for UMG to display.
-TSharedRef<SWidget> URichTextEditorWidget::RebuildWidget()
+TSharedRef<SWidget> UEditableRichText::RebuildWidget()
 {
 	RichTextEditor = SNew(SRichTextEditor);
 	return RichTextEditor.ToSharedRef();
 }
 
 // Releases the Slate widget and resets the shared pointer to free memory.
-void URichTextEditorWidget::ReleaseSlateResources(bool bReleaseChildren)
+void UEditableRichText::ReleaseSlateResources(bool bReleaseChildren)
 {
 	Super::ReleaseSlateResources(bReleaseChildren);
 	RichTextEditor.Reset();

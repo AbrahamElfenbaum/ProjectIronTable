@@ -1030,7 +1030,7 @@ Home screen widget. Owns all five home screen buttons and exposes delegates for 
 
 Multi-tab notes panel. Inherits `UBaseChannelPanel`. Uses `USessionNotesChannel` / `USessionNotesTab` subclasses. Overrides five virtual hooks: `CreateChannel`, `CreateTabLabel`, `SaveCreatedTab`, `OnChannelRenamed`, `OnChannelSwitched`.
 
-Notes support rich-text formatting (bold, italic, underline, strikethrough, headers, bullet lists) via a custom Slate widget (`SRichTextEditor`) wrapped in a UMG widget (`URichTextEditor`). `UMultiLineEditableText` is replaced by `URichTextEditor` inside `USessionNotesChannel`. See **Notes Rich-Text Design** below for full implementation details.
+Notes support rich-text formatting (bold, italic, underline, strikethrough, headers, bullet lists) via a custom Slate widget (`SRichTextEditor`) wrapped in a UMG widget (`UEditableRichText`). `UMultiLineEditableText` is replaced by `UEditableRichText` inside `USessionNotesChannel`. See **Notes Rich-Text Design** below for full implementation details.
 
 > **Note:** Notes channels use GUID-based identity (not participant-list). Each `USessionNotesChannel` holds a `FGuid ChannelID`. `FindOrCreateChannel` is chat-only — do not use it here.
 >
@@ -1040,7 +1040,7 @@ Notes support rich-text formatting (bold, italic, underline, strikethrough, head
 
 #### Notes Rich-Text Design
 
-**Approach:** Custom Slate widget (`SRichTextEditor`) built natively in UE C++, wrapped in a UMG widget (`URichTextEditor`) for use in `USessionNotesChannel`. WYSIWYG editing with a formatting toolbar. No browser, no external libraries, no external runtime.
+**Approach:** Custom Slate widget (`SRichTextEditor`) built natively in UE C++, wrapped in a UMG widget (`UEditableRichText`) for use in `USessionNotesChannel`. WYSIWYG editing with a formatting toolbar. No browser, no external libraries, no external runtime.
 
 **Why custom Slate over alternatives:**
 - *No browser overhead* — WebBrowser widget runs a full Chromium instance inside the game. A Slate widget is a native UE widget with no additional runtime.
@@ -1063,7 +1063,7 @@ Notes support rich-text formatting (bold, italic, underline, strikethrough, head
 | Class | Type | Role |
 |---|---|---|
 | `SRichTextEditor` | `SCompoundWidget` (Slate) | Full editor logic: document model, cursor, selection, formatting runs, keyboard input. Toolbar is inline (not a separate class). |
-| `URichTextEditorWidget` | `UWidget` (UMG wrapper) | Thin UMG wrapper. Creates `SRichTextEditor` via `RebuildWidget()`. Exposes `GetDocument()` / `SetDocument()` and format toggles to C++. |
+| `UEditableRichText` | `UWidget` (UMG wrapper) | Thin UMG wrapper. Creates `SRichTextEditor` via `RebuildWidget()`. Exposes `GetDocument()` / `SetDocument()` and format toggles to C++. |
 
 **Document model:** Text is stored as a list of `FRichTextRun` structs — each run is a contiguous range of characters sharing the same formatting flags (bold, italic, underline, strikethrough) and block type (paragraph, H1, H2, H3, bullet, numbered). This is the standard "run-length" model used by all major rich text editors.
 
@@ -1109,31 +1109,50 @@ Full content of a single notes channel — a flat ordered list of `FRichTextRun`
 
 ---
 
+#### SRichTextArea
+**Type:** `SLeafWidget` (Slate) | **File:** `RichTextArea.h/.cpp`
+
+Leaf widget responsible for rendering document text and the cursor. Owned by `SRichTextEditor` and placed in the `FillHeight` slot. No UE reflection — pure Slate C++.
+
+**Private state:** `Document (const FRichTextDocument*, not owned)`, `CursorPosition (const int32*, pointer into SRichTextEditor — stays in sync automatically)`.
+
+**SLATE_ARGUMENTs:** `Document (const FRichTextDocument*)`, `CursorPosition (const int32*)`.
+
+**OnPaint:** Splits `Runs[0].Text` on `\n` via `ParseIntoArray` (bCullEmpty=false). Draws each line segment via `FSlateDrawElement::MakeText` at an incrementing Y offset (`GetMaxCharacterHeight` × line index). Then calls `GetCursorPosition` and draws a 1px vertical cursor line via `FSlateDrawElement::MakeLines` from `(CursorX, CursorY)` to `(CursorX, CursorY + LineHeight)`.
+
+**Static helper — `GetCursorPosition(const FRichTextDocument&, int32 InCursorPosition, float InScale) → FVector2f`:** Splits text on `\n`, walks lines accumulating `CharCount` and `CursorY` (by `LineHeight`). When `CharCount + Line.Len() >= InCursorPosition`, measures `Line.Left(InCursorPosition - CharCount)` via `FSlateFontMeasure`, divides by scale to get unscaled X. Returns `FVector2f(CursorX, CursorY)`. Called by `SRichTextEditor::OnUpOrDownPressed` for Up/Down navigation.
+
+> **Gotcha:** `FSlateFontMeasure::Measure` returns pixel values scaled by the geometry scale. Divide by `InScale` before using as a layout coordinate — otherwise cursor drifts right as more text is typed. Include `"Fonts/FontMeasure.h"` (not `"Framework/Text/SlateFontMeasure.h"`).
+
+---
+
 #### SRichTextEditor
 **Type:** `SCompoundWidget` (Slate)
 
 Custom Slate rich-text editor widget. Owns the document model, cursor, selection, active format state, and formatting toolbar. No UE reflection — pure Slate C++.
 
-**Private state:** `Document (FRichTextDocument)`, `CursorPosition (int32, default 0)`, `SelectionStart / SelectionEnd (int32, default -1 = no selection)`, `ActiveFormat (FRichTextRun)` — format carrier for newly typed text; `Text` field unused. `TextArea (TSharedPtr<SMultiLineEditableText>)`. Four `TSharedPtr<SCheckBox>` toolbar refs: `BoldCheckbox`, `ItalicCheckbox`, `UnderlineCheckbox`, `StrikethroughCheckbox`.
+**Private state:** `Document (FRichTextDocument)`, `CursorPosition (int32, default 0)`, `SelectionStart / SelectionEnd (int32, default -1 = no selection)`, `ActiveFormat (FRichTextRun)` — format carrier for newly typed text; `Text` field unused. Four `TSharedPtr<SCheckBox>` toolbar refs: `BoldCheckbox`, `ItalicCheckbox`, `UnderlineCheckbox`, `StrikethroughCheckbox`.
 
-**Private helpers:** `MakeFormatCheckbox(TSharedPtr<SCheckBox>& OutRef, TFunction<void(bool)> Callback, const TCHAR* Label)` — builds one toolbar checkbox, assigns the shared pointer, wires `OnCheckStateChanged` via `FOnCheckStateChanged::CreateLambda`.
+**Private helpers:** `MakeFormatCheckbox(TSharedPtr<SCheckBox>& OutRef, TFunction<void(bool)> Callback, const TCHAR* Label)` — builds one toolbar checkbox, assigns the shared pointer, wires `OnCheckStateChanged` via `FOnCheckStateChanged::CreateLambda`. `FormatsMatch(const FRichTextRun& A, const FRichTextRun& B) const` — returns true if both runs share the same bold, italic, underline, strikethrough flags and `FontInfo`. `OnUpOrDownPressed(const TArray<FString>& Lines, FVector2f CursorPos, float Scale, bool bUp)` — computes `TargetLine` via `GetMaxCharacterHeight`, bounds-checks, walks `Lines[TargetLine]` character-by-character measuring cumulative width until it exceeds `CursorPos.X`, converts character-within-line back to document index, sets `CursorPosition`.
 
 **Public API:** `Construct(FArguments)`, `ToggleBold/Italic/Underline/Strikethrough(bool)`, `GetDocument() const`, `SetDocument(const FRichTextDocument&)`.
 
-**Layout:** `Construct` builds a `SVerticalBox` — `AutoHeight` slot holds a `SHorizontalBox` toolbar (four `SCheckBox` buttons: B, I, U, S); `FillHeight(1.0f)` slot holds a `SScrollBox` containing `SAssignNew(TextArea, SMultiLineEditableText)`.
+**Protected overrides:** `OnKeyChar` — walks `Document.Runs` by accumulated character offset, inserts typed character (guards `< 32`). `OnKeyDown` — pre-computes `Lines` and `CursorPos` at top; handles: Backspace, Delete, Left, Right, Home, End (all working); Enter (inserts `\n` via run-walk, same as `OnKeyChar`); Up/Down (delegates to `OnUpOrDownPressed`); Ctrl+A/Z/Y/B/I/U (stubbed `Unhandled`). `OnMouseButtonDown` — calls `FSlateApplication::Get().SetKeyboardFocus(SharedThis(this))`.
 
-**Document sync:** `GetDocument` pulls text from `TextArea` and returns it wrapped in a single `FRichTextRun` (single-run placeholder pending full multi-run rendering). `SetDocument` pushes `Runs[0].Text` into `TextArea`. Both are no-ops if `TextArea` is not yet valid or the document has no runs.
+**Layout:** `Construct` builds a `SVerticalBox` — `AutoHeight` slot holds a `SHorizontalBox` toolbar (four `SCheckBox` buttons: B, I, U, S); `FillHeight(1.0f)` slot holds `SNew(SRichTextArea).Document(&Document).CursorPosition(&CursorPosition)`. No scroll box — scrolling is owned by the parent panel.
 
-> **Note:** Input handling (cursor-driven `ActiveFormat` updates, selection-based formatting) and rich rendering (per-run bold/italic/underline/strikethrough) are pending.
+**Document sync:** `GetDocument` returns `Document` directly. `SetDocument` assigns `Document = InDocument` and resets `CursorPosition` to 0.
+
+> **Note:** `OnKeyChar` currently inserts without format awareness (no run splitting). Cursor-driven `ActiveFormat` sync, selection-based formatting, and multi-run rendering are pending.
 
 ---
 
-#### URichTextEditorWidget
-**Type:** `UWidget` (UMG wrapper)
+#### UEditableRichText
+**Type:** `UWidget` (UMG wrapper) | **File:** `EditableRichText.h/.cpp`
 
 Thin UMG wrapper around `SRichTextEditor`. Bridges the Slate widget into the UMG widget system so it can be used inside `USessionNotesChannel`.
 
-**Public methods:** `GetDocument() const`, `SetDocument(const FRichTextDocument&)`, `ToggleBold/Italic/Underline/Strikethrough(bool)` — each checks `RichTextEditor.IsValid()` before calling through; `GetDocument` returns a default-constructed `FRichTextDocument` if the editor is not yet built.
+**Public methods:** `GetDocument() const`, `SetDocument(const FRichTextDocument&)` (`BlueprintCallable`), `ToggleBold/Italic/Underline/Strikethrough(bool)` — each checks `RichTextEditor.IsValid()` before calling through; `GetDocument` returns a default-constructed `FRichTextDocument` if the editor is not yet built.
 
 **Protected overrides:** `RebuildWidget()` — creates `SRichTextEditor` via `SNew`, returns it as `TSharedRef<SWidget>`; `ReleaseSlateResources(bool)` — calls Super, resets the shared pointer.
 
@@ -1261,6 +1280,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - A `USTRUCT` or `UCLASS` member that holds raw `UObject*` pointers (including `TArray<UObject*>`) must use `UPROPERTY()` — without it the GC can't track the references and they may be prematurely collected
 - `USlider::SetValue` fires `OnValueChanged` the same as a user drag — guard with `ClampedValue != Value` to prevent recursion
 - **`BindWidget` in a base `UUserWidget` class must be `protected`, not `private`** — private `BindWidget` members in a base class silently break widget binding in all subclasses; use `protected` so the property is visible to UE's reflection system
+- **`SMultiLineEditableText` consumes all keyboard input** — placing it as a child inside a custom `SCompoundWidget` means `OnKeyChar` and `OnKeyDown` on the parent never fire; the inner widget intercepts everything first. If you need character-level input handling in `SRichTextEditor`, do not use `SMultiLineEditableText` — own all rendering via `OnPaint` and handle all input directly on the outer widget.
 - **`CreateWidget<T>()` requires a full type definition, not just a forward declaration** — if `T` is only forward-declared in the `.h`, the `.cpp` call to `CreateWidget<T>` fails with E0304. Include the full header in the `.cpp` where `CreateWidget` is called.
 - **Canvas slot position/size are 0,0 at `NativeConstruct` time** — do not cache `CanvasSlot->GetPosition()/GetSize()` there for use as defaults. Use `EditAnywhere UPROPERTY` fields instead and set them manually in the Blueprint.
 - **C++ template functions cannot be `UFUNCTION()`** — templated methods are not compatible with Unreal's reflection system. Blueprint-accessible utilities need a non-template wrapper with a `UClass*` + manual cast, or just remain C++-only
@@ -1322,7 +1342,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - [ ] Session player cap (default 8, removable)
 - [x] Tab renaming (client-local) — right-click opens `UContextMenu` with Rename and Close options; rename persisted to `USessionSave::ChatTabNames`; close button removed from tab in favour of context menu
 - [x] Chat log persistence
-- [~] Shared notes — `USessionNotesPanel` now inherits `UBaseChannelPanel` with five virtual hook overrides declared; `USessionNotesChannel` created with `ScrollToEnd()`; `FRichTextRun`, `FRichTextDocument`, `SRichTextEditor`, `URichTextEditorWidget` foundation built in `RichText/`; pending: `URichTextEditorWidget` pass-through methods, `SRichTextEditor` full layout (toolbar + text area rendering), `USessionNotesPanel` override bodies, save/load (`NotesTabNames` added to `USessionSave`; content map pending), input context (`IMC_Notes`)
+- [~] Shared notes — `SRichTextEditor` + `SRichTextArea` functional: multi-line text entry and rendering working; cursor visible and tracks correctly; Up/Down/Enter/Left/Right/Home/End/Backspace/Delete all implemented. Pending: format-aware insertion (run splitting), Ctrl+B/I/U shortcuts, cursor-driven `ActiveFormat` sync, selection, `USessionNotesPanel` override bodies, save/load (content map pending), input context (`IMC_Notes`)
 - [ ] Pre-session lobby (waiting room; pre-game chat; character sheet accessible while waiting; Host sees connection status and launches when ready)
 - [ ] Session discovery and join flow
   - [ ] Invite code — immediate join, no approval
@@ -1549,6 +1569,8 @@ This approach keeps all save I/O within UE's native save game system and makes a
 
 ---
 
+*Last updated: 2026-04-25* — `SRichTextArea` added: leaf widget handles all text rendering (multi-line via `\n` split) and cursor drawing (`MakeLines`). `SRichTextEditor` now fully wired: Enter inserts `\n`; Up/Down implemented via `OnUpOrDownPressed` private helper (measures target line character by character to find closest X position). `GetCursorPosition` static helper on `SRichTextArea` shared with `SRichTextEditor` for Up/Down navigation. New gotcha: `FSlateFontMeasure::Measure` returns DPI-scaled values — divide by `InAllottedGeometry.Scale` to get layout-space coordinates. Include path: `"Fonts/FontMeasure.h"`.
+
 *Last updated: 2026-04-20* — `UBaseChannelPanel` fully implemented: all method bodies written, template method pattern wired (`CreateTabLabel`, `SaveCreatedTab`, `OnChannelRenamed`, `OnChannelSwitched` virtual hooks). `UChatBox` reparented to `UBaseChannelPanel`: all base-owned members removed, four virtual hooks overridden (label = "@Name /+N / Server", tab name saved to `USessionSave::ChatTabNames`, input cleared on channel switch). `USessionUIComponent` cast fixes after integration. New gotcha: `CreateWidget<T>()` requires a full type definition in the `.cpp`, not just a forward declaration. `USessionNotesPanel` still standalone — will be next to inherit the base class with GUID channel identity.
 
 *Last updated: 2026-04-19* — Base channel class hierarchy added to `Utility/`: `UBaseChannel` (scroll box, DisplayName, Participants, Scroll()), `UBaseChannelTab` (all tab behavior — click, right-click, rename, notification; delegates use `UBaseChannel*` param types forcing internal casts in typed handlers), `UBaseChannelListEntry` (entry button + label + OnEntryClicked delegate), `UBaseChannelPanel` (tab bar, switcher, closed list; method bodies partially empty pending subclass extraction). `UChatChannel` now inherits `UBaseChannel`. `UChatTab` and `UChatChannelListEntry` reduced to empty typed subclasses of the base classes for Blueprint parenting. `USessionNotesTab` added as empty subclass of `UBaseChannelTab`. `UChatBox` handlers updated to accept base-type params and cast internally. `BaseTab.h/.cpp` kept as redirect stubs for backwards compatibility. New gotchas: `BindWidget` in base must be `protected`; delegate param types lock handler signatures; deleting a C++ class orphans Blueprints (reparent required).
@@ -1571,7 +1593,9 @@ This approach keeps all save I/O within UE's native save game system and makes a
 
 *2026-04-13* — Chat tab rename infrastructure complete. `UChatTab` gains `EditLabel` (`UEditableTextBox` BindWidget), `EnterRenameMode()`, `OnTabRightClicked` and `OnTabRenamed` delegates. `UContextMenu` and `UContextMenuButton` added to `Utility/` — generic floating context menu with auto-dismiss on click-outside and on button click (lambda wrapping in `SetMenuOptions`). `UContextMenu::NativeOnMouseButtonDown` consumes all clicks reaching the root without `Super::`. `UChatBox` wiring (Step 3) is the only remaining rename step. Format-all pass complete across all 90+ source files. 15 recurring code patterns catalogued in `memory/project_pattern_analysis.md`.
 
-*Last updated: 2026-04-12 (updated)* — Chat log persistence implemented. `USessionSave` gains `FChatMessageRecord`, `FChatLogRecord`, and `ChatLog` (`TMap<FString, FChatLogRecord>`). `UChatChannel` gains `RestoreMessage`. `UChatBox` gains `FindOrCreateChannel` (extracted from `AddChatMessage`; shared with restore loop). `USessionHUDComponent::BeginPlay` restores chat log on load; `SendChatMessageOnServer` saves each message after routing. `bPendingRefocus` flag added to `UChatBox` to fix Enter double-fire bug (Slate fires `OnUserMovedFocus` immediately after `OnEnter`). Roadmap: chat log persistence checked off.
+*Last updated: 2026-04-23* — `URichTextEditorWidget` renamed to `UEditableRichText` (files `EditableRichText.h/.cpp`). `SMultiLineEditableText` removed from `SRichTextEditor` — replaced with `SBox` placeholder; scroll box moved to parent panel. `GetDocument`/`SetDocument` now work directly on `Document` (no `TextArea`). `OnKeyChar` implemented: walks runs by accumulated offset, inserts at `CursorPosition`, advances cursor. `FormatsMatch` private helper added. Gotcha added: `SMultiLineEditableText` consumes all keyboard input and blocks `OnKeyChar`/`OnKeyDown` on parent. Coding standards updated: class layout rule changed to fields-before-functions, private→protected→public within each group.
+
+*2026-04-22 (continued)* — Chat log persistence implemented. `USessionSave` gains `FChatMessageRecord`, `FChatLogRecord`, and `ChatLog` (`TMap<FString, FChatLogRecord>`). `UChatChannel` gains `RestoreMessage`. `UChatBox` gains `FindOrCreateChannel` (extracted from `AddChatMessage`; shared with restore loop). `USessionHUDComponent::BeginPlay` restores chat log on load; `SendChatMessageOnServer` saves each message after routing. `bPendingRefocus` flag added to `UChatBox` to fix Enter double-fire bug (Slate fires `OnUserMovedFocus` immediately after `OnEnter`). Roadmap: chat log persistence checked off.
 
 *Last updated: 2026-04-11* — `USessionInstance` added (`GameInstances/`). `ASessionGameMode` fully implemented: `InitGame` loads `USessionSave` into `ASessionGameState`; `PostLogin` assigns role flags and adds player to correct list; `Logout` removes player from list. `ASessionPlayerState` gained `SessionPlayerID` (Replicated FGuid) with full accessors. `ASessionGameState` gained full getter/setter API for all fields. `GameInstances/` folder added to source tree and Build.cs. Known gap documented: `SessionPlayerID` not yet set via login options.
 

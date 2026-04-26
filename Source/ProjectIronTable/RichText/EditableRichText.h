@@ -3,11 +3,11 @@
 #include "CoreMinimal.h"
 #include "Components/Widget.h"
 #include "RichTextEditor.h"
-#include "RichTextEditorWidget.generated.h"
+#include "EditableRichText.generated.h"
 
 /** UMG wrapper around SRichTextEditor. Bridges the Slate rich-text editor widget into the UMG widget system. */
 UCLASS()
-class PROJECTIRONTABLE_API URichTextEditorWidget : public UWidget
+class PROJECTIRONTABLE_API UEditableRichText : public UWidget
 {
 	GENERATED_BODY()
 
@@ -30,6 +30,7 @@ public:
 	FRichTextDocument GetDocument() const;
 
 	/** Replaces the current document with the given one, used when loading saved content. */
+	UFUNCTION(BlueprintCallable)
 	void SetDocument(const FRichTextDocument& InDocument);
 #pragma endregion
 
