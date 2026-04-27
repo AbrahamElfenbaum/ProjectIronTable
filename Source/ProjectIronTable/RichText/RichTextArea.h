@@ -34,9 +34,14 @@ public:
 
 	/** Draws a single text string at the given X and Y offset within the geometry. Used by OnPaint to render each tab-split segment. */
 	void DrawTextSegment(FSlateWindowElementList& OutElements, int32 LayerId,
-		const FGeometry& Geometry, const FString& Text,
-		const FSlateFontInfo& FontInfo, float XOffset, float YOffset,
-		const FLinearColor& Color) const;
+						 const FGeometry& Geometry, const FString& Text,
+						 const FSlateFontInfo& FontInfo, float XOffset, float YOffset,
+						 const FLinearColor& Color) const;
+
+	/** Draws a horizontal line at the given X/Y offset with the given width; used for underline and strikethrough decoration. */
+	void DrawLine(FSlateWindowElementList& ElementList, uint32 InLayer,
+				  const FPaintGeometry& PaintGeometry, const FLinearColor& Color,
+				  float XOffset, float YOffset, float Width) const;
 
 	/** Returns the pixel X and Y position of the cursor within the document, accounting for tab stops and newlines. TabSpace is the pre-measured width of a single tab gap in layout coordinates. Used by SRichTextEditor for Up/Down navigation. */
 	static FVector2f GetCursorPosition(const FRichTextDocument& InDocument, int32 InCursorPosition, float TabSpace, float InScale);

@@ -1120,9 +1120,9 @@ Leaf widget responsible for rendering document text and the cursor. Owned by `SR
 
 **SLATE_ARGUMENTs:** `Document (const FRichTextDocument*)`, `CursorPosition (const int32*)`.
 
-**OnPaint:** Splits `Document->GetFullText()` on `\n`. For each line, splits on `\t` into segments; draws each segment via `DrawTextSegment` at an accumulating `XOffset`, advancing by `MeasureText(segment) + TabSpace` after each. Tab stop width = `MeasureText(TEXT("    "), ...)` (4 spaces). Cursor drawn via `FSlateDrawElement::MakeLines`. Rendering uses `Runs[0].FontInfo` for all segments (visual per-run formatting pending).
+**OnPaint:** Outer loop over `Document->Runs`. For each run: builds a local `FSlateFontInfo` copy with `TypefaceFontName` set to `"Regular"`, `"Bold"`, `"Italic"`, or `"BoldItalic"` based on `bIsBold`/`bIsItalic` flags. Inner loop splits `Run.Text` on `\n` (index-based); for each RunLine splits on `\t` (index-based); draws each segment via `DrawTextSegment`. `XOffset` persists across runs and resets to 0 only on a `\n` boundary (between RunLines, not after the last). `YOffset` advances only between RunLines. Tab space guarded by `k < LineSegments.Num() - 1` — no trailing tab after the last segment. After drawing each segment, `DrawLine` is called for underline (`YOffset + LineHeight`) and strikethrough (`YOffset + LineHeight * 0.5f`) if the flags are set; width is `MeasureText(LineSegment.TrimEnd(), ...)` to avoid extending over trailing whitespace. Cursor drawn once after all run loops via `FSlateDrawElement::MakeLines`.
 
-**Private helpers:** `DrawTextSegment(OutElements, LayerId, Geometry, Text, FontInfo, XOffset, YOffset, Color) const` — wraps a single `FSlateDrawElement::MakeText` call at the given X/Y offset. `MeasureText(Text, FontInfo, Scale) → float` (static) — returns layout-space width (DPI scale already divided out).
+**Private helpers:** `DrawTextSegment(OutElements, LayerId, Geometry, Text, FontInfo, XOffset, YOffset, Color) const` — wraps a single `FSlateDrawElement::MakeText` call at the given X/Y offset. `DrawLine(ElementList, Layer, PaintGeometry, Color, XOffset, YOffset, Width) const` — draws a horizontal line from `(XOffset, YOffset)` to `(XOffset + Width, YOffset)`; used for underline and strikethrough. `MeasureText(Text, FontInfo, Scale) → float` (static) — returns layout-space width (DPI scale already divided out).
 
 **Static helper — `GetCursorPosition(const FRichTextDocument&, int32 InCursorPosition, float TabSpace, float InScale) → FVector2f`:** Splits text on `\n`, walks lines. When cursor line found, splits line on `\t` into segments, walks segments accumulating `SegmentOffset` and `SegCharCount`. When cursor falls within a segment, returns `SegmentOffset + MeasureText(prefix) + 1`. Called by `SRichTextEditor::OnKeyDown` and `OnUpOrDownPressed`.
 
@@ -1135,15 +1135,16 @@ Leaf widget responsible for rendering document text and the cursor. Owned by `SR
 
 Custom Slate rich-text editor widget. Owns the document model, cursor, selection, active format state, and formatting toolbar. No UE reflection — pure Slate C++.
 
-**Private state:** `Document (FRichTextDocument)`, `CursorPosition (int32, default 0)`, `SelectionStart / SelectionEnd (int32, default -1 = no selection)`, `ActiveFormat (FRichTextRun)` — format carrier for newly typed text; `Text` field unused. Four `TSharedPtr<SCheckBox>` toolbar refs: `BoldCheckbox`, `ItalicCheckbox`, `UnderlineCheckbox`, `StrikethroughCheckbox`.
+**Private state:** `Document (FRichTextDocument)`, `CursorPosition (int32, default 0)`, `SelectionStart / SelectionEnd (int32, default -1 = no selection)`, `ActiveFormat (FRichTextRun)` — format carrier for newly typed text; `Text` field unused. Four `TSharedPtr<SCheckBox>` toolbar refs: `BoldCheckbox`, `ItalicCheckbox`, `UnderlineCheckbox`, `StrikethroughCheckbox`. `bIsSyncing (bool)` — set to `true` around all `SetIsChecked` calls in `SyncActiveFormat`; all four Toggle functions return early if it is set. Guards against `SCheckBox::SetIsChecked` firing `OnCheckStateChanged` with the previous state and overwriting `ActiveFormat`.
 
 **Private helpers:**
-- `MakeFormatCheckbox` — builds toolbar checkbox.
+- `MakeFormatCheckbox` — builds toolbar checkbox with `.IsFocusable(false)` so Space/Enter keystrokes are not consumed by a previously clicked checkbox.
 - `FormatsMatch(A, B) → bool` — compares bold/italic/underline/strikethrough/FontInfo on two runs.
 - `FindRunAtIndex(CharIndex, OutRunStart&) → int32` — walks `Document.Runs` accumulating offsets; uses `<=` condition (boundary belongs to the earlier run, matching insertion semantics); falls back to last run if out of bounds. Sets `OutRunStart` to where the found run begins. Used by all edit operations in place of manual run-walk loops.
 - `DrawSpecialCharacter(TCHAR) → FReply` — inserts a non-printable character (`\n` or `\t`) at `CursorPosition` via `FindRunAtIndex`, advances cursor, calls `SyncActiveFormat`.
-- `OnBackspaceOrDeletePressed(int32 CursorPos)` — calls `FindRunAtIndex`; if `LocalOffset >= Run.Text.Len()`, redirects to next run with `LocalOffset = 0` (boundary redirect for deletion); calls `RemoveAt(LocalOffset)`; if the run is now empty and `Runs.Num() > 1`, removes the run.
-- `SyncActiveFormat()` — calls `FindRunAtIndex(CursorPosition)`, copies the found run's format flags and `FontInfo` into `ActiveFormat`, then calls `SetIsChecked` on all four toolbar checkboxes. Called after every cursor-moving operation. `SetIsChecked` does **not** trigger `OnCheckStateChanged` — no feedback loop.
+- `OnBackspaceOrDeletePressed(int32 CursorPos)` — calls `FindRunAtIndex`; if `LocalOffset >= Run.Text.Len()`, redirects to next run with `LocalOffset = 0` (boundary redirect for deletion); calls `RemoveAt(LocalOffset)`; then calls `PruneRuns()`.
+- `PruneRuns()` — calls `TArray::RemoveAll` to remove every run whose `Text.IsEmpty()`; if `Runs` is then empty, clears `ActiveFormat.Text` and adds `ActiveFormat` as the default run. Called after every insertion (split path) and every deletion.
+- `SyncActiveFormat()` — sets `bIsSyncing = true`, calls `FindRunAtIndex(CursorPosition)`, copies the found run into `ActiveFormat`, calls `SetIsChecked` on all four checkboxes, sets `bIsSyncing = false`. Called after every cursor-moving operation.
 - `OnUpOrDownPressed(Lines, CursorPos, Scale, bUp)` — bounds-checks target line, walks characters measuring cumulative width until it exceeds `CursorPos.X`, converts to document index, calls `SyncActiveFormat`.
 
 **Public API:** `Construct(FArguments)`, `ToggleBold/Italic/Underline/Strikethrough(bool)`, `GetDocument() const`, `SetDocument(const FRichTextDocument&)`.
@@ -1299,6 +1300,8 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - **`CreateWidget<T>()` requires a full type definition, not just a forward declaration** — if `T` is only forward-declared in the `.h`, the `.cpp` call to `CreateWidget<T>` fails with E0304. Include the full header in the `.cpp` where `CreateWidget` is called.
 - **Canvas slot position/size are 0,0 at `NativeConstruct` time** — do not cache `CanvasSlot->GetPosition()/GetSize()` there for use as defaults. Use `EditAnywhere UPROPERTY` fields instead and set them manually in the Blueprint.
 - **C++ template functions cannot be `UFUNCTION()`** — templated methods are not compatible with Unreal's reflection system. Blueprint-accessible utilities need a non-template wrapper with a `UClass*` + manual cast, or just remain C++-only
+- **`SCheckBox::SetIsChecked` fires `OnCheckStateChanged` with the previous state** — calling `SetIsChecked(Unchecked)` on a checkbox that was Checked fires the callback with `ECheckBoxState::Checked` (the old value), not `Unchecked`. If the callback writes to shared state (e.g. `ActiveFormat`), it overwrites whatever was just set. Fix: guard all toggle callbacks with a `bIsSyncing` flag set around the `SetIsChecked` calls.
+- **Format toolbar checkboxes must be `.IsFocusable(false)`** — without this, clicking a checkbox gives it keyboard focus. Subsequent Space or Enter keystrokes toggle the checkbox instead of reaching the text editor. Set `.IsFocusable(false)` in `MakeFormatCheckbox` so checkboxes respond only to mouse clicks.
 
 ---
 
@@ -1315,6 +1318,8 @@ Bug codes: `Phase.Sequence` — phase is the feature area the bug lives in, sequ
 | 2.4   | `SMultiLineEditableText` placed inside `SCompoundWidget` intercepts all keyboard input — `OnKeyChar` and `OnKeyDown` on the parent never fired                                                     | `RichTextEditor.cpp`   | Fixed |
 | 2.5   | `for (auto Run : Document.Runs)` iterates by value — character insertions into `Run.Text` were silently discarded                                                                                  | `RichTextEditor.cpp`   | Fixed |
 | 2.6   | Up/Down navigation into a line containing two consecutive tabs snaps the cursor to the nearest visible character — `OnUpOrDownPressed` does not account for tab stops when walking the target line | `RichTextEditor.cpp`   | Known |
+| 2.7   | `SCheckBox::SetIsChecked` fires `OnCheckStateChanged` with the previous state — toggling `ActiveFormat` flags off was immediately overwritten after each keystroke because `SyncActiveFormat`'s `SetIsChecked` call re-triggered the callback with the old (Checked) value | `RichTextEditor.cpp`   | Fixed |
+| 2.8   | Clicking a format checkbox gave it keyboard focus — Space and Enter keystrokes then toggled the checkbox instead of inserting into the editor | `RichTextEditor.cpp`   | Fixed |
 
 ---
 
@@ -1599,6 +1604,8 @@ Sessions are stored using Unreal's built-in save slot system — no custom file 
 This approach keeps all save I/O within UE's native save game system and makes a future dedicated-server migration straightforward — the index and session slots move to wherever the server runs, no path logic to change.
 
 ---
+
+*Last updated: 2026-04-27* — Visual formatting complete: `SRichTextArea::OnPaint` refactored from line-driven to run-driven; typeface name swapping for bold/italic (`"Regular"`, `"Bold"`, `"Italic"`, `"BoldItalic"`); `DrawLine` helper added for underline/strikethrough decorations; trailing whitespace trimmed before measuring line width. `PruneRuns()` added to `SRichTextEditor` — cleans empty runs after splits and deletions; re-adds blank default run if document is emptied. `bIsSyncing` guard added to prevent `SCheckBox::SetIsChecked` feedback loop from overwriting `ActiveFormat`. Checkboxes set `.IsFocusable(false)` to prevent Space/Enter being consumed. Two new gotchas added to bug log (2.7, 2.8).
 
 *Last updated: 2026-04-26* — Multi-run rich text editing complete: `FRichTextDocument::GetFullText()` added (concatenates all runs); `SRichTextEditor` gains `FindRunAtIndex`, `OnBackspaceOrDeletePressed`, and `SyncActiveFormat` private helpers; `OnKeyChar` is now format-aware (splits runs on `ActiveFormat` mismatch: Left/Middle/Right); Ctrl+B/I/U shortcuts wired; all cursor-moving operations call `SyncActiveFormat` to keep toolbar in sync; `OnPaint` and `GetCursorPosition` updated to use `GetFullText()` instead of `Runs[0].Text`. Two new gotchas: `ActiveFormat.FontInfo` must be initialized in `Construct`; `FindRunAtIndex` uses `<=` semantics (boundary redirect required in deletion path).
 

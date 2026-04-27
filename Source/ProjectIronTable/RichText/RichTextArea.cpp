@@ -31,27 +31,79 @@ int32 SRichTextArea::OnPaint(const FPaintArgs& InArgs, const FGeometry& InAllott
 				float LineHeight = FSlateApplication::Get().GetRenderer()->GetFontMeasureService()
 					->GetMaxCharacterHeight(Document->Runs[0].FontInfo, InAllottedGeometry.Scale);
 
-				TArray<FString> Lines;
-				Document->GetFullText().ParseIntoArray(Lines, TEXT("\n"), false);
 				float YOffset = 0;
+				float XOffset = 0;
 
-				//Draw Text
-				for (FString Line : Lines)
+				for (int32 i = 0; i < Document->Runs.Num(); i++)
 				{
-					TArray<FString> LineSegments;
-					Line.ParseIntoArray(LineSegments, TEXT("\t"), false);
-					float XOffset = 0;
-					for (FString LineSegment : LineSegments)
-					{
-						DrawTextSegment(InOutDrawElements, InLayerId,
-							InAllottedGeometry, LineSegment,
-							Document->Runs[0].FontInfo, XOffset,
-							YOffset, InInWidgetStyle.GetColorAndOpacityTint());
+					const FRichTextRun& Run = Document->Runs[i];
+					FSlateFontInfo FontInfo = Run.FontInfo;
 
-						XOffset += MeasureText(LineSegment, Document->Runs[0].FontInfo, InAllottedGeometry.Scale);
-						XOffset += TabSpace;
+					if (!Run.bIsBold && !Run.bIsItalic)
+					{
+						FontInfo.TypefaceFontName = FName(TEXT("Regular"));
 					}
-					YOffset += LineHeight;
+					else if (Run.bIsBold && !Run.bIsItalic)
+					{
+						FontInfo.TypefaceFontName = FName(TEXT("Bold"));
+					}
+					else if (!Run.bIsBold && Run.bIsItalic)
+					{
+						FontInfo.TypefaceFontName = FName(TEXT("Italic"));
+					}
+					else
+					{
+						FontInfo.TypefaceFontName = FName(TEXT("BoldItalic"));
+					}
+
+					TArray<FString> RunLines;
+					Run.Text.ParseIntoArray(RunLines, TEXT("\n"), false);
+
+					for (int32 j = 0; j < RunLines.Num(); j++)
+					{
+						const FString& RunLine = RunLines[j];
+
+						TArray<FString> LineSegments;
+						RunLine.ParseIntoArray(LineSegments, TEXT("\t"), false);
+
+						for (int32 k = 0; k < LineSegments.Num(); k++)
+						{
+							const FString& LineSegment = LineSegments[k];
+
+							DrawTextSegment(InOutDrawElements, InLayerId,
+								InAllottedGeometry, LineSegment,
+								FontInfo, XOffset,
+								YOffset, InInWidgetStyle.GetColorAndOpacityTint());
+
+							float UnderlineStrikethroughWidth = MeasureText(LineSegment.TrimEnd(), FontInfo, InAllottedGeometry.Scale);
+
+							if (Run.bIsUnderline)
+							{
+								DrawLine(InOutDrawElements, InLayerId,
+									InAllottedGeometry.ToPaintGeometry(), InInWidgetStyle.GetColorAndOpacityTint(),
+									XOffset, YOffset + LineHeight, UnderlineStrikethroughWidth);
+							}
+
+							if (Run.bIsStrikethrough)
+							{
+								DrawLine(InOutDrawElements, InLayerId,
+									InAllottedGeometry.ToPaintGeometry(), InInWidgetStyle.GetColorAndOpacityTint(),
+									XOffset, YOffset + LineHeight * 0.5f, UnderlineStrikethroughWidth);
+							}
+
+							XOffset += MeasureText(LineSegment, FontInfo, InAllottedGeometry.Scale);
+							if (k < LineSegments.Num() - 1)
+							{
+								XOffset += TabSpace;
+							}
+						}
+
+						if (j < RunLines.Num() - 1)
+						{
+							XOffset = 0;
+							YOffset += LineHeight;
+						}
+					}
 				}
 
 				//Draw Cursor
@@ -75,6 +127,16 @@ void SRichTextArea::DrawTextSegment(FSlateWindowElementList& OutElements, int32 
 {
 	FSlateDrawElement::MakeText(OutElements, LayerId, Geometry.ToPaintGeometry(Geometry.GetLocalSize(),
 	FSlateLayoutTransform(FVector2D(XOffset, YOffset))), Text, FontInfo, ESlateDrawEffect::None, Color);
+}
+
+// Draws a horizontal line at the given X/Y offset with the given width, used for underline and strikethrough decoration.
+void SRichTextArea::DrawLine(FSlateWindowElementList& ElementList, uint32 InLayer,
+							 const FPaintGeometry& PaintGeometry, const FLinearColor& Color,
+							 float XOffset, float YOffset, float Width) const
+{
+	FSlateDrawElement::MakeLines(ElementList, InLayer, PaintGeometry,
+								 TArray<FVector2f>{FVector2f(XOffset, YOffset), FVector2f(XOffset + Width, YOffset)},
+								 ESlateDrawEffect::None, Color, false, 1.0);
 }
 
 // Returns the pixel X and Y position of the cursor within the document, based on font measurement and line splitting.

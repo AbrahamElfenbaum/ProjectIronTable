@@ -77,6 +77,9 @@ private:
 	/** Toolbar checkbox for toggling strikethrough formatting. */
 	TSharedPtr<SCheckBox> StrikethroughCheckbox;
 
+	/***/
+	bool bIsSyncing;
+
 	/** Finds the run in Document.Runs that spans CharIndex and sets OutRunStart to the character index where that run begins. Returns the index of the run in Document.Runs. */
 	int32 FindRunAtIndex(int32 CharIndex, int32& OutRunStart) const;
 
@@ -97,4 +100,7 @@ private:
 
 	/** Updates ActiveFormat to match the format flags of the run currently under the cursor. Called after any operation that moves CursorPosition. */
 	void SyncActiveFormat();
+
+	/** Removes all empty runs from the document; re-adds a blank default run using ActiveFormat if none remain. */
+	void PruneRuns();
 };

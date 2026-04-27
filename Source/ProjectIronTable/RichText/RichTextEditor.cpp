@@ -39,24 +39,40 @@ void SRichTextEditor::Construct(const FArguments& InArgs)
 // Sets the bold flag on ActiveFormat, applying to newly typed text and any current selection.
 void SRichTextEditor::ToggleBold(bool bEnable)
 {
+	if (bIsSyncing)
+	{
+		return;
+	}
 	ActiveFormat.bIsBold = bEnable;
 }
 
 // Sets the italic flag on ActiveFormat, applying to newly typed text and any current selection.
 void SRichTextEditor::ToggleItalic(bool bEnable)
 {
+	if (bIsSyncing)
+	{
+		return;
+	}
 	ActiveFormat.bIsItalic = bEnable;
 }
 
 // Sets the underline flag on ActiveFormat, applying to newly typed text and any current selection.
 void SRichTextEditor::ToggleUnderline(bool bEnable)
 {
+	if (bIsSyncing)
+	{
+		return;
+	}
 	ActiveFormat.bIsUnderline = bEnable;
 }
 
 // Sets the strikethrough flag on ActiveFormat, applying to newly typed text and any current selection.
 void SRichTextEditor::ToggleStrikethrough(bool bEnable)
 {
+	if (bIsSyncing)
+	{
+		return;
+	}
 	ActiveFormat.bIsStrikethrough = bEnable;
 }
 
@@ -94,10 +110,12 @@ FReply SRichTextEditor::OnKeyChar(const FGeometry& MyGeometry, const FCharacterE
 
 	if (FormatsMatch(Document.Runs[RunIndex], ActiveFormat))
 	{
+		UE_LOG(LogTemp, Display, TEXT("SRichTextEditor::OnKeyChar — MATCH path"));
 		Document.Runs[RunIndex].Text.InsertAt(CursorPosition - RunStart, Character);
 	}
 	else
 	{
+		UE_LOG(LogTemp, Display, TEXT("SRichTextEditor::OnKeyChar — SPLIT path"));
 		FRichTextRun& FoundRun = Document.Runs[RunIndex];
 
 		FRichTextRun LeftRun = FoundRun;
@@ -114,6 +132,7 @@ FReply SRichTextEditor::OnKeyChar(const FGeometry& MyGeometry, const FCharacterE
 		Document.Runs.Insert(LeftRun, RunIndex);
 		Document.Runs.Insert(MiddleRun, RunIndex + 1);
 		Document.Runs.Insert(RightRun, RunIndex + 2);
+		PruneRuns();
 	}
 
 	CursorPosition++;
@@ -261,6 +280,7 @@ TSharedRef<SWidget> SRichTextEditor::MakeFormatCheckbox(TSharedPtr<SCheckBox>& C
 			{
 				Callback(State == ECheckBoxState::Checked);
 			}))
+		.IsFocusable(false)
 		[SNew(STextBlock).Text(FText::FromString(FString(Label)))];
 }
 
@@ -320,11 +340,7 @@ void SRichTextEditor::OnBackspaceOrDeletePressed(int32 CursorPos)
 		LocalOffset = 0;
 	}
 	Document.Runs[Index].Text.RemoveAt(LocalOffset);
-
-	if (Document.Runs[Index].Text.IsEmpty() && Document.Runs.Num() > 1)
-	{
-		Document.Runs.RemoveAt(Index);
-	}
+	PruneRuns();
 }
 
 // Moves the cursor up or down one line, finding the character on the target line closest to the cursor's X pixel position.
@@ -372,9 +388,27 @@ void SRichTextEditor::SyncActiveFormat()
 	int32 RunIndex = FindRunAtIndex(CursorPosition, RunStart);
 	ActiveFormat = Document.Runs[RunIndex];
 
+	bIsSyncing = true;
 
 	BoldCheckbox->SetIsChecked(ActiveFormat.bIsBold ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
 	ItalicCheckbox->SetIsChecked(ActiveFormat.bIsItalic ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
 	UnderlineCheckbox->SetIsChecked(ActiveFormat.bIsUnderline ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
 	StrikethroughCheckbox->SetIsChecked(ActiveFormat.bIsStrikethrough ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+
+	bIsSyncing = false;
+}
+
+// Removes all empty runs from the document; if none remain, re-adds a blank default run using ActiveFormat.
+void SRichTextEditor::PruneRuns()
+{
+	Document.Runs.RemoveAll([](const FRichTextRun& Run)
+	{
+		return Run.Text.IsEmpty();
+	});
+
+	if (Document.Runs.IsEmpty())
+	{
+		ActiveFormat.Text.Empty();
+		Document.Runs.Add(ActiveFormat);
+	}
 }
