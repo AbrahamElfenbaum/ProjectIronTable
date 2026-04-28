@@ -77,7 +77,7 @@ private:
 	/** Toolbar checkbox for toggling strikethrough formatting. */
 	TSharedPtr<SCheckBox> StrikethroughCheckbox;
 
-	/***/
+	/** Guards against feedback loops when programmatically calling SetIsChecked on format checkboxes — SCheckBox fires OnCheckStateChanged with the previous state on programmatic updates, which would overwrite ActiveFormat. Set to true around all SetIsChecked calls in SyncActiveFormat; toggle callbacks return early while true. */
 	bool bIsSyncing;
 
 	/** Finds the run in Document.Runs that spans CharIndex and sets OutRunStart to the character index where that run begins. Returns the index of the run in Document.Runs. */
