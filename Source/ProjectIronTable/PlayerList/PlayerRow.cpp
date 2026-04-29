@@ -1,17 +1,13 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "PlayerRow.h"
 
-#include "Components/TextBlock.h"
 #include "Components/Button.h"
+#include "Components/TextBlock.h"
 
-// Stores the name and updates the name label text.
-void UPlayerRow::SetPlayerName(const FString& Name)
+// Broadcasts OnAddressClicked with the stored player name.
+void UPlayerRow::OnAddressButtonClicked()
 {
-	PlayerName = Name;
-	if (NameLabel)
-	{
-		NameLabel->SetText(FText::FromString(Name));
-	}
+	OnAddressClicked.Broadcast(PlayerName);
 }
 
 // Binds the address button click delegate.
@@ -24,8 +20,12 @@ void UPlayerRow::NativeConstruct()
 	}
 }
 
-// Broadcasts OnAddressClicked with the stored player name.
-void UPlayerRow::OnAddressButtonClicked()
+// Stores the name and updates the name label text.
+void UPlayerRow::SetPlayerName(const FString& Name)
 {
-	OnAddressClicked.Broadcast(PlayerName);
+	PlayerName = Name;
+	if (NameLabel)
+	{
+		NameLabel->SetText(FText::FromString(Name));
+	}
 }

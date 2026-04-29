@@ -53,17 +53,25 @@ class PROJECTIRONTABLE_API ABaseDiceActor : public AActor
 {
 	GENERATED_BODY()
 
+private:
+
+#pragma region State
+	/** Timer handle for the failsafe destroy. */
+	FTimerHandle FailsafeTimerHandle;
+
+	/** World time of the last collision sound played; used to throttle hit sounds. */
+	float LastHitTime = 0.f;
+#pragma endregion
+
 public:
-	/** Creates root and both mesh subobjects, and applies physics properties to each. */
-	ABaseDiceActor();
 
 #pragma region Components
 	/** Primary die mesh; always present. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Components)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components)
 	TObjectPtr<UStaticMeshComponent> Mesh1;
 
 	/** Secondary die mesh; used for percentile dice (D100). Null for all other dice. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Components)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components)
 	TObjectPtr<UStaticMeshComponent> Mesh2;
 #pragma endregion
 
@@ -145,29 +153,7 @@ public:
 	FOnFailsafeDestroy OnFailsafeDestroy;
 #pragma endregion
 
-#pragma region Public Methods
-	/** Determines the face value by finding the mesh face whose normal is most aligned with world up. */
-	UFUNCTION(BlueprintCallable)
-	FRollResult GetRolledValue();
-
-	/** Applies the given impulse and angular impulse to the mesh(es) and starts the failsafe timer. */
-	UFUNCTION(BlueprintCallable)
-	void Roll(FVector Impulse, FVector AngularImpulse);
-#pragma endregion
-
-protected:
-	/** Detaches meshes for independent physics simulation and binds sleep and hit delegates. */
-	virtual void BeginPlay() override;
-
 private:
-
-#pragma region State
-	/** Timer handle for the failsafe destroy. */
-	FTimerHandle FailsafeTimerHandle;
-
-	/** World time of the last collision sound played; used to throttle hit sounds. */
-	float LastHitTime = 0.f;
-#pragma endregion
 
 #pragma region Private Methods
 	/** Returns true if the mesh is non-null and has a valid static mesh asset assigned. */
@@ -189,4 +175,24 @@ private:
 	UFUNCTION()
 	void OnMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 #pragma endregion
+
+protected:
+
+	/** Detaches meshes for independent physics simulation and binds sleep and hit delegates. */
+	virtual void BeginPlay() override;
+
+public:
+
+#pragma region Public Methods
+	/** Determines the face value by finding the mesh face whose normal is most aligned with world up. */
+	UFUNCTION(BlueprintCallable)
+	FRollResult GetRolledValue();
+
+	/** Applies the given impulse and angular impulse to the mesh(es) and starts the failsafe timer. */
+	UFUNCTION(BlueprintCallable)
+	void Roll(FVector Impulse, FVector AngularImpulse);
+#pragma endregion
+
+	/** Creates root and both mesh subobjects, and applies physics properties to each. */
+	ABaseDiceActor();
 };

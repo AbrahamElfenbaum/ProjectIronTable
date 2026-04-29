@@ -4,16 +4,16 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 
+// Executes the option's OnClicked delegate when the button is pressed.
+void UContextMenuButton::OnMenuButtonClicked()
+{
+	Option.OnClicked.ExecuteIfBound();
+}
+
 // Assigns the option, updates the label text, and binds the click handler.
 void UContextMenuButton::SetOption(const FContextMenuOption& InOption)
 {
 	Option = InOption;
 	ButtonLabel->SetText(FText::FromString(Option.ButtonName));
 	MenuButton->OnClicked.AddDynamic(this, &UContextMenuButton::OnMenuButtonClicked);
-}
-
-// Executes the option's OnClicked delegate when the button is pressed.
-void UContextMenuButton::OnMenuButtonClicked()
-{
-	Option.OnClicked.ExecuteIfBound();
 }

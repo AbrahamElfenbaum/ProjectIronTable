@@ -1,7 +1,9 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "RichTextArea.h"
-#include "RichTextDocument.h"
+
 #include "Fonts/FontMeasure.h"
+
+#include "RichTextDocument.h"
 
 // Stores the document reference for use during painting.
 void SRichTextArea::Construct(const FArguments& InArgs)
@@ -106,7 +108,6 @@ int32 SRichTextArea::OnPaint(const FPaintArgs& InArgs, const FGeometry& InAllott
 					}
 				}
 
-				//Draw Cursor
 				FVector2f CursorPos = GetCursorPosition(*Document, *CursorPosition, TabSpace, InAllottedGeometry.Scale);
 				FSlateDrawElement::MakeLines(InOutDrawElements, InLayerId,
 					InAllottedGeometry.ToPaintGeometry(),
@@ -153,7 +154,7 @@ FVector2f SRichTextArea::GetCursorPosition(const FRichTextDocument& InDocument, 
 
 	int32 CharCount = 0;
 
-	for (FString Line : Lines)
+	for (const FString& Line : Lines)
 	{
 		if (CharCount + Line.Len() >= InCursorPosition)
 		{
@@ -161,7 +162,7 @@ FVector2f SRichTextArea::GetCursorPosition(const FRichTextDocument& InDocument, 
 			Line.ParseIntoArray(LineSegments, TEXT("\t"), false);
 			float SegmentOffset = 0;
 			int32 SegCharCount = 0;
-			for (FString LineSegment : LineSegments)
+			for (const FString& LineSegment : LineSegments)
 			{
 				if (SegCharCount + LineSegment.Len() >= InCursorPosition - CharCount)
 				{

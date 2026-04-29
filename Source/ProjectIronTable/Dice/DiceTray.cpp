@@ -1,138 +1,17 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "DiceTray.h"
 
-#include "Kismet/KismetMathLibrary.h"
 #include "Components/Button.h"
+#include "Kismet/KismetMathLibrary.h"
 
 #include "DiceSelector.h"
 #include "DiceSpawnVolume.h"
-
-// Spawns and launches all selected dice, clearing leftover dice from the previous roll first.
-void UDiceTray::RollDice()
-{
-	if (!IsValid(SpawnVolume))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UDiceTray::RollDice � SpawnVolume is not set."));
-		bRollInProgress = false;
-		return;
-	}
-
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UDiceTray::RollDice � GetWorld() returned null."));
-		return;
-	}
-
-	// Cancel any pending destroy timer from a previous roll
-	World->GetTimerManager().ClearTimer(DestroyDiceTimerHandle);
-
-	// Destroy any dice still in the world from a previous roll
-	for (auto Dice : SpawnedDice)
-	{
-		if (IsValid(Dice))
-		{
-			Dice->Destroy();
-		}
-	}
-
-	OnRollInitiated.Broadcast();
-
-	// Clear arrays of any data from the previous roll
-	SpawnedDice.Empty();
-	PendingResults.Empty();
-	ExpectedDiceCount = 0;
-	bRollInProgress = true;
-
-	for (auto Selector : Selectors)
-	{
-		if (Selector->DiceCount > 0)
-		{
-			bool bAdvantageRoll = RollMode != EDiceRollMode::Normal;
-			int32 SpawnCount = (bAdvantageRoll) ? 2 : Selector->DiceCount;
-
-			for (int i = 0; i < SpawnCount; i++)
-			{
-				FRotator RandomRot = UKismetMathLibrary::RandomRotator(true);
-
-				FVector SpawnPoint = FMath::RandPointInBox(SpawnVolume->GetSpawnBox());
-
-				FTransform T(
-					FQuat(RandomRot),
-					SpawnPoint,
-					FVector::OneVector
-				);
-
-				//Spawn the die
-				ABaseDiceActor* SpawnedDie = World->SpawnActor<ABaseDiceActor>(Selector->DiceClass, T);
-
-				if (SpawnedDie)
-				{
-					//Add the spawned die to the array
-					SpawnedDice.Add(SpawnedDie);
-
-					//Increment the ExpectedDiceCount
-					ExpectedDiceCount++;
-
-					//Add delegate to wait until all dice have stopped moving before broadcasting the result
-					SpawnedDie->OnDiceRolled.AddDynamic(this, &UDiceTray::OnDiceRolledHandler);
-
-					//Failsafe delegate in case something goes wrong and the dice don't stop moving within a reasonable time frame
-					SpawnedDie->OnFailsafeDestroy.AddDynamic(this, &UDiceTray::OnDiceFailsafeHandler);
-				}
-			}
-
-			Selector->ResetCount();
-		}
-	}
-
-	if (!SpawnedDice.IsEmpty())
-	{
-		UpdateRollButtonState();
-		UpdateAdvantageButtonState();
-
-		for (auto Dice : SpawnedDice)
-		{
-			//Roll the dice
-			Dice->Roll(GetRandomizedVector(Impulse, ImpulseRange, false),
-				GetRandomizedVector(AngularImpulse, AngularImpulseRange, true));
-		}
-	}
-	else
-	{
-		bRollInProgress = false;
-		UpdateRollButtonState();
-		UpdateAdvantageButtonState();
-	}
-}
-
-// Populates selector and button arrays, binds all button delegates, and refreshes initial button states.
-void UDiceTray::NativeConstruct()
-{
-	Super::NativeConstruct();
-
-	Selectors = { D4, D6, D8, D10, D12, D20, D100 };
-	AdvantageButtons = { NormalRollButton, AdvantageRollButton, DisadvantageRollButton };
-	RollButton->OnClicked.AddDynamic(this, &UDiceTray::RollDice);
-	NormalRollButton->OnClicked.AddDynamic(this, &UDiceTray::OnNormalClicked);
-	AdvantageRollButton->OnClicked.AddDynamic(this, &UDiceTray::OnAdvantageClicked);
-	DisadvantageRollButton->OnClicked.AddDynamic(this, &UDiceTray::OnDisadvantageClicked);
-
-	for (auto Selector : Selectors)
-	{
-		Selector->OnCountChanged.AddDynamic(this, &UDiceTray::OnSelectorCountChanged);
-	}
-
-	UpdateRollButtonState();
-	UpdateAdvantageButtonState();
-}
 
 // Collects the result and broadcasts OnAllDiceRolled once all expected results have arrived.
 void UDiceTray::OnDiceRolledHandler(FRollResult Result)
 {
 	PendingResults.Add(Result);
 
-	// Check if all dice have finished rolling
 	if (PendingResults.Num() == ExpectedDiceCount)
 	{
 		if (RollMode != EDiceRollMode::Normal && PendingResults.Num() == 2)
@@ -154,14 +33,12 @@ void UDiceTray::OnDiceRolledHandler(FRollResult Result)
 		}
 		else
 		{
-			// Log each result to the output.
 			for (const FRollResult& RollResult : PendingResults)
 			{
 				FString DiceTypeName = UEnum::GetValueAsString(RollResult.DiceType);
 				UE_LOG(LogTemp, Display, TEXT("Type: %s | Value: %d"), *DiceTypeName, RollResult.Value);
 			}
 
-			// Broadcast all results at once
 			OnAllDiceRolled.Broadcast(PendingResults, RollMode);
 		}
 
@@ -169,7 +46,6 @@ void UDiceTray::OnDiceRolledHandler(FRollResult Result)
 		UpdateRollButtonState();
 		UpdateAdvantageButtonState();
 
-		//Destroy all spawned dice after a delay of TimeBeforeDestroyingDice seconds
 		if (UWorld* TimerWorld = GetWorld())
 		{
 			TimerWorld->GetTimerManager().SetTimer(
@@ -180,7 +56,6 @@ void UDiceTray::OnDiceRolledHandler(FRollResult Result)
 				false);
 		}
 
-		// Clear arrays for the next roll
 		PendingResults.Empty();
 		ExpectedDiceCount = 0;
 	}
@@ -335,4 +210,108 @@ FVector UDiceTray::GetRandomizedVector(const FVector& BaseVector, const float& R
 	return BaseVector + FVector(FMath::FRandRange(-Range, Range),
 		FMath::FRandRange(-Range, Range),
 		Z);
+}
+
+// Populates selector and button arrays, binds all button delegates, and refreshes initial button states.
+void UDiceTray::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	Selectors = { D4, D6, D8, D10, D12, D20, D100 };
+	AdvantageButtons = { NormalRollButton, AdvantageRollButton, DisadvantageRollButton };
+	RollButton->OnClicked.AddDynamic(this, &UDiceTray::RollDice);
+	NormalRollButton->OnClicked.AddDynamic(this, &UDiceTray::OnNormalClicked);
+	AdvantageRollButton->OnClicked.AddDynamic(this, &UDiceTray::OnAdvantageClicked);
+	DisadvantageRollButton->OnClicked.AddDynamic(this, &UDiceTray::OnDisadvantageClicked);
+
+	for (auto Selector : Selectors)
+	{
+		Selector->OnCountChanged.AddDynamic(this, &UDiceTray::OnSelectorCountChanged);
+	}
+
+	UpdateRollButtonState();
+	UpdateAdvantageButtonState();
+}
+
+// Spawns and launches all selected dice, clearing leftover dice from the previous roll first.
+void UDiceTray::RollDice()
+{
+	if (!IsValid(SpawnVolume))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UDiceTray::RollDice — SpawnVolume is not set."));
+		bRollInProgress = false;
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UDiceTray::RollDice — GetWorld() returned null."));
+		return;
+	}
+
+	World->GetTimerManager().ClearTimer(DestroyDiceTimerHandle);
+
+	for (auto Dice : SpawnedDice)
+	{
+		if (IsValid(Dice))
+		{
+			Dice->Destroy();
+		}
+	}
+
+	OnRollInitiated.Broadcast();
+
+	SpawnedDice.Empty();
+	PendingResults.Empty();
+	ExpectedDiceCount = 0;
+	bRollInProgress = true;
+
+	for (auto Selector : Selectors)
+	{
+		if (Selector->DiceCount > 0)
+		{
+			bool bAdvantageRoll = RollMode != EDiceRollMode::Normal;
+			int32 SpawnCount = (bAdvantageRoll) ? 2 : Selector->DiceCount;
+
+			for (int i = 0; i < SpawnCount; i++)
+			{
+				FRotator RandomRot = UKismetMathLibrary::RandomRotator(true);
+				FVector SpawnPoint = FMath::RandPointInBox(SpawnVolume->GetSpawnBox());
+				FTransform T(FQuat(RandomRot), SpawnPoint, FVector::OneVector);
+
+				ABaseDiceActor* SpawnedDie = World->SpawnActor<ABaseDiceActor>(Selector->DiceClass, T);
+
+				if (IsValid(SpawnedDie))
+				{
+					SpawnedDice.Add(SpawnedDie);
+					ExpectedDiceCount++;
+
+					// Failsafe delegate in case something goes wrong and the dice don't stop moving within a reasonable time frame
+					SpawnedDie->OnDiceRolled.AddDynamic(this, &UDiceTray::OnDiceRolledHandler);
+					SpawnedDie->OnFailsafeDestroy.AddDynamic(this, &UDiceTray::OnDiceFailsafeHandler);
+				}
+			}
+
+			Selector->ResetCount();
+		}
+	}
+
+	if (!SpawnedDice.IsEmpty())
+	{
+		UpdateRollButtonState();
+		UpdateAdvantageButtonState();
+
+		for (auto Dice : SpawnedDice)
+		{
+			Dice->Roll(GetRandomizedVector(Impulse, ImpulseRange, false),
+				GetRandomizedVector(AngularImpulse, AngularImpulseRange, true));
+		}
+	}
+	else
+	{
+		bRollInProgress = false;
+		UpdateRollButtonState();
+		UpdateAdvantageButtonState();
+	}
 }

@@ -4,9 +4,7 @@
 #include "BaseChannelListEntry.h"
 #include "SessionNotesChannelListEntry.generated.h"
 
-/**
- * 
- */
+/** Closed-channel list entry for notes channels. Inherits all behavior from UBaseChannelListEntry. */
 UCLASS()
 class PROJECTIRONTABLE_API USessionNotesChannelListEntry : public UBaseChannelListEntry
 {

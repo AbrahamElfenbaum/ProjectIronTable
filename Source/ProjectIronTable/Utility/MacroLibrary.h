@@ -4,7 +4,7 @@
 /** Retrieves the typed outer of Type, assigns it to VarName, and returns ReturnVal if the outer is invalid. */
 #define GET_OUTER(Type, VarName, ReturnVal) \
         Type* VarName = GetTypedOuter<Type>(); \
-        if (!IsValid(VarName)) { UE_LOG(LogTemp, Warning, TEXT("%hs � outer " #Type " is null"), __FUNCTION__); return ReturnVal; }
+        if (!IsValid(VarName)) { UE_LOG(LogTemp, Warning, TEXT("%hs — outer " #Type " is null"), __FUNCTION__); return ReturnVal; }
 
 /** Casts GetOwningPlayer() to APlayerController, assigns it to VarName, and returns ReturnVal if the cast or validity check fails. */
 #define GET_OWNING_PC(VarName, ReturnVal) \

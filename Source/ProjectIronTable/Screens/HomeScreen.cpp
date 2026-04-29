@@ -4,35 +4,6 @@
 #include "Components/Button.h"
 #include "Kismet/KismetSystemLibrary.h"
 
-// Binds all button click delegates.
-void UHomeScreen::Init()
-{
-	if (CampaignManagerButton)
-	{
-		CampaignManagerButton->OnClicked.AddDynamic(this, &UHomeScreen::OnCampaignManagerClicked);
-	}
-
-	if (CampaignBrowserButton)
-	{
-		CampaignBrowserButton->OnClicked.AddDynamic(this, &UHomeScreen::OnCampaignBrowserClicked);
-	}
-
-	if (AssetLibraryButton)
-	{
-		AssetLibraryButton->OnClicked.AddDynamic(this, &UHomeScreen::OnAssetLibraryClicked);
-	}
-
-	if (SettingsButton)
-	{
-		SettingsButton->OnClicked.AddDynamic(this, &UHomeScreen::OnSettingsClicked);
-	}
-
-	if (QuitButton)
-	{
-		QuitButton->OnClicked.AddDynamic(this, &UHomeScreen::OnQuitClicked);
-	}
-}
-
 // Broadcasts OnCampaignManagerRequested.
 void UHomeScreen::OnCampaignManagerClicked()
 {
@@ -61,4 +32,33 @@ void UHomeScreen::OnSettingsClicked()
 void UHomeScreen::OnQuitClicked()
 {
 	UKismetSystemLibrary::QuitGame(this, nullptr, EQuitPreference::Quit, false);
+}
+
+// Binds all button click delegates.
+void UHomeScreen::Init()
+{
+	if (CampaignManagerButton)
+	{
+		CampaignManagerButton->OnClicked.AddDynamic(this, &UHomeScreen::OnCampaignManagerClicked);
+	}
+
+	if (CampaignBrowserButton)
+	{
+		CampaignBrowserButton->OnClicked.AddDynamic(this, &UHomeScreen::OnCampaignBrowserClicked);
+	}
+
+	if (AssetLibraryButton)
+	{
+		AssetLibraryButton->OnClicked.AddDynamic(this, &UHomeScreen::OnAssetLibraryClicked);
+	}
+
+	if (SettingsButton)
+	{
+		SettingsButton->OnClicked.AddDynamic(this, &UHomeScreen::OnSettingsClicked);
+	}
+
+	if (QuitButton)
+	{
+		QuitButton->OnClicked.AddDynamic(this, &UHomeScreen::OnQuitClicked);
+	}
 }

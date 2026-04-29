@@ -33,58 +33,6 @@ class PROJECTIRONTABLE_API UDiceTray : public UUserWidget
 {
 	GENERATED_BODY()
 
-public:
-
-#pragma region Config
-	/** The spawn volume actor that defines where dice are placed in the world. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dice")
-	TObjectPtr<ADiceSpawnVolume> SpawnVolume;
-
-	/** Base direction and magnitude for the launch impulse applied to each die. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
-	FVector Impulse = {3000.f, 3000.f, 0.f};
-
-	/** Half-range of random noise added to the impulse on each axis. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
-	float ImpulseRange = 100.f;
-
-	/** Base direction and magnitude for the angular impulse applied to each die. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
-	FVector AngularImpulse = {500.f, 500.f, 500.f};
-
-	/** Half-range of random noise added to the angular impulse on each axis. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
-	float AngularImpulseRange = 200.f;
-
-	/** Seconds to wait after all dice settle before destroying them. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
-	float TimeBeforeDestroyingDice = 5.0f;
-#pragma endregion
-
-#pragma region Public Methods
-	/** Spawns and launches all queued dice according to the current selectors and roll mode. */
-	UFUNCTION(BlueprintCallable)
-	void RollDice();
-#pragma endregion
-
-#pragma region Events
-	/** Fired once every spawned die has settled and results are available. */
-	UPROPERTY(BlueprintAssignable, Category = "Dice")
-	FOnAllDiceRolled OnAllDiceRolled;
-
-	/** Fired when any individual die is destroyed by its failsafe timer. */
-	UPROPERTY(BlueprintAssignable, Category = "Dice")
-	FOnDiceFailsafeDestroyed OnDiceFailsafeDestroyed;
-
-	/** Fired when a roll is initiated, before any dice are spawned. Used to send a private roll message if recipients are in the chat input. */
-	UPROPERTY(BlueprintAssignable, Category = "Dice")
-	FOnRollInitiated OnRollInitiated;
-#pragma endregion
-
-protected:
-	/** Populates selector and button arrays, binds all button delegates, and refreshes initial button states. */
-	virtual void NativeConstruct() override;
-
 private:
 
 #pragma region Widget References
@@ -163,6 +111,50 @@ private:
 	bool bRollInProgress = false;
 #pragma endregion
 
+public:
+
+#pragma region Config
+	/** The spawn volume actor that defines where dice are placed in the world. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dice")
+	TObjectPtr<ADiceSpawnVolume> SpawnVolume;
+
+	/** Base direction and magnitude for the launch impulse applied to each die. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
+	FVector Impulse = {3000.f, 3000.f, 0.f};
+
+	/** Half-range of random noise added to the impulse on each axis. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
+	float ImpulseRange = 100.f;
+
+	/** Base direction and magnitude for the angular impulse applied to each die. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
+	FVector AngularImpulse = {500.f, 500.f, 500.f};
+
+	/** Half-range of random noise added to the angular impulse on each axis. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
+	float AngularImpulseRange = 200.f;
+
+	/** Seconds to wait after all dice settle before destroying them. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
+	float TimeBeforeDestroyingDice = 5.0f;
+#pragma endregion
+
+#pragma region Events
+	/** Fired once every spawned die has settled and results are available. */
+	UPROPERTY(BlueprintAssignable, Category = "Dice")
+	FOnAllDiceRolled OnAllDiceRolled;
+
+	/** Fired when any individual die is destroyed by its failsafe timer. */
+	UPROPERTY(BlueprintAssignable, Category = "Dice")
+	FOnDiceFailsafeDestroyed OnDiceFailsafeDestroyed;
+
+	/** Fired when a roll is initiated, before any dice are spawned. Used to send a private roll message if recipients are in the chat input. */
+	UPROPERTY(BlueprintAssignable, Category = "Dice")
+	FOnRollInitiated OnRollInitiated;
+#pragma endregion
+
+private:
+
 #pragma region Event Handlers
 	/** Collects a result and broadcasts OnAllDiceRolled when all expected results are in. */
 	UFUNCTION()
@@ -202,5 +194,18 @@ private:
 
 	/** Returns the base vector with a uniform random offset applied to each axis within Range. Z is only randomized when bUseZAxis is true. */
 	FVector GetRandomizedVector(const FVector& BaseVector, const float& Range, bool bUseZAxis);
+#pragma endregion
+
+protected:
+
+	/** Populates selector and button arrays, binds all button delegates, and refreshes initial button states. */
+	virtual void NativeConstruct() override;
+
+public:
+
+#pragma region Public Methods
+	/** Spawns and launches all queued dice according to the current selectors and roll mode. */
+	UFUNCTION(BlueprintCallable)
+	void RollDice();
 #pragma endregion
 };

@@ -14,11 +14,12 @@ struct PROJECTIRONTABLE_API FRichTextDocument
 	UPROPERTY()
 	TArray<FRichTextRun> Runs;
 
+	/** Concatenates all run text into a single string for full-document operations such as cursor math and line parsing. */
 	FString GetFullText() const
 	{
 		FString FullText;
 
-		for (FRichTextRun Run : Runs)
+		for (const FRichTextRun& Run : Runs)
 		{
 			FullText.Append(Run.Text);
 		}

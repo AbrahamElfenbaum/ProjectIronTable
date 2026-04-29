@@ -1,176 +1,18 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "SessionController.h"
 
-#include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "InputMappingContext.h"
+#include "GameFramework/SpringArmComponent.h"
 #include "InputAction.h"
+#include "InputMappingContext.h"
 #include "Kismet/GameplayStatics.h"
 
-#include "SessionChatComponent.h"
-#include "SessionUIComponent.h"
-#include "SessionPawn.h"
 #include "CameraSettingsSave.h"
 #include "MacroLibrary.h"
-
-// Creates and attaches the UI and chat component subobjects.
-ASessionController::ASessionController()
-{
-	UIComponent = CreateDefaultSubobject<USessionUIComponent>(TEXT("UIComponent"));
-	ChatComponent = CreateDefaultSubobject<USessionChatComponent>(TEXT("ChatComponent"));
-}
-
-// Clamps all camera config properties to valid ranges; shared between editor validation and runtime apply.
-void ASessionController::ValidateCameraSettings()
-{
-	MinCameraMovementSpeed = FMath::Max(MinCameraMovementSpeed, 0.1f);
-	MaxCameraMovementSpeed = FMath::Max(MaxCameraMovementSpeed, 0.1f);
-	if (MinCameraMovementSpeed >= MaxCameraMovementSpeed)
-		MaxCameraMovementSpeed = MinCameraMovementSpeed + 1.f;
-
-	MinZoomLength = FMath::Max(MinZoomLength, 1.f);
-	MaxZoomLength = FMath::Max(MaxZoomLength, 1.f);
-	if (MinZoomLength >= MaxZoomLength)
-		MaxZoomLength = MinZoomLength + 100.f;
-
-	ZoomSpeed = FMath::Max(ZoomSpeed, 1.f);
-	CameraPanSpeedMultiplier = FMath::Max(CameraPanSpeedMultiplier, 0.1f);
-	CameraSpeedMultiplier = FMath::Max(CameraSpeedMultiplier, 0.1f);
-
-	if (MinCameraPitch >= MaxCameraPitch)
-		MaxCameraPitch = MinCameraPitch + 1.f;
-}
-
-// Copies all values from the save object into camera config properties, then validates.
-void ASessionController::ApplyCameraSettings(const UCameraSettingsSave* Settings)
-{
-	if (!Settings)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ASessionController::ApplyCameraSettings — Settings was null"));
-		return;
-	}
-
-	MinCameraMovementSpeed = Settings->MinCameraMovementSpeed;
-	MaxCameraMovementSpeed = Settings->MaxCameraMovementSpeed;
-	CameraSpeedMultiplier = Settings->CameraSpeedMultiplier;
-	MinCameraPitch = Settings->MinCameraPitch;
-	MaxCameraPitch = Settings->MaxCameraPitch;
-	CameraPanSpeedMultiplier = Settings->CameraPanSpeedMultiplier;
-	MinZoomLength = Settings->MinZoomLength;
-	MaxZoomLength = Settings->MaxZoomLength;
-	ZoomSpeed = Settings->ZoomSpeed;
-
-	ValidateCameraSettings();
-}
-
-// Creates a new save object, writes current camera config values into it, and saves to slot "CameraSettings".
-void ASessionController::SaveCameraSettings()
-{
-	UCameraSettingsSave* Save = NewObject<UCameraSettingsSave>();
-	CHECK_IF_VALID(Save, );
-	Save->MinCameraMovementSpeed = MinCameraMovementSpeed;
-	Save->MaxCameraMovementSpeed = MaxCameraMovementSpeed;
-	Save->CameraSpeedMultiplier = CameraSpeedMultiplier;
-	Save->MinCameraPitch = MinCameraPitch;
-	Save->MaxCameraPitch = MaxCameraPitch;
-	Save->CameraPanSpeedMultiplier = CameraPanSpeedMultiplier;
-	Save->MinZoomLength = MinZoomLength;
-	Save->MaxZoomLength = MaxZoomLength;
-	Save->ZoomSpeed = ZoomSpeed;
-
-	UGameplayStatics::SaveGameToSlot(Save, UCameraSettingsSave::SaveSlotName, 0);
-}
-
-// Validates the world reference and calls ServerTravel with the provided URL.
-void ASessionController::Server_TravelToSession_Implementation(const FString& TravelURL)
-{
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ASessionController::Server_TravelToSession — GetWorld() returned null."));
-		return;
-	}
-
-	World->ServerTravel(TravelURL);
-}
-
-// Caches the pawn reference, registers the session input context, and binds all input actions.
-void ASessionController::OnPossess(APawn* InPawn)
-{
-	Super::OnPossess(InPawn);
-	SessionPawnRef = Cast<ASessionPawn>(InPawn);
-
-	if (IsLocalController())
-	{
-		ULocalPlayer* LP = GetLocalPlayer();
-		if (IsValid(LP))
-		{
-			InputSubsystemRef = LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
-			if (IsValid(InputSubsystemRef))
-			{
-				InputSubsystemRef->AddMappingContext(IMC_Session, 0);
-			}
-		}
-
-		if (UEnhancedInputComponent* EIC = Cast<UEnhancedInputComponent>(InputComponent))
-		{
-			EIC->BindAction(IA_CameraMove, ETriggerEvent::Triggered, this, &ASessionController::Input_CameraMove);
-			EIC->BindAction(IA_CameraPan, ETriggerEvent::Triggered, this, &ASessionController::Input_CameraPan);
-			EIC->BindAction(IA_CameraPan, ETriggerEvent::Started, this, &ASessionController::Input_CameraPan);
-			EIC->BindAction(IA_CameraPan, ETriggerEvent::Completed, this, &ASessionController::Input_CameraPan);
-			EIC->BindAction(IA_CameraPanReset, ETriggerEvent::Triggered, this, &ASessionController::Input_CameraPanReset);
-			EIC->BindAction(IA_CameraSprint, ETriggerEvent::Triggered, this, &ASessionController::Input_CameraSprint);
-			EIC->BindAction(IA_CameraSprint, ETriggerEvent::Completed, this, &ASessionController::Input_CameraSprint);
-			EIC->BindAction(IA_CameraZoom, ETriggerEvent::Triggered, this, &ASessionController::Input_CameraZoom);
-			EIC->BindAction(IA_FocusChat, ETriggerEvent::Triggered, this, &ASessionController::Input_FocusChat);
-			EIC->BindAction(IA_ExitChat, ETriggerEvent::Triggered, this, &ASessionController::Input_ExitChat);
-			EIC->BindAction(IA_ScrollChat, ETriggerEvent::Triggered, this, &ASessionController::Input_ScrollChat);
-		}
-	}
-}
-
-// Sets input mode and cursor, then loads and applies saved camera settings if a save exists.
-void ASessionController::BeginPlay()
-{
-	Super::BeginPlay();
-	bShowMouseCursor = true;
-	FInputModeGameAndUI InputMode;
-	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-	SetInputMode(InputMode);
-
-	UIComponent->Init();
-	ChatComponent->Init();
-
-	if (UGameplayStatics::DoesSaveGameExist(UCameraSettingsSave::SaveSlotName, 0))
-	{
-		UCameraSettingsSave* LoadedSettings = Cast<UCameraSettingsSave>(UGameplayStatics::LoadGameFromSlot(UCameraSettingsSave::SaveSlotName, 0));
-		CHECK_IF_VALID(LoadedSettings, );
-		ApplyCameraSettings(LoadedSettings);
-	}
-}
-
-#if WITH_EDITOR
-// Delegates to ValidateCameraSettings so editor and runtime share the same validation logic.
-void ASessionController::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-	ValidateCameraSettings();
-}
-#endif
-
-// Returns movement speed proportional to spring arm length, clamped between min and max.
-float ASessionController::CalculateCameraMovementSpeed() const
-{
-	if (IsValid(SessionPawnRef))
-	{
-		return FMath::Clamp(SessionPawnRef->SpringArm->TargetArmLength / 100.f,
-							MinCameraMovementSpeed,
-							MaxCameraMovementSpeed);
-	}
-
-	return 10.f;
-}
+#include "SessionChatComponent.h"
+#include "SessionPawn.h"
+#include "SessionUIComponent.h"
 
 // Translates the pawn along the XY plane using the scaled movement speed.
 void ASessionController::Input_CameraMove(const FInputActionValue& Value)
@@ -251,6 +93,163 @@ void ASessionController::Input_ExitChat()
 void ASessionController::Input_ScrollChat(const FInputActionValue& Value)
 {
 	float ScrollInput = Value.Get<float>();
-
 	if (IsValid(ChatComponent)) ChatComponent->ScrollChat(ScrollInput > 0);
+}
+
+// Caches the pawn reference, registers the session input context, and binds all input actions.
+void ASessionController::OnPossess(APawn* InPawn)
+{
+	Super::OnPossess(InPawn);
+	SessionPawnRef = Cast<ASessionPawn>(InPawn);
+
+	if (IsLocalController())
+	{
+		ULocalPlayer* LP = GetLocalPlayer();
+		if (IsValid(LP))
+		{
+			InputSubsystemRef = LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
+			if (IsValid(InputSubsystemRef))
+			{
+				InputSubsystemRef->AddMappingContext(IMC_Session, 0);
+			}
+		}
+
+		if (UEnhancedInputComponent* EIC = Cast<UEnhancedInputComponent>(InputComponent))
+		{
+			EIC->BindAction(IA_CameraMove, ETriggerEvent::Triggered, this, &ASessionController::Input_CameraMove);
+			EIC->BindAction(IA_CameraPan, ETriggerEvent::Triggered, this, &ASessionController::Input_CameraPan);
+			EIC->BindAction(IA_CameraPan, ETriggerEvent::Started, this, &ASessionController::Input_CameraPan);
+			EIC->BindAction(IA_CameraPan, ETriggerEvent::Completed, this, &ASessionController::Input_CameraPan);
+			EIC->BindAction(IA_CameraPanReset, ETriggerEvent::Triggered, this, &ASessionController::Input_CameraPanReset);
+			EIC->BindAction(IA_CameraSprint, ETriggerEvent::Triggered, this, &ASessionController::Input_CameraSprint);
+			EIC->BindAction(IA_CameraSprint, ETriggerEvent::Completed, this, &ASessionController::Input_CameraSprint);
+			EIC->BindAction(IA_CameraZoom, ETriggerEvent::Triggered, this, &ASessionController::Input_CameraZoom);
+			EIC->BindAction(IA_FocusChat, ETriggerEvent::Triggered, this, &ASessionController::Input_FocusChat);
+			EIC->BindAction(IA_ExitChat, ETriggerEvent::Triggered, this, &ASessionController::Input_ExitChat);
+			EIC->BindAction(IA_ScrollChat, ETriggerEvent::Triggered, this, &ASessionController::Input_ScrollChat);
+		}
+	}
+}
+
+// Sets input mode and cursor, then loads and applies saved camera settings if a save exists.
+void ASessionController::BeginPlay()
+{
+	Super::BeginPlay();
+	bShowMouseCursor = true;
+	FInputModeGameAndUI InputMode;
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(InputMode);
+
+	UIComponent->Init();
+	ChatComponent->Init();
+
+	if (UGameplayStatics::DoesSaveGameExist(UCameraSettingsSave::SaveSlotName, 0))
+	{
+		UCameraSettingsSave* LoadedSettings = Cast<UCameraSettingsSave>(UGameplayStatics::LoadGameFromSlot(UCameraSettingsSave::SaveSlotName, 0));
+		CHECK_IF_VALID(LoadedSettings, );
+		ApplyCameraSettings(LoadedSettings);
+	}
+}
+
+#if WITH_EDITOR
+// Delegates to ValidateCameraSettings so editor and runtime share the same validation logic.
+void ASessionController::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+	ValidateCameraSettings();
+}
+#endif
+
+// Returns movement speed proportional to spring arm length, clamped between min and max.
+float ASessionController::CalculateCameraMovementSpeed() const
+{
+	if (IsValid(SessionPawnRef))
+	{
+		return FMath::Clamp(SessionPawnRef->SpringArm->TargetArmLength / 100.f,
+							MinCameraMovementSpeed,
+							MaxCameraMovementSpeed);
+	}
+
+	return 10.f;
+}
+
+// Creates and attaches the UI and chat component subobjects.
+ASessionController::ASessionController()
+{
+	UIComponent = CreateDefaultSubobject<USessionUIComponent>(TEXT("UIComponent"));
+	ChatComponent = CreateDefaultSubobject<USessionChatComponent>(TEXT("ChatComponent"));
+}
+
+// Clamps all camera config properties to valid ranges; shared between editor validation and runtime apply.
+void ASessionController::ValidateCameraSettings()
+{
+	MinCameraMovementSpeed = FMath::Max(MinCameraMovementSpeed, 0.1f);
+	MaxCameraMovementSpeed = FMath::Max(MaxCameraMovementSpeed, 0.1f);
+	if (MinCameraMovementSpeed >= MaxCameraMovementSpeed)
+		MaxCameraMovementSpeed = MinCameraMovementSpeed + 1.f;
+
+	MinZoomLength = FMath::Max(MinZoomLength, 1.f);
+	MaxZoomLength = FMath::Max(MaxZoomLength, 1.f);
+	if (MinZoomLength >= MaxZoomLength)
+		MaxZoomLength = MinZoomLength + 100.f;
+
+	ZoomSpeed = FMath::Max(ZoomSpeed, 1.f);
+	CameraPanSpeedMultiplier = FMath::Max(CameraPanSpeedMultiplier, 0.1f);
+	CameraSpeedMultiplier = FMath::Max(CameraSpeedMultiplier, 0.1f);
+
+	if (MinCameraPitch >= MaxCameraPitch)
+		MaxCameraPitch = MinCameraPitch + 1.f;
+}
+
+// Copies all values from the save object into camera config properties, then validates.
+void ASessionController::ApplyCameraSettings(const UCameraSettingsSave* Settings)
+{
+	if (!Settings)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ASessionController::ApplyCameraSettings — Settings was null"));
+		return;
+	}
+
+	MinCameraMovementSpeed = Settings->MinCameraMovementSpeed;
+	MaxCameraMovementSpeed = Settings->MaxCameraMovementSpeed;
+	CameraSpeedMultiplier = Settings->CameraSpeedMultiplier;
+	MinCameraPitch = Settings->MinCameraPitch;
+	MaxCameraPitch = Settings->MaxCameraPitch;
+	CameraPanSpeedMultiplier = Settings->CameraPanSpeedMultiplier;
+	MinZoomLength = Settings->MinZoomLength;
+	MaxZoomLength = Settings->MaxZoomLength;
+	ZoomSpeed = Settings->ZoomSpeed;
+
+	ValidateCameraSettings();
+}
+
+// Creates a new save object, writes current camera config values into it, and saves to slot "CameraSettings".
+void ASessionController::SaveCameraSettings()
+{
+	UCameraSettingsSave* Save = NewObject<UCameraSettingsSave>();
+	CHECK_IF_VALID(Save, );
+	Save->MinCameraMovementSpeed = MinCameraMovementSpeed;
+	Save->MaxCameraMovementSpeed = MaxCameraMovementSpeed;
+	Save->CameraSpeedMultiplier = CameraSpeedMultiplier;
+	Save->MinCameraPitch = MinCameraPitch;
+	Save->MaxCameraPitch = MaxCameraPitch;
+	Save->CameraPanSpeedMultiplier = CameraPanSpeedMultiplier;
+	Save->MinZoomLength = MinZoomLength;
+	Save->MaxZoomLength = MaxZoomLength;
+	Save->ZoomSpeed = ZoomSpeed;
+
+	UGameplayStatics::SaveGameToSlot(Save, UCameraSettingsSave::SaveSlotName, 0);
+}
+
+// Validates the world reference and calls ServerTravel with the provided URL.
+void ASessionController::Server_TravelToSession_Implementation(const FString& TravelURL)
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ASessionController::Server_TravelToSession — GetWorld() returned null."));
+		return;
+	}
+
+	World->ServerTravel(TravelURL);
 }

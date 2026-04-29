@@ -13,13 +13,6 @@ class PROJECTIRONTABLE_API UCameraSettingsPanel : public UUserWidget
 {
 	GENERATED_BODY()
 
-public:
-
-#pragma region Public Methods
-	/** Populates the sliders array, binds button delegates, and loads saved camera settings (or resets to defaults if no save exists). */
-	void Init();
-#pragma endregion
-
 private:
 
 #pragma region Widget References
@@ -82,5 +75,12 @@ private:
 	/** Resets all sliders to defaults then calls OnApplyClicked to save. */
 	UFUNCTION()
 	void OnResetClicked();
+#pragma endregion
+
+public:
+
+#pragma region Public Methods
+	/** Populates the sliders array, binds button delegates, and loads saved camera settings (or resets to defaults if no save exists). */
+	void Init();
 #pragma endregion
 };

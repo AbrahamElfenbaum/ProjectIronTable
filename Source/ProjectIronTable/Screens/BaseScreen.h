@@ -13,23 +13,6 @@ class PROJECTIRONTABLE_API UBaseScreen : public UUserWidget
 {
 	GENERATED_BODY()
 
-public:
-
-#pragma region Events
-	/** Fired when the back button is clicked; parent should return to the home screen. */
-	UPROPERTY(BlueprintAssignable)
-	FOnBackRequested OnBackRequested;
-#pragma endregion
-
-#pragma region Public Methods
-	/** Override in subclasses to perform screen-specific setup. */
-	virtual void Init() {}
-#pragma endregion
-
-protected:
-	/** Binds the back button click delegate. */
-	virtual void NativeConstruct() override;
-
 private:
 
 #pragma region Widget References
@@ -38,9 +21,31 @@ private:
 	TObjectPtr<UButton> BackButton;
 #pragma endregion
 
+public:
+
+#pragma region Events
+	/** Fired when the back button is clicked; parent should return to the home screen. */
+	UPROPERTY(BlueprintAssignable)
+	FOnBackRequested OnBackRequested;
+#pragma endregion
+
+private:
+
 #pragma region Event Handlers
 	/** Broadcasts OnBackRequested to signal the parent to return to the home screen. */
 	UFUNCTION()
 	void OnBackClicked();
+#pragma endregion
+
+protected:
+
+	/** Binds the back button click delegate. */
+	virtual void NativeConstruct() override;
+
+public:
+
+#pragma region Public Methods
+	/** Override in subclasses to perform screen-specific setup. */
+	virtual void Init() {}
 #pragma endregion
 };

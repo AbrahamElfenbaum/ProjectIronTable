@@ -24,51 +24,7 @@ class PROJECTIRONTABLE_API UBaseChannelTab : public UUserWidget
 {
 	GENERATED_BODY()
 
-public:
-
-#pragma region Events
-	/** Fired when the tab button is clicked. */
-	UPROPERTY(BlueprintAssignable)
-	FOnTabClicked OnTabClicked;
-
-	/** Fired when the tab button is right-clicked. */
-	UPROPERTY(BlueprintAssignable)
-	FOnTabRightClicked OnTabRightClicked;
-
-	/** Fired when the tab is renamed by the user. */
-	UPROPERTY(BlueprintAssignable)
-	FOnTabRenamed OnTabRenamed;
-#pragma endregion
-
-#pragma region Public Methods
-	/** Returns the channel this tab represents. */
-	UBaseChannel* GetChannel() const;
-
-	/** Assigns the channel this tab represents. */
-	void SetChannel(UBaseChannel* InChannel);
-
-	/** Updates the displayed tab label text. */
-	void SetLabel(const FString& Label);
-
-	/** Makes the notification indicator visible. */
-	void ShowNotification();
-
-	/** Hides the notification indicator. */
-	void ClearNotification();
-
-	/** Enables or disables the tab button — used to prevent clicking the active tab. */
-	void SetInteractable(bool bInteractable);
-
-	/** Shows the editable text field and hides the label, placing focus on the field for immediate input. */
-	void EnterRenameMode();
-#pragma endregion
-
-protected:
-	/** Binds tab button and rename field delegates. */
-	virtual void NativeConstruct() override;
-
-	/** Detects right-click to broadcast OnTabRightClicked; left-click falls through to Super. */
-	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+private:
 
 #pragma region Widget References
 	/** Button the player clicks to switch to this channel. */
@@ -94,6 +50,22 @@ protected:
 	TObjectPtr<UBaseChannel> Channel;
 #pragma endregion
 
+public:
+
+#pragma region Events
+	/** Fired when the tab button is clicked. */
+	UPROPERTY(BlueprintAssignable)
+	FOnTabClicked OnTabClicked;
+
+	/** Fired when the tab button is right-clicked. */
+	UPROPERTY(BlueprintAssignable)
+	FOnTabRightClicked OnTabRightClicked;
+
+	/** Fired when the tab is renamed by the user. */
+	UPROPERTY(BlueprintAssignable)
+	FOnTabRenamed OnTabRenamed;
+#pragma endregion
+
 private:
 
 #pragma region Event Handlers
@@ -108,5 +80,38 @@ private:
 	/** Broadcasts OnTabRenamed with this tab as the parameter. */
 	UFUNCTION()
 	void OnTabRenamedCompleted(const FText& Text, ETextCommit::Type CommitMethod);
+#pragma endregion
+
+protected:
+
+	/** Binds tab button and rename field delegates. */
+	virtual void NativeConstruct() override;
+
+	/** Detects right-click to broadcast OnTabRightClicked; left-click falls through to Super. */
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
+public:
+
+#pragma region Public Methods
+	/** Returns the channel this tab represents. */
+	UBaseChannel* GetChannel() const;
+
+	/** Assigns the channel this tab represents. */
+	void SetChannel(UBaseChannel* InChannel);
+
+	/** Updates the displayed tab label text. */
+	void SetLabel(const FString& Label);
+
+	/** Makes the notification indicator visible. */
+	void ShowNotification();
+
+	/** Hides the notification indicator. */
+	void ClearNotification();
+
+	/** Enables or disables the tab button — used to prevent clicking the active tab. */
+	void SetInteractable(bool bInteractable);
+
+	/** Shows the editable text field and hides the label, placing focus on the field for immediate input. */
+	void EnterRenameMode();
 #pragma endregion
 };

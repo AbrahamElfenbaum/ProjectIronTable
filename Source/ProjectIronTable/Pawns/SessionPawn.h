@@ -15,20 +15,20 @@ class PROJECTIRONTABLE_API ASessionPawn : public APawn
 
 public:
 
-	/** Sets up component hierarchy with root, sphere, spring arm, and camera. */
-	ASessionPawn();
-
 #pragma region Components
 	/** Invisible sphere mesh used as the pawn root for movement. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Components)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components)
 	TObjectPtr<UStaticMeshComponent> Sphere;
 
 	/** Spring arm that controls camera distance and pitch. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Components)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components)
 	TObjectPtr<USpringArmComponent> SpringArm;
 
 	/** The gameplay camera attached to the spring arm. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Components)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components)
 	TObjectPtr<UCameraComponent> Camera;
 #pragma endregion
+
+	/** Sets up component hierarchy with root, sphere, spring arm, and camera. */
+	ASessionPawn();
 };

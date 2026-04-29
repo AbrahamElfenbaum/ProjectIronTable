@@ -14,6 +14,22 @@ class PROJECTIRONTABLE_API USettingsSlider : public UUserWidget
 {
 	GENERATED_BODY()
 
+private:
+
+#pragma region Widget References
+	/** Displays the title label. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> TitleText;
+
+	/** The slider widget. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<USlider> ValueSlider;
+
+	/** Editable text field that mirrors the slider value. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UEditableText> ValueText;
+#pragma endregion
+
 public:
 
 #pragma region Config
@@ -46,35 +62,11 @@ public:
 	bool bIsMin;
 #pragma endregion
 
-#pragma region Public Methods
-	/** Returns the current slider value. */
-	float GetValue() const;
-
-	/** Sets the slider and text to the given value without triggering paired clamping. */
-	void SetValue(float Value);
-
-	/** Resets the slider to DefaultValue. */
-	void ResetToDefault();
-#pragma endregion
-
-protected:
-	/** Applies config to widgets and binds slider and text delegates. */
-	virtual void NativeConstruct() override;
-
 private:
 
-#pragma region Widget References
-	/** Displays the title label. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> TitleText;
-
-	/** The slider widget. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<USlider> ValueSlider;
-
-	/** Editable text field that mirrors the slider value. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UEditableText> ValueText;
+#pragma region Private Methods
+	/** Returns Value clamped relative to the paired slider's value, or unchanged if no pair is set. */
+	float ClampToPair(float Value);
 #pragma endregion
 
 #pragma region Event Handlers
@@ -87,8 +79,21 @@ private:
 	void OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod);
 #pragma endregion
 
-#pragma region Private Methods
-	/** Returns Value clamped relative to the paired slider's value, or unchanged if no pair is set. */
-	float ClampToPair(float Value);
+protected:
+
+	/** Applies config to widgets and binds slider and text delegates. */
+	virtual void NativeConstruct() override;
+
+public:
+
+#pragma region Public Methods
+	/** Returns the current slider value. */
+	float GetValue() const;
+
+	/** Sets the slider and text to the given value without triggering paired clamping. */
+	void SetValue(float Value);
+
+	/** Resets the slider to DefaultValue. */
+	void ResetToDefault();
 #pragma endregion
 };

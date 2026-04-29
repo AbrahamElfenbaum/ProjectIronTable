@@ -1,55 +1,69 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "SessionNotesPanel.h"
 
-#include "Components/MultiLineEditableText.h"
+#include "Kismet/GameplayStatics.h"
 
 #include "BaseChannel.h"
+#include "BaseChannelTab.h"
+#include "EditableRichText.h"
+#include "FunctionLibrary.h"
+#include "MacroLibrary.h"
+#include "SessionInstance.h"
 #include "SessionNotesChannel.h"
+#include "SessionSave.h"
 
-// Creates a new notes channel, assigns a GUID, and wires it via Super. Stub — pending full implementation.
-UBaseChannel* USessionNotesPanel::CreateChannel(const TArray<FString>& Participants)
-{
-	return nullptr;
-}
-
-// Returns a display label for the new notes tab. Stub — pending numbering logic.
+// Returns "Notes" for the first tab, or "Notes N" where N is Channels.Num() + 1 for subsequent tabs.
 FString USessionNotesPanel::CreateTabLabel(const TArray<FString>& Participants) const
 {
-	return FString();
+	if (Channels.IsEmpty())
+	{
+		return TEXT("Notes");
+	}
+	return FString::Printf(TEXT("Notes %d"), Channels.Num() + 1);
 }
 
-// Persists the newly created tab's GUID and label to USessionSave. Stub — pending implementation.
+// No-op — save is handled directly in CreateChannel.
 void USessionNotesPanel::SaveCreatedTab()
 {
 }
 
-// Updates the saved tab label in USessionSave on rename. Stub — pending implementation.
+// Casts the tab's channel to USessionNotesChannel, then updates NotesTabNames in USessionSave with the new name.
 void USessionNotesPanel::OnChannelRenamed(UBaseChannelTab* Tab, const FString& NewName, const FString& ParticipantsKey)
 {
+	USessionSave* SessionSave = UFunctionLibrary::LoadSessionSave(this);
+	if (IsValid(SessionSave))
+	{
+		USessionNotesChannel* NotesChannel = Cast<USessionNotesChannel>(Tab->GetChannel());
+		if (IsValid(NotesChannel))
+		{
+			SessionSave->NotesTabNames[NotesChannel->ChannelID] = NewName;
+			UGameplayStatics::SaveGameToSlot(SessionSave, UFunctionLibrary::GetSessionSaveSlotName(GetGameInstance<USessionInstance>()), 0);
+		}
+	}
 }
 
-// Loads saved content for the switched-to channel. Stub — pending implementation.
+// No-op — the channel widget retains its in-memory document on switch.
 void USessionNotesPanel::OnChannelSwitched(UBaseChannel* Channel)
 {
 }
 
-// Calls Super, then binds the text changed delegate to auto-scroll on new content.
-void USessionNotesPanel::NativeConstruct()
+// Calls base to create and wire the channel, then saves its GUID and initial document to USessionSave.
+UBaseChannel* USessionNotesPanel::CreateChannel(const TArray<FString>& Participants)
 {
-	Super::NativeConstruct();
+	UBaseChannel* Channel = Super::CreateChannel(Participants);
+	USessionNotesChannel* NotesChannel = Cast<USessionNotesChannel>(Channel);
+	CHECK_IF_VALID(NotesChannel, nullptr);
 
-	if (IsValid(NotesText))
+	USessionSave* SessionSave = UFunctionLibrary::LoadSessionSave(this);
+	if (IsValid(SessionSave))
 	{
-		NotesText->OnTextChanged.AddDynamic(this, &USessionNotesPanel::OnNotesTextChanged);
+		if (!SessionSave->NotesTabNames.Find(NotesChannel->ChannelID))
+		{
+			SessionSave->NotesTabNames.Add(NotesChannel->ChannelID, NotesChannel->DisplayName);
+			SessionSave->NotesTabContent.Add(NotesChannel->ChannelID, NotesChannel->GetNotes()->GetDocument());
+		}
+		UGameplayStatics::SaveGameToSlot(SessionSave, UFunctionLibrary::GetSessionSaveSlotName(GetGameInstance<USessionInstance>()), 0);
 	}
-}
 
-// Scrolls the notes scroll box to the end when the text content grows.
-void USessionNotesPanel::OnNotesTextChanged(const FText& Text)
-{
-	USessionNotesChannel* NotesChannel = Cast<USessionNotesChannel>(ActiveChannel);
-	if (IsValid(NotesChannel))
-	{
-		NotesChannel->ScrollToEnd();
-	}
+	return Channel;
 }

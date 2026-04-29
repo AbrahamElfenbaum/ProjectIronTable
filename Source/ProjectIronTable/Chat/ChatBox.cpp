@@ -1,8 +1,8 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "ChatBox.h"
 
-#include "Kismet/GameplayStatics.h"
 #include "Components/EditableText.h"
+#include "Kismet/GameplayStatics.h"
 
 #include "BaseChannel.h"
 #include "BaseChannelTab.h"
@@ -13,6 +13,137 @@
 #include "SessionChatComponent.h"
 #include "SessionInstance.h"
 #include "SessionSave.h"
+
+// Tokenizes Message on spaces; words prefixed with '@' are stripped into OutRecipients, the rest join into OutBody.
+void UChatBox::ParseMentions(const FString& Message, TArray<FString>& OutRecipients, FString& OutBody) const
+{
+	TArray<FString> Words;
+	Message.ParseIntoArray(Words, TEXT(" "), 1);
+
+	TArray<FString> MessageArray;
+
+	for (const FString& Word : Words)
+	{
+		if (Word.StartsWith(TEXT("@")))
+		{
+			OutRecipients.Add(Word.RightChop(1));
+		}
+		else
+		{
+			MessageArray.Add(Word);
+		}
+	}
+	OutBody = FString::Join(MessageArray, TEXT(" "));
+}
+
+// Builds the display label from the participant list: "Server", "@Name", or "@Name +N".
+FString UChatBox::CreateTabLabel(const TArray<FString>& Participants) const
+{
+	TArray<FString> Sorted = Participants;
+	Sorted.Sort();
+
+	if (Sorted.IsEmpty())
+	{
+		return TEXT("Server");
+	}
+	else if (Sorted.Num() == 1)
+	{
+		return TEXT("@") + Sorted[0];
+	}
+	return FString::Printf(TEXT("@%s +%d"), *Sorted[0], Sorted.Num() - 1);
+}
+
+// Save is handled directly in CreateChannel; no additional work needed here.
+void UChatBox::SaveCreatedTab()
+{
+}
+
+// Persists the renamed tab label to the session save using the participant key.
+void UChatBox::OnChannelRenamed(UBaseChannelTab* Tab, const FString& NewName, const FString& ParticipantsKey)
+{
+	USessionSave* SessionSave = UFunctionLibrary::LoadSessionSave(this);
+	if (IsValid(SessionSave))
+	{
+		SessionSave->ChatTabNames.Add(ParticipantsKey, NewName);
+		UGameplayStatics::SaveGameToSlot(SessionSave, UFunctionLibrary::GetSessionSaveSlotName(GetGameInstance<USessionInstance>()), 0);
+	}
+}
+
+// Clears the input field when the active channel is switched.
+void UChatBox::OnChannelSwitched(UBaseChannel* Channel)
+{
+	EditableText->SetText(FText::GetEmpty());
+}
+
+// On Enter: parses @mentions and sends to the server. On focus loss: exits chat.
+void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod)
+{
+	if (CommitMethod == ETextCommit::OnEnter)
+	{
+		FString Message = Text.ToString();
+
+		if (!Message.IsEmpty())
+		{
+			FString Body;
+			TArray<FString> Recipients;
+			ParseMentions(EditableText->GetText().ToString(), Recipients, Body);
+
+			FString PlayerName = UFunctionLibrary::GetLocalPlayerName(this);
+
+			// No @recipients: auto-route replies to the active private channel.
+			if (Recipients.IsEmpty() && ActiveChannel && !ActiveChannel->Participants.IsEmpty())
+			{
+				Recipients = ActiveChannel->Participants;
+				Recipients.Remove(PlayerName);
+			}
+
+			CHECK_IF_VALID(ChatComponentRef, );
+
+			FString FullMessage = FString::Printf(TEXT("%s: %s"), *PlayerName, *Body);
+			ChatComponentRef->SendChatMessageOnServer(FullMessage, Recipients);
+
+			EditableText->SetText(FText::GetEmpty());
+
+			bPendingRefocus = true;
+			FocusChat();
+		}
+	}
+	else if (CommitMethod == ETextCommit::OnUserMovedFocus ||
+		CommitMethod == ETextCommit::OnCleared)
+	{
+		if (bPendingRefocus)
+		{
+			bPendingRefocus = false;
+			FocusChat();
+		}
+		else
+		{
+			ExitChat();
+		}
+	}
+}
+
+// Binds the text committed delegate; base handles channel and button setup.
+void UChatBox::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	if (EditableText)
+	{
+		EditableText->OnTextCommitted.AddDynamic(this, &UChatBox::OnTextCommitted);
+	}
+}
+
+// Focuses the chat box when the widget is clicked while not already focused.
+FReply UChatBox::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (!bChatFocused)
+	{
+		FocusChat();
+	}
+
+	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+}
 
 // Sets keyboard focus on the editable text field and switches to UI-only input mode.
 void UChatBox::FocusChat()
@@ -124,137 +255,4 @@ void UChatBox::TrySendPrivateRollMessage()
 void UChatBox::SetChatComponent(USessionChatComponent* InChatComponent)
 {
 	ChatComponentRef = InChatComponent;
-}
-
-// Binds the text committed delegate; base handles channel and button setup.
-void UChatBox::NativeConstruct()
-{
-	Super::NativeConstruct();
-
-	if (EditableText)
-	{
-		EditableText->OnTextCommitted.AddDynamic(this, &UChatBox::OnTextCommitted);
-	}
-}
-
-// Focuses the chat box when the widget is clicked while not already focused.
-FReply UChatBox::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
-{
-	if (!bChatFocused)
-	{
-		FocusChat();
-	}
-
-	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
-}
-
-// On Enter: parses @mentions and sends to the server. On focus loss: exits chat.
-void UChatBox::OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod)
-{
-	if (CommitMethod == ETextCommit::OnEnter)
-	{
-		FString Message = Text.ToString();
-
-		if (!Message.IsEmpty())
-		{
-			FString Body;
-			TArray<FString> Recipients;
-			ParseMentions(EditableText->GetText().ToString(), Recipients, Body);
-
-			FString PlayerName = UFunctionLibrary::GetLocalPlayerName(this);
-
-			// If no @recipients were typed but the active channel is private,
-			// automatically route to that channel's participants so replies
-			// don't fall back to the public server channel.
-			if (Recipients.IsEmpty() && ActiveChannel && !ActiveChannel->Participants.IsEmpty())
-			{
-				Recipients = ActiveChannel->Participants;
-				Recipients.Remove(PlayerName);
-			}
-
-			CHECK_IF_VALID(ChatComponentRef, );
-
-			FString FullMessage = FString::Printf(TEXT("%s: %s"), *PlayerName, *Body);
-			ChatComponentRef->SendChatMessageOnServer(FullMessage, Recipients);
-
-			EditableText->SetText(FText::GetEmpty());
-
-			bPendingRefocus = true;
-			FocusChat();
-		}
-	}
-	else if (CommitMethod == ETextCommit::OnUserMovedFocus ||
-		CommitMethod == ETextCommit::OnCleared)
-	{
-		if (bPendingRefocus)
-		{
-			bPendingRefocus = false;
-			FocusChat();
-		}
-		else
-		{
-			ExitChat();
-		}
-	}
-}
-
-// Tokenizes Message on spaces; words prefixed with '@' are stripped into OutRecipients, the rest join into OutBody.
-void UChatBox::ParseMentions(const FString& Message, TArray<FString>& OutRecipients, FString& OutBody) const
-{
-	TArray<FString> Words;
-	Message.ParseIntoArray(Words, TEXT(" "), 1);
-
-	TArray<FString> MessageArray;
-
-	for (const FString& Word : Words)
-	{
-		if (Word.StartsWith(TEXT("@")))
-		{
-			OutRecipients.Add(Word.RightChop(1));
-		}
-		else
-		{
-			MessageArray.Add(Word);
-		}
-	}
-	OutBody = FString::Join(MessageArray, TEXT(" "));
-}
-
-// Builds the display label from the participant list: "Server", "@Name", or "@Name +N".
-FString UChatBox::CreateTabLabel(const TArray<FString>& Participants) const
-{
-	TArray<FString> Sorted = Participants;
-	Sorted.Sort();
-
-	if (Sorted.IsEmpty())
-	{
-		return TEXT("Server");
-	}
-	else if (Sorted.Num() == 1)
-	{
-		return TEXT("@") + Sorted[0];
-	}
-	return FString::Printf(TEXT("@%s +%d"), *Sorted[0], Sorted.Num() - 1);
-}
-
-// Save is handled directly in CreateChannel; no additional work needed here.
-void UChatBox::SaveCreatedTab()
-{
-}
-
-// Persists the renamed tab label to the session save using the participant key.
-void UChatBox::OnChannelRenamed(UBaseChannelTab* Tab, const FString& NewName, const FString& ParticipantsKey)
-{
-	USessionSave* SessionSave = UFunctionLibrary::LoadSessionSave(this);
-	if (IsValid(SessionSave))
-	{
-		SessionSave->ChatTabNames.Add(ParticipantsKey, NewName);
-		UGameplayStatics::SaveGameToSlot(SessionSave, UFunctionLibrary::GetSessionSaveSlotName(GetGameInstance<USessionInstance>()), 0);
-	}
-}
-
-// Clears the input field when the active channel is switched.
-void UChatBox::OnChannelSwitched(UBaseChannel* Channel)
-{
-	EditableText->SetText(FText::GetEmpty());
 }

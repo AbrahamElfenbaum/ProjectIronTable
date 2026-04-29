@@ -1,36 +1,10 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "TaskbarButton.h"
 
-#include "Components/TextBlock.h"
 #include "Components/Button.h"
+#include "Components/TextBlock.h"
 
 #include "MacroLibrary.h"
-
-// Stores the widget reference and sets the label text.
-void UTaskbarButton::SetTrackedWidget(UUserWidget* Widget, const FString& Label)
-{
-	TrackedWidget = Widget;
-	if (WidgetLabel)
-	{
-		WidgetLabel->SetText(FText::FromString(Label));
-	}
-}
-
-// Returns the widget being tracked by this button.
-UUserWidget* UTaskbarButton::GetTrackedWidget() const
-{
-	return TrackedWidget;
-}
-
-// Binds the toggle button click event.
-void UTaskbarButton::NativeConstruct()
-{
-	Super::NativeConstruct();
-	if (ToggleButton)
-	{
-		ToggleButton->OnClicked.AddDynamic(this, &UTaskbarButton::OnToggleClicked);
-	}
-}
 
 // Collapses the tracked widget if visible, or restores it if collapsed.
 void UTaskbarButton::OnToggleClicked()
@@ -47,4 +21,30 @@ void UTaskbarButton::OnToggleClicked()
 	}
 
 	OnToggled.Broadcast();
+}
+
+// Binds the toggle button click event.
+void UTaskbarButton::NativeConstruct()
+{
+	Super::NativeConstruct();
+	if (ToggleButton)
+	{
+		ToggleButton->OnClicked.AddDynamic(this, &UTaskbarButton::OnToggleClicked);
+	}
+}
+
+// Stores the widget reference and sets the label text.
+void UTaskbarButton::SetTrackedWidget(UUserWidget* Widget, const FString& Label)
+{
+	TrackedWidget = Widget;
+	if (WidgetLabel)
+	{
+		WidgetLabel->SetText(FText::FromString(Label));
+	}
+}
+
+// Returns the widget being tracked by this button.
+UUserWidget* UTaskbarButton::GetTrackedWidget() const
+{
+	return TrackedWidget;
 }

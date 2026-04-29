@@ -55,5 +55,5 @@ public:
 	static FString GetLocalPlayerName(UObject* WorldContext);
 
 	/** Sorts the participant list and joins it with '|' to produce a stable channel identity key. */
-	static FString MakeParticipantKey(TArray<FString> Participants);
+	static FString MakeParticipantKey(const TArray<FString>& Participants);
 };

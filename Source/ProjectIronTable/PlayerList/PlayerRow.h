@@ -16,23 +16,6 @@ class PROJECTIRONTABLE_API UPlayerRow : public UUserWidget
 {
 	GENERATED_BODY()
 
-public:
-
-#pragma region Events
-	/** Fired when the address button is clicked. */
-	UPROPERTY(BlueprintAssignable)
-	FOnAddressClicked OnAddressClicked;
-#pragma endregion
-
-#pragma region Public Methods
-	/** Sets the player name and updates the name label text. */
-	void SetPlayerName(const FString& Name);
-#pragma endregion
-
-protected:
-	/** Binds the address button click delegate. */
-	virtual void NativeConstruct() override;
-
 private:
 
 #pragma region Widget References
@@ -50,9 +33,31 @@ private:
 	FString PlayerName;
 #pragma endregion
 
+public:
+
+#pragma region Events
+	/** Fired when the address button is clicked. */
+	UPROPERTY(BlueprintAssignable)
+	FOnAddressClicked OnAddressClicked;
+#pragma endregion
+
+private:
+
 #pragma region Event Handlers
 	/** Broadcasts OnAddressClicked with the stored player name. */
 	UFUNCTION()
 	void OnAddressButtonClicked();
+#pragma endregion
+
+protected:
+
+	/** Binds the address button click delegate. */
+	virtual void NativeConstruct() override;
+
+public:
+
+#pragma region Public Methods
+	/** Sets the player name and updates the name label text. */
+	void SetPlayerName(const FString& Name);
 #pragma endregion
 };

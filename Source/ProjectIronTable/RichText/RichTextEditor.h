@@ -6,12 +6,17 @@
 
 class SCheckBox;
 
+DECLARE_MULTICAST_DELEGATE(FOnDocumentChanged)
+
 class SRichTextEditor : public SCompoundWidget
 {
 public:
 
 	SLATE_BEGIN_ARGS(SRichTextEditor) {}
 	SLATE_END_ARGS()
+
+	/** Fired when the document content changes due to user input or format commands. */
+	FOnDocumentChanged OnDocumentChanged;
 
 	/** Initializes the widget layout. Called by Slate when the widget is first created. */
 	void Construct(const FArguments& InArgs);
@@ -90,13 +95,13 @@ private:
 	bool FormatsMatch(const FRichTextRun& A, const FRichTextRun& B) const;
 
 	/** Inserts a non-printable character (e.g. newline, tab) at CursorPosition using the same run-walk as OnKeyChar, then advances the cursor. */
-	FReply DrawSpecialCharacter(TCHAR SpecialCharacter);
+	void DrawSpecialCharacter(TCHAR SpecialCharacter);
 
 	/** Removes the character at the given document index, resolving the correct run using FindRunAtIndex and redirecting to the next run if the index falls on a run boundary. */
 	void OnBackspaceOrDeletePressed(int32 CursorPos);
 
 	/** Moves the cursor up or down one line, landing on the character closest to the current X pixel position. */
-	FReply OnUpOrDownPressed(const TArray<FString>& Lines, FVector2f CursorPos, float Scale, bool bUp);
+	void OnUpOrDownPressed(const TArray<FString>& Lines, FVector2f CursorPos, float Scale, bool bUp);
 
 	/** Updates ActiveFormat to match the format flags of the run currently under the cursor. Called after any operation that moves CursorPosition. */
 	void SyncActiveFormat();

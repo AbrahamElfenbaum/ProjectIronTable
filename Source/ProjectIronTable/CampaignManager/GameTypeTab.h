@@ -16,35 +16,6 @@ class PROJECTIRONTABLE_API UGameTypeTab : public UUserWidget
 {
 	GENERATED_BODY()
 
-public:
-
-#pragma region Events
-	/** Fired when the button is clicked, passing the game type name. */
-	UPROPERTY(BlueprintAssignable)
-	FOnGameTypeSelected OnGameTypeSelected;
-#pragma endregion
-
-#pragma region Public Methods
-	/** Sets the displayed game type label. */
-	void SetLabel(const FString& Label);
-
-	/** Sets the selected and unselected background colors used by SetSelected. */
-	void SetTabColors(const FLinearColor& InSelectedTabColor, const FLinearColor& InUnselectedTabColor);
-
-	/** Returns the displayed game type label text. */
-	FString GetLabel() const;
-
-	/** Enables or disables the button — used to grey it out when no campaigns exist for this game type. */
-	void SetInteractable(bool bInteractable);
-
-	/** Sets the button's selected state, visually indicating it is the active game type. */
-	void SetSelected(bool bSelected);
-#pragma endregion
-
-protected:
-	/** Binds the tab button click delegate. */
-	virtual void NativeConstruct() override;
-
 private:
 
 #pragma region Widget References
@@ -65,9 +36,43 @@ private:
 	FLinearColor UnselectedTabColor;
 #pragma endregion
 
+public:
+
+#pragma region Events
+	/** Fired when the button is clicked, passing the game type name. */
+	UPROPERTY(BlueprintAssignable)
+	FOnGameTypeSelected OnGameTypeSelected;
+#pragma endregion
+
+private:
+
 #pragma region Event Handlers
 	/** Broadcasts OnGameTypeSelected with the current label text as the game type name. */
 	UFUNCTION()
 	void OnGameTypeTabClicked();
+#pragma endregion
+
+protected:
+
+	/** Binds the tab button click delegate. */
+	virtual void NativeConstruct() override;
+
+public:
+
+#pragma region Public Methods
+	/** Sets the displayed game type label. */
+	void SetLabel(const FString& Label);
+
+	/** Sets the selected and unselected background colors used by SetSelected. */
+	void SetTabColors(const FLinearColor& InSelectedTabColor, const FLinearColor& InUnselectedTabColor);
+
+	/** Returns the displayed game type label text. */
+	FString GetLabel() const;
+
+	/** Enables or disables the button — used to grey it out when no campaigns exist for this game type. */
+	void SetInteractable(bool bInteractable);
+
+	/** Sets the button's selected state, visually indicating it is the active game type. */
+	void SetSelected(bool bSelected);
 #pragma endregion
 };

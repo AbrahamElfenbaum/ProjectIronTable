@@ -13,10 +13,6 @@ class PROJECTIRONTABLE_API USettingsScreen : public UBaseScreen
 {
 	GENERATED_BODY()
 
-protected:
-	/** Initializes settings panels. */
-	virtual void NativeConstruct() override;
-
 private:
 
 #pragma region Widget References
@@ -28,4 +24,9 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UCameraSettingsPanel> CameraSettingsPanel;
 #pragma endregion
+
+protected:
+
+	/** Initializes settings panels. */
+	virtual void NativeConstruct() override;
 };

@@ -4,49 +4,32 @@
 #include "BaseChannelPanel.h"
 #include "SessionNotesPanel.generated.h"
 
-class UMultiLineEditableText;
-
-/** Widget panel that provides a scrollable, editable multi-line text area for session notes. */
+/** Widget panel that manages multiple tabbed notes channels, each containing an editable rich text document. */
 UCLASS()
 class PROJECTIRONTABLE_API USessionNotesPanel : public UBaseChannelPanel
 {
 	GENERATED_BODY()
 
+private:
+
+#pragma region Private Methods
+	/** Returns a display label for a new notes tab — "Notes" for the first, "Notes 2", "Notes 3", etc. for subsequent tabs. */
+	virtual FString CreateTabLabel(const TArray<FString>& Participants) const override;
+
+	/** No-op — save is handled directly in CreateChannel. */
+	virtual void SaveCreatedTab() override;
+
+	/** Updates the saved tab label in USessionSave when the user renames a notes tab. */
+	virtual void OnChannelRenamed(UBaseChannelTab* Tab, const FString& NewName, const FString& ParticipantsKey) override;
+
+	/** No-op — the channel widget retains its in-memory document on switch. */
+	virtual void OnChannelSwitched(UBaseChannel* Channel) override;
+#pragma endregion
+
 public:
 
 #pragma region Public Methods
-	/** Creates a new USessionNotesChannel, assigns it a GUID, and returns it. Calls Super to handle tab wiring. */
-	UBaseChannel* CreateChannel(const TArray<FString>& Participants) override;
-
-	/** Returns a display label for a new notes tab (e.g. "Notes", "Notes 2"). */
-	FString CreateTabLabel(const TArray<FString>& Participants) const override;
-
-	/** Persists the newly created tab's GUID and label to USessionSave. */
-	void SaveCreatedTab() override;
-
-	/** Updates the saved tab label in USessionSave when the user renames a notes tab. */
-	void OnChannelRenamed(UBaseChannelTab* Tab, const FString& NewName, const FString& ParticipantsKey) override;
-
-	/** Loads saved content for the switched-to channel and displays it in the notes field. */
-	void OnChannelSwitched(UBaseChannel* Channel) override;
-#pragma endregion
-
-protected:
-
-	/** Binds the text changed delegate to keep the scroll position at the bottom as content grows. */
-	virtual void NativeConstruct() override;
-
-private:
-
-#pragma region Widget References
-	/** Editable multi-line text field where the player writes session notes. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UMultiLineEditableText> NotesText;
-#pragma endregion
-
-#pragma region Event Handlers
-	/** Scrolls the notes panel to the end whenever the text content changes. */
-	UFUNCTION()
-	void OnNotesTextChanged(const FText& Text);
+	/** Creates a new USessionNotesChannel, assigns it a GUID, saves initial state to USessionSave, and returns it. */
+	virtual UBaseChannel* CreateChannel(const TArray<FString>& Participants) override;
 #pragma endregion
 };

@@ -17,20 +17,6 @@ class PROJECTIRONTABLE_API UMainScreenUIComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-public:
-	/** Disables tick. */
-	UMainScreenUIComponent();
-
-#pragma region Config
-	/** The root main screen widget class to instantiate and add to the viewport. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UUserWidget> MainScreenClass;
-#pragma endregion
-
-protected:
-	/** Creates and adds the main screen widget, then caches widget references and binds click handlers. */
-	virtual void BeginPlay() override;
-
 private:
 
 #pragma region Runtime References
@@ -93,4 +79,20 @@ private:
 	/** Switches the screen switcher to the screen at the given index. */
 	void SwitchScreen(int32 ScreenIndex);
 #pragma endregion
+
+protected:
+
+	/** Creates and adds the main screen widget, then caches widget references and binds click handlers. */
+	virtual void BeginPlay() override;
+
+public:
+
+#pragma region Config
+	/** The root main screen widget class to instantiate and add to the viewport. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<UUserWidget> MainScreenClass;
+#pragma endregion
+
+	/** Disables tick. */
+	UMainScreenUIComponent();
 };

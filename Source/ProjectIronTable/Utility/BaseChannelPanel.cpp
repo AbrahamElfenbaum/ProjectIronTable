@@ -13,96 +13,6 @@
 #include "FunctionLibrary.h"
 #include "MacroLibrary.h"
 
-// Delegates scroll to the active channel.
-void UBaseChannelPanel::Scroll(bool bUp)
-{
-	if (IsValid(ActiveChannel)) ActiveChannel->Scroll(bUp);
-}
-
-// Creates and wires a new channel and tab for the given participant list and returns the channel.
-UBaseChannel* UBaseChannelPanel::CreateChannel(const TArray<FString>& Participants)
-{
-	FString Label = CreateTabLabel(Participants);
-	TArray<FString> SortedParticipants = Participants;
-	SortedParticipants.Sort();
-
-	UBaseChannel* Channel = CreateWidget<UBaseChannel>(this, ChannelClass);
-	CHECK_IF_VALID(Channel, nullptr);
-	Channel->DisplayName = Label;
-	Channel->Participants = SortedParticipants;
-
-	Channels.Add(Channel);
-	ChannelContainer->AddChild(Channel);
-
-	UBaseChannelTab* Tab = CreateWidget<UBaseChannelTab>(this, TabClass);
-	CHECK_IF_VALID(Tab, Channel);
-	Tab->SetChannel(Channel);
-	Tab->SetLabel(Label);
-	Tab->OnTabClicked.AddDynamic(this, &UBaseChannelPanel::SwitchToChannel);
-	Tab->OnTabRightClicked.AddDynamic(this, &UBaseChannelPanel::OnTabRightClickedHandler);
-	Tab->OnTabRenamed.AddDynamic(this, &UBaseChannelPanel::OnTabRenamedHandler);
-
-	ChannelTabMap.Add(Channel, Tab);
-	TabBar->AddChild(Tab);
-
-	SaveCreatedTab();
-
-	return Channel;
-}
-
-// Returns the participant list of the active channel, or an empty array if no channel is active.
-TArray<FString> UBaseChannelPanel::GetActiveChannelParticipants()
-{
-	if (IsValid(ActiveChannel))
-	{
-		return ActiveChannel->Participants;
-	}
-	else
-	{
-		return {};
-	}
-}
-
-// Searches existing channels for a participant-list match; creates and returns a new channel if none found.
-UBaseChannel* UBaseChannelPanel::FindOrCreateChannel(const TArray<FString>& Participants)
-{
-	FString IncomingKey = UFunctionLibrary::MakeParticipantKey(Participants);
-
-	for (UBaseChannel* Channel : Channels)
-	{
-		if (UFunctionLibrary::MakeParticipantKey(Channel->Participants) == IncomingKey)
-		{
-			return Channel;
-		}
-	}
-	return CreateChannel(Participants);
-}
-
-// Looks up and returns the tab for the given channel, or nullptr if not found.
-UBaseChannelTab* UBaseChannelPanel::GetTabForChannel(UBaseChannel* Channel) const
-{
-	UBaseChannelTab* const* Tab = ChannelTabMap.Find(Channel);
-	return Tab ? *Tab : nullptr;
-}
-
-// Binds the channel list button delegate, collapses the closed list, and creates the default server channel.
-void UBaseChannelPanel::NativeConstruct()
-{
-	Super::NativeConstruct();
-
-	if (ChannelListButton)
-	{
-		ChannelListButton->OnClicked.AddDynamic(this, &UBaseChannelPanel::OnChannelListButtonClicked);
-	}
-
-	if (ClosedChannelContainer)
-	{
-		ClosedChannelContainer->SetVisibility(ESlateVisibility::Collapsed);
-	}
-
-	SwitchToChannel(CreateChannel({}));
-}
-
 // Returns an empty string; subclasses override to provide their label-building logic.
 FString UBaseChannelPanel::CreateTabLabel(const TArray<FString>& Participants) const
 {
@@ -246,4 +156,94 @@ void UBaseChannelPanel::OnTabRenamedHandler(UBaseChannelTab* Tab, const FString&
 	}
 	FString ParticipantsKey = UFunctionLibrary::MakeParticipantKey(Channel->Participants);
 	OnChannelRenamed(Tab, NewName, ParticipantsKey);
+}
+
+// Binds the channel list button delegate, collapses the closed list, and creates the default server channel.
+void UBaseChannelPanel::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	if (ChannelListButton)
+	{
+		ChannelListButton->OnClicked.AddDynamic(this, &UBaseChannelPanel::OnChannelListButtonClicked);
+	}
+
+	if (ClosedChannelContainer)
+	{
+		ClosedChannelContainer->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	SwitchToChannel(CreateChannel({}));
+}
+
+// Delegates scroll to the active channel.
+void UBaseChannelPanel::Scroll(bool bUp)
+{
+	if (IsValid(ActiveChannel)) ActiveChannel->Scroll(bUp);
+}
+
+// Creates and wires a new channel and tab for the given participant list and returns the channel.
+UBaseChannel* UBaseChannelPanel::CreateChannel(const TArray<FString>& Participants)
+{
+	FString Label = CreateTabLabel(Participants);
+	TArray<FString> SortedParticipants = Participants;
+	SortedParticipants.Sort();
+
+	UBaseChannel* Channel = CreateWidget<UBaseChannel>(this, ChannelClass);
+	CHECK_IF_VALID(Channel, nullptr);
+	Channel->DisplayName = Label;
+	Channel->Participants = SortedParticipants;
+
+	Channels.Add(Channel);
+	ChannelContainer->AddChild(Channel);
+
+	UBaseChannelTab* Tab = CreateWidget<UBaseChannelTab>(this, TabClass);
+	CHECK_IF_VALID(Tab, Channel);
+	Tab->SetChannel(Channel);
+	Tab->SetLabel(Label);
+	Tab->OnTabClicked.AddDynamic(this, &UBaseChannelPanel::SwitchToChannel);
+	Tab->OnTabRightClicked.AddDynamic(this, &UBaseChannelPanel::OnTabRightClickedHandler);
+	Tab->OnTabRenamed.AddDynamic(this, &UBaseChannelPanel::OnTabRenamedHandler);
+
+	ChannelTabMap.Add(Channel, Tab);
+	TabBar->AddChild(Tab);
+
+	SaveCreatedTab();
+
+	return Channel;
+}
+
+// Returns the participant list of the active channel, or an empty array if no channel is active.
+TArray<FString> UBaseChannelPanel::GetActiveChannelParticipants()
+{
+	if (IsValid(ActiveChannel))
+	{
+		return ActiveChannel->Participants;
+	}
+	else
+	{
+		return {};
+	}
+}
+
+// Searches existing channels for a participant-list match; creates and returns a new channel if none found.
+UBaseChannel* UBaseChannelPanel::FindOrCreateChannel(const TArray<FString>& Participants)
+{
+	FString IncomingKey = UFunctionLibrary::MakeParticipantKey(Participants);
+
+	for (UBaseChannel* Channel : Channels)
+	{
+		if (UFunctionLibrary::MakeParticipantKey(Channel->Participants) == IncomingKey)
+		{
+			return Channel;
+		}
+	}
+	return CreateChannel(Participants);
+}
+
+// Looks up and returns the tab for the given channel, or nullptr if not found.
+UBaseChannelTab* UBaseChannelPanel::GetTabForChannel(UBaseChannel* Channel) const
+{
+	UBaseChannelTab* const* Tab = ChannelTabMap.Find(Channel);
+	return Tab ? *Tab : nullptr;
 }

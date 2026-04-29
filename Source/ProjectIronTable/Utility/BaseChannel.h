@@ -12,13 +12,15 @@ class PROJECTIRONTABLE_API UBaseChannel : public UUserWidget
 {
 	GENERATED_BODY()
 
-public:
+protected:
 
-#pragma region Config
-	/** Pixels scrolled per Scroll() call. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float ScrollMultiplier = 60.f;
+#pragma region Widget References
+	/** Scroll box that holds all channel content widgets. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UScrollBox> ScrollBox;
 #pragma endregion
+
+public:
 
 #pragma region State
 	/** Human-readable name shown on the tab for this channel. */
@@ -29,16 +31,14 @@ public:
 	TArray<FString> Participants;
 #pragma endregion
 
+#pragma region Config
+	/** Pixels scrolled per Scroll() call. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float ScrollMultiplier = 60.f;
+#pragma endregion
+
 #pragma region Public Methods
 	/** Scrolls the channel up (bUp = true) or down by ScrollMultiplier pixels. */
 	void Scroll(bool bUp);
-#pragma endregion
-
-protected:
-
-#pragma region Widget References
-	/** Scroll box that holds all channel content widgets. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UScrollBox> ScrollBox;
 #pragma endregion
 };

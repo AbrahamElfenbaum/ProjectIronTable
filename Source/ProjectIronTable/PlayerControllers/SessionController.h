@@ -18,9 +18,24 @@ class PROJECTIRONTABLE_API ASessionController : public APlayerController
 {
 	GENERATED_BODY()
 
+private:
+
+#pragma region State
+	/** Active speed multiplier; 1.0 normally, CameraSpeedMultiplier while sprinting. */
+	float CurrentCameraSpeedMultiplier = 1.f;
+#pragma endregion
+
+#pragma region Runtime References
+	/** Cached reference to the possessed session pawn. */
+	UPROPERTY()
+	TObjectPtr<ASessionPawn> SessionPawnRef;
+
+	/** Reference to the Enhanced Input subsystem for managing mapping contexts. */
+	UPROPERTY()
+	TObjectPtr<UEnhancedInputLocalPlayerSubsystem> InputSubsystemRef;
+#pragma endregion
+
 public:
-	/** Creates and attaches the UI and chat component subobjects. */
-	ASessionController();
 
 #pragma region Components
 	/** The HUD component owned by this controller, responsible for all UI widgets. */
@@ -119,53 +134,7 @@ public:
 	TObjectPtr<UInputAction> IA_ScrollChat;
 #pragma endregion
 
-#pragma region Public Methods
-	/** Clamps all camera config properties to valid ranges. Called at runtime and in the editor. */
-	void ValidateCameraSettings();
-
-	/** Copies values from the save object into camera config properties, then validates. */
-	void ApplyCameraSettings(const UCameraSettingsSave* Settings);
-
-	/** Writes current camera config properties to a new save object and saves to slot "CameraSettings". */
-	void SaveCameraSettings();
-
-	/** Sends the server a request to call ServerTravel with the given URL, moving all players to the target level. */
-	UFUNCTION(Server, Reliable)
-	void Server_TravelToSession(const FString& TravelURL);
-#pragma endregion
-
-protected:
-	/** Caches the pawn reference, registers the gameplay input context, and binds all input actions. */
-	virtual void OnPossess(APawn* InPawn) override;
-
-	/** Sets input mode, shows cursor, and loads saved camera settings. */
-	virtual void BeginPlay() override;
-
-#if WITH_EDITOR
-	/** Delegates to ValidateCameraSettings so editor validation uses the same rules as runtime. */
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-#endif
-
-	/** Returns a movement speed scaled by the current spring arm length, clamped to the configured min/max. */
-	UFUNCTION(BlueprintCallable, Category = "Camera")
-	float CalculateCameraMovementSpeed() const;
-
 private:
-
-#pragma region State
-	/** Active speed multiplier; 1.0 normally, CameraSpeedMultiplier while sprinting. */
-	float CurrentCameraSpeedMultiplier = 1.f;
-#pragma endregion
-
-#pragma region Runtime References
-	/** Cached reference to the possessed session pawn. */
-	UPROPERTY()
-	TObjectPtr<ASessionPawn> SessionPawnRef;
-
-	/** Reference to the Enhanced Input subsystem for managing mapping contexts. */
-	UPROPERTY()
-	TObjectPtr<UEnhancedInputLocalPlayerSubsystem> InputSubsystemRef;
-#pragma endregion
 
 #pragma region Input Handlers
 	/** Translates the pawn on the XY plane based on WASD input. */
@@ -192,4 +161,41 @@ private:
 	/** Forwards scroll direction to the HUD chat scroll handler. */
 	void Input_ScrollChat(const FInputActionValue& Value);
 #pragma endregion
+
+protected:
+
+	/** Caches the pawn reference, registers the gameplay input context, and binds all input actions. */
+	virtual void OnPossess(APawn* InPawn) override;
+
+	/** Sets input mode, shows cursor, and loads saved camera settings. */
+	virtual void BeginPlay() override;
+
+#if WITH_EDITOR
+	/** Delegates to ValidateCameraSettings so editor validation uses the same rules as runtime. */
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
+
+	/** Returns a movement speed scaled by the current spring arm length, clamped to the configured min/max. */
+	UFUNCTION(BlueprintCallable, Category = "Camera")
+	float CalculateCameraMovementSpeed() const;
+
+public:
+
+#pragma region Public Methods
+	/** Clamps all camera config properties to valid ranges. Called at runtime and in the editor. */
+	void ValidateCameraSettings();
+
+	/** Copies values from the save object into camera config properties, then validates. */
+	void ApplyCameraSettings(const UCameraSettingsSave* Settings);
+
+	/** Writes current camera config properties to a new save object and saves to slot "CameraSettings". */
+	void SaveCameraSettings();
+
+	/** Sends the server a request to call ServerTravel with the given URL, moving all players to the target level. */
+	UFUNCTION(Server, Reliable)
+	void Server_TravelToSession(const FString& TravelURL);
+#pragma endregion
+
+	/** Creates and attaches the UI and chat component subobjects. */
+	ASessionController();
 };

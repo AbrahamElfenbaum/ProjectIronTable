@@ -28,13 +28,6 @@ class PROJECTIRONTABLE_API UContextMenuButton : public UUserWidget
 {
 	GENERATED_BODY()
 
-public:
-
-#pragma region Public Methods
-	/** Assigns the option to this button, updates the label, and binds the click handler. */
-	void SetOption(const FContextMenuOption& InOption);
-#pragma endregion
-
 private:
 
 #pragma region Widget References
@@ -56,5 +49,12 @@ private:
 	/** Executes the option's OnClicked delegate when the button is pressed. */
 	UFUNCTION()
 	void OnMenuButtonClicked();
+#pragma endregion
+
+public:
+
+#pragma region Public Methods
+	/** Assigns the option to this button, updates the label, and binds the click handler. */
+	void SetOption(const FContextMenuOption& InOption);
 #pragma endregion
 };

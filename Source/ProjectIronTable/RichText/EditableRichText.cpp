@@ -1,6 +1,20 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "EditableRichText.h"
 
+// Creates the SRichTextEditor Slate widget and returns it for UMG to display.
+TSharedRef<SWidget> UEditableRichText::RebuildWidget()
+{
+	RichTextEditor = SNew(SRichTextEditor);
+	return RichTextEditor.ToSharedRef();
+}
+
+// Releases the Slate widget and resets the shared pointer to free memory.
+void UEditableRichText::ReleaseSlateResources(bool bReleaseChildren)
+{
+	Super::ReleaseSlateResources(bReleaseChildren);
+	RichTextEditor.Reset();
+}
+
 // Passes bold toggle through to the Slate editor if it is valid.
 void UEditableRichText::ToggleBold(bool bEnable)
 {
@@ -56,16 +70,8 @@ void UEditableRichText::SetDocument(const FRichTextDocument& InDocument)
 	}
 }
 
-// Creates the SRichTextEditor Slate widget and returns it for UMG to display.
-TSharedRef<SWidget> UEditableRichText::RebuildWidget()
+// Returns a reference to the Slate editor's OnDocumentChanged delegate so callers can bind without going through the Slate layer directly.
+FOnDocumentChanged& UEditableRichText::GetOnDocumentChanged()
 {
-	RichTextEditor = SNew(SRichTextEditor);
-	return RichTextEditor.ToSharedRef();
-}
-
-// Releases the Slate widget and resets the shared pointer to free memory.
-void UEditableRichText::ReleaseSlateResources(bool bReleaseChildren)
-{
-	Super::ReleaseSlateResources(bReleaseChildren);
-	RichTextEditor.Reset();
+	return RichTextEditor->OnDocumentChanged;
 }

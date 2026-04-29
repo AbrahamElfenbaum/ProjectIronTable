@@ -12,6 +12,14 @@ class PROJECTIRONTABLE_API UChatEntry : public UUserWidget
 {
 	GENERATED_BODY()
 
+private:
+
+#pragma region Widget References
+	/** Text block that displays the chat message. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> TextBlock;
+#pragma endregion
+
 public:
 
 #pragma region Config
@@ -21,14 +29,7 @@ public:
 #pragma endregion
 
 protected:
+
 	/** Populates the text block with the message string. */
 	virtual void NativeConstruct() override;
-
-private:
-
-#pragma region Widget References
-	/** Text block that displays the chat message. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> TextBlock;
-#pragma endregion
 };

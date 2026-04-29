@@ -2,7 +2,6 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "BaseDiceActor.h"
 #include "SessionChatComponent.generated.h"
 
 class ASessionController;
@@ -16,34 +15,6 @@ UCLASS(Blueprintable, ClassGroup = (Custom), meta = (BlueprintSpawnableComponent
 class PROJECTIRONTABLE_API USessionChatComponent : public UActorComponent
 {
 	GENERATED_BODY()
-
-public:
-	/** Disables tick and enables replication so server RPCs function correctly. */
-	USessionChatComponent();
-
-	/** Caches widget references from the UI component and binds delegates for dice roll results and player addressing. */
-	void Init();
-
-#pragma region Replicated Chat Methods
-	/** Server RPC: validates and routes a chat message to all relevant clients. */
-	UFUNCTION(Reliable, Server)
-	void SendChatMessageOnServer(const FString& Message, const TArray<FString>& Recipients);
-
-	/** Client RPC: delivers a chat message to this client's chat box. */
-	UFUNCTION(Reliable, Client)
-	void AddChatMessageOnOwningClient(const FString& Message, const TArray<FString>& Recipients, bool bIsSender);
-#pragma endregion
-
-#pragma region Chat Passthrough Methods
-	/** Focuses the chat input box and switches to UI-only input mode. */
-	void FocusChat();
-
-	/** Exits chat focus, clears the input field, and restores game-and-UI input mode. */
-	void ExitChat();
-
-	/** Scrolls the active chat channel up or down. */
-	void ScrollChat(bool bUp);
-#pragma endregion
 
 private:
 
@@ -81,5 +52,32 @@ private:
 	/** Called when a roll is initiated; forwards to the chat box to send a private roll message if recipients are present in the input. */
 	UFUNCTION()
 	void OnRollInitiated();
+#pragma endregion
+
+public:
+
+	/** Disables tick and enables replication so server RPCs function correctly. */
+	USessionChatComponent();
+
+	/** Caches widget references from the UI component and binds delegates for dice roll results and player addressing. */
+	void Init();
+
+#pragma region Public Methods
+	/** Server RPC: validates and routes a chat message to all relevant clients. */
+	UFUNCTION(Reliable, Server)
+	void SendChatMessageOnServer(const FString& Message, const TArray<FString>& Recipients);
+
+	/** Client RPC: delivers a chat message to this client's chat box. */
+	UFUNCTION(Reliable, Client)
+	void AddChatMessageOnOwningClient(const FString& Message, const TArray<FString>& Recipients, bool bIsSender);
+
+	/** Focuses the chat input box and switches to UI-only input mode. */
+	void FocusChat();
+
+	/** Exits chat focus, clears the input field, and restores game-and-UI input mode. */
+	void ExitChat();
+
+	/** Scrolls the active chat channel up or down. */
+	void ScrollChat(bool bUp);
 #pragma endregion
 };

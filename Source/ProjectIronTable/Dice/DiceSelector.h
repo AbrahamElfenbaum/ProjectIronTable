@@ -17,6 +17,26 @@ class PROJECTIRONTABLE_API UDiceSelector : public UUserWidget
 {
 	GENERATED_BODY()
 
+private:
+
+#pragma region Widget References
+	/** Displays the die type label (e.g. "D20"). */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> TypeText;
+
+	/** Displays the current selected count. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> CountText;
+
+	/** Increments the die count by one. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> IncreaseButton;
+
+	/** Decrements the die count by one (minimum zero). */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> DecreaseButton;
+#pragma endregion
+
 public:
 
 #pragma region Config
@@ -41,34 +61,7 @@ public:
 	FOnDiceCountChanged OnCountChanged;
 #pragma endregion
 
-#pragma region Public Methods
-	/** Resets DiceCount to zero and broadcasts OnCountChanged. */
-	void ResetCount();
-#pragma endregion
-
-protected:
-	/** Initializes the type label, count label, and button delegates. */
-	virtual void NativeConstruct() override;
-
 private:
-
-#pragma region Widget References
-	/** Displays the die type label (e.g. "D20"). */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> TypeText;
-
-	/** Displays the current selected count. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> CountText;
-
-	/** Increments the die count by one. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> IncreaseButton;
-
-	/** Decrements the die count by one (minimum zero). */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UButton> DecreaseButton;
-#pragma endregion
 
 #pragma region Event Handlers
 	/** Increments DiceCount and broadcasts OnCountChanged. */
@@ -78,5 +71,17 @@ private:
 	/** Decrements DiceCount if above zero and broadcasts OnCountChanged. */
 	UFUNCTION()
 	void DecreaseDiceCount();
+#pragma endregion
+
+protected:
+
+	/** Initializes the type label, count label, and button delegates. */
+	virtual void NativeConstruct() override;
+
+public:
+
+#pragma region Public Methods
+	/** Resets DiceCount to zero and broadcasts OnCountChanged. */
+	void ResetCount();
 #pragma endregion
 };

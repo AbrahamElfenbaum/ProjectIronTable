@@ -2,6 +2,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
+#include "RichTextDocument.h"
 #include "SessionSave.generated.h"
 
 /** A single saved chat message, storing the sender's name and message body. */
@@ -18,12 +19,14 @@ struct FChatMessageRecord
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FString Message;
 
+	/** Default constructor — initializes sender name and message to empty strings. */
 	FChatMessageRecord():
 		SenderName(TEXT("")),
 		Message(TEXT(""))
 	{
 	}
 
+	/** Constructs a message record with the given sender name and message body. */
 	FChatMessageRecord(const FString& InSenderName, const FString& InMessage) :
 		SenderName(InSenderName),
 		Message(InMessage)
@@ -41,6 +44,7 @@ struct FChatLogRecord
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FChatMessageRecord> Messages;
 
+	/** Default constructor — initializes with an empty messages array. */
 	FChatLogRecord():
 		Messages()
 	{
@@ -101,4 +105,8 @@ public:
 	/** Display names for notes tabs, keyed by the channel's GUID. Populated on tab creation; updated on rename. */
 	UPROPERTY()
 	TMap<FGuid, FString> NotesTabNames;
+
+	/** Rich text document content for each notes channel, keyed by ChannelID. Populated on tab creation; updated on channel switch. */
+	UPROPERTY()
+	TMap<FGuid, FRichTextDocument> NotesTabContent;
 };

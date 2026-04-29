@@ -17,23 +17,6 @@ class PROJECTIRONTABLE_API UBaseChannelListEntry : public UUserWidget
 {
 	GENERATED_BODY()
 
-public:
-
-#pragma region Events
-	/** Fired when the entry button is clicked. */
-	UPROPERTY(BlueprintAssignable)
-	FOnEntryClicked OnEntryClicked;
-#pragma endregion
-
-#pragma region Public Methods
-	/** Sets the channel this entry represents and updates the displayed label. */
-	void SetChannel(UBaseChannel* InChannel);
-#pragma endregion
-
-protected:
-	/** Binds the entry button click delegate. */
-	virtual void NativeConstruct() override;
-
 private:
 
 #pragma region Widget References
@@ -52,9 +35,31 @@ private:
 	TObjectPtr<UBaseChannel> Channel;
 #pragma endregion
 
+public:
+
+#pragma region Events
+	/** Fired when the entry button is clicked. */
+	UPROPERTY(BlueprintAssignable)
+	FOnEntryClicked OnEntryClicked;
+#pragma endregion
+
+private:
+
 #pragma region Event Handlers
 	/** Broadcasts OnEntryClicked with the stored channel pointer. */
 	UFUNCTION()
 	void OnEntryButtonClicked();
+#pragma endregion
+
+protected:
+
+	/** Binds the entry button click delegate. */
+	virtual void NativeConstruct() override;
+
+public:
+
+#pragma region Public Methods
+	/** Sets the channel this entry represents and updates the displayed label. */
+	void SetChannel(UBaseChannel* InChannel);
 #pragma endregion
 };

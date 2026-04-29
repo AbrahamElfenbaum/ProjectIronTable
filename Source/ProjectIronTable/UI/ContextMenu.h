@@ -14,29 +14,6 @@ class PROJECTIRONTABLE_API UContextMenu : public UUserWidget
 {
 	GENERATED_BODY()
 
-public:
-
-#pragma region Config
-	/** The widget class to spawn for each context menu entry. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UContextMenuButton> ContextMenuButtonClass;
-#pragma endregion
-
-#pragma region Public Methods
-	/** Clears existing buttons and spawns a new button for each provided option. */
-	void SetMenuOptions(const TArray<FContextMenuOption>& Options);
-
-	/** Positions the content box within the overlay at the given screen coordinates. */
-	void SetMenuPosition(FVector2D Position);
-
-	/** Removes the menu from the viewport. */
-	void CloseMenu();
-#pragma endregion
-
-protected:
-	/** Closes the menu if the click lands outside the content box bounds; otherwise passes the event through. */
-	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-
 private:
 
 #pragma region Widget References
@@ -53,5 +30,31 @@ private:
 	/** Cached references to all currently spawned menu buttons. */
 	UPROPERTY()
 	TArray<TObjectPtr<UContextMenuButton>> MenuOptions;
+#pragma endregion
+
+public:
+
+#pragma region Config
+	/** The widget class to spawn for each context menu entry. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<UContextMenuButton> ContextMenuButtonClass;
+#pragma endregion
+
+protected:
+
+	/** Closes the menu if the click lands outside the content box bounds; otherwise passes the event through. */
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
+public:
+
+#pragma region Public Methods
+	/** Clears existing buttons and spawns a new button for each provided option. */
+	void SetMenuOptions(const TArray<FContextMenuOption>& Options);
+
+	/** Positions the content box within the overlay at the given screen coordinates. */
+	void SetMenuPosition(FVector2D Position);
+
+	/** Removes the menu from the viewport. */
+	void CloseMenu();
 #pragma endregion
 };

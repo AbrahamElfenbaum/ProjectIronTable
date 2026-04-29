@@ -22,6 +22,44 @@ class PROJECTIRONTABLE_API UDraggablePanel : public UUserWidget
 {
 	GENERATED_BODY()
 
+private:
+
+#pragma region Widget References
+	/** Visual widget representing the drag handle area at the top of the panel. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UWidget> DragHandle;
+
+	/** Named slot where the wrapped content widget is placed. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UNamedSlot> ContentSlot;
+
+	/** Visual widget representing the resize handle at the bottom-right corner. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UWidget> ResizeCorner;
+
+	/** Text block displaying the panel title in the header. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> TitleText;
+#pragma endregion
+
+#pragma region State
+	/** Unique identifier for this panel, used for saving and loading layout. Should be set in the editor or constructor. */
+	FString PanelID;
+
+	/** Offset from the panel's canvas position to the mouse at the start of a drag. */
+	FVector2D DragOffset;
+
+	/** Screen space mouse position at the start of a resize. */
+	FVector2D ResizeStartMouse;
+
+	/** Panel size at the start of a resize. */
+	FVector2D ResizeStartSize;
+
+	/** Cached canvas panel slot used to read and write position and size each frame. */
+	UPROPERTY()
+	TObjectPtr<UCanvasPanelSlot> CanvasSlot;
+#pragma endregion
+
 public:
 
 #pragma region Config
@@ -51,6 +89,13 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnPanelStateChanged OnPanelStateChanged;
 #pragma endregion
+
+protected:
+
+	/** Caches the canvas slot and applies the default panel title. */
+	virtual void NativeConstruct() override;
+
+public:
 
 #pragma region Public Methods
 	/** Sets the unique identifier used to save and restore this panel's layout. Should be called once after creation. */
@@ -88,47 +133,5 @@ public:
 
 	/** Resets the panel to its default position and size. Does not affect visibility. */
 	void ResetToDefaultLayout();
-#pragma endregion
-
-protected:
-	/** Caches the canvas slot and applies the default panel title. */
-	virtual void NativeConstruct() override;
-
-private:
-
-#pragma region Widget References
-	/** Visual widget representing the drag handle area at the top of the panel. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UWidget> DragHandle;
-
-	/** Named slot where the wrapped content widget is placed. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UNamedSlot> ContentSlot;
-
-	/** Visual widget representing the resize handle at the bottom-right corner. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UWidget> ResizeCorner;
-
-	/** Text block displaying the panel title in the header. */
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> TitleText;
-#pragma endregion
-
-#pragma region State
-	/** Unique identifier for this panel, used for saving and loading layout. Should be set in the editor or constructor. */
-	FString PanelID;
-
-	/** Offset from the panel's canvas position to the mouse at the start of a drag. */
-	FVector2D DragOffset;
-
-	/** Screen space mouse position at the start of a resize. */
-	FVector2D ResizeStartMouse;
-
-	/** Panel size at the start of a resize. */
-	FVector2D ResizeStartSize;
-
-	/** Cached canvas panel slot used to read and write position and size each frame. */
-	UPROPERTY()
-	TObjectPtr<UCanvasPanelSlot> CanvasSlot;
 #pragma endregion
 };

@@ -1,73 +1,15 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "CampaignManagerScreen.h"
 
-#include "Kismet/GameplayStatics.h"
 #include "Components/ScrollBox.h"
 #include "Components/WrapBox.h"
+#include "Kismet/GameplayStatics.h"
 
-#include "GameTypeTab.h"
 #include "CampaignCard.h"
+#include "GameTypeTab.h"
+#include "MacroLibrary.h"
 #include "SessionController.h"
 #include "SessionInstance.h"
-#include "MacroLibrary.h"
-
-// Loads campaign data (real or fake), builds game type tabs, and populates the grid with the first available game type's campaigns.
-void UCampaignManagerScreen::Init()
-{
-	if (bUseFakeData)
-	{
-		CampaignData = NewObject<UCampaignManagerSave>(this);
-		CampaignData->CampaignRecords = BuildFakeData();
-	}
-	else
-	{
-		if (!UGameplayStatics::DoesSaveGameExist(UCampaignManagerSave::SaveSlotName, 0))
-		{
-			UE_LOG(LogTemp, Warning, TEXT("UCampaignManagerScreen::Init — No Campaign Manager save found"));
-			return;
-		}
-
-		USaveGame* LoadedSave = UGameplayStatics::LoadGameFromSlot(UCampaignManagerSave::SaveSlotName, 0);
-		CampaignData = Cast<UCampaignManagerSave>(LoadedSave);
-		CHECK_IF_VALID(CampaignData, );
-	}
-
-	bool bGridPopulated = false;
-	for (const TPair<FString, FCampaignList>& Game : CampaignData->CampaignRecords)
-	{
-		UGameTypeTab* TypeTab = CreateWidget<UGameTypeTab>(this, GameTypeTabClass);
-		if (!IsValid(TypeTab))
-		{
-			UE_LOG(LogTemp, Warning, TEXT("UCampaignManagerScreen::Init — Failed to create GameTypeTab for %s"), *Game.Key);
-			continue;
-		}
-
-		TypeTab->SetLabel(Game.Key);
-		TypeTab->SetTabColors(SelectedTabColor, UnselectedTabColor);
-
-		if (Game.Value.Campaigns.Num() > 0)
-		{
-			TypeTab->SetInteractable(true);
-			ActiveTabs.Add(TypeTab);
-
-			if (!bGridPopulated)
-			{
-				SelectedGameType = Game.Key;
-				PopulateCampaigns(Game.Value.Campaigns, SelectedGameType);
-				bGridPopulated = true;
-			}
-		}
-		else
-		{
-			TypeTab->SetInteractable(false);
-		}
-
-		TypeTab->OnGameTypeSelected.AddDynamic(this, &UCampaignManagerScreen::OnGameTypeSelected);
-		GameTypeTabBar->AddChild(TypeTab);
-	}
-
-	SetSelectedGameButton();
-}
 
 // Clears the campaign grid and creates a card for each record in the given list.
 void UCampaignManagerScreen::PopulateCampaigns(const TArray<FCampaignRecord>& Campaigns, const FString& GameType)
@@ -152,10 +94,10 @@ TMap<FString, FCampaignList> UCampaignManagerScreen::BuildFakeData() const
 	VampireList.Campaigns.Add(FCampaignRecord(FGuid::NewGuid(), TEXT("Chicago by Night"), FDateTime(2026, 4, 2), 5));
 	Records.Add(TEXT("VtM"), VampireList);
 
-	Records.Add(TEXT("Shadowrun"),   FCampaignList());
-	Records.Add(TEXT("WFRP"),        FCampaignList());
-	Records.Add(TEXT("Cyberpunk RED"),FCampaignList());
-	Records.Add(TEXT("Mothership"),  FCampaignList());
+	Records.Add(TEXT("Shadowrun"),    FCampaignList());
+	Records.Add(TEXT("WFRP"),         FCampaignList());
+	Records.Add(TEXT("Cyberpunk RED"), FCampaignList());
+	Records.Add(TEXT("Mothership"),   FCampaignList());
 
 	return Records;
 }
@@ -202,3 +144,60 @@ void UCampaignManagerScreen::OnCampaignSelected(const FGuid& CampaignID, const F
 	SessionPC->Server_TravelToSession(TravelURL);
 }
 
+// Loads campaign data (real or fake), builds game type tabs, and populates the grid with the first available game type's campaigns.
+void UCampaignManagerScreen::Init()
+{
+	if (bUseFakeData)
+	{
+		CampaignData = NewObject<UCampaignManagerSave>(this);
+		CampaignData->CampaignRecords = BuildFakeData();
+	}
+	else
+	{
+		if (!UGameplayStatics::DoesSaveGameExist(UCampaignManagerSave::SaveSlotName, 0))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("UCampaignManagerScreen::Init — No Campaign Manager save found"));
+			return;
+		}
+
+		USaveGame* LoadedSave = UGameplayStatics::LoadGameFromSlot(UCampaignManagerSave::SaveSlotName, 0);
+		CampaignData = Cast<UCampaignManagerSave>(LoadedSave);
+		CHECK_IF_VALID(CampaignData, );
+	}
+
+	bool bGridPopulated = false;
+	for (const TPair<FString, FCampaignList>& Game : CampaignData->CampaignRecords)
+	{
+		UGameTypeTab* TypeTab = CreateWidget<UGameTypeTab>(this, GameTypeTabClass);
+		if (!IsValid(TypeTab))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("UCampaignManagerScreen::Init — Failed to create GameTypeTab for %s"), *Game.Key);
+			continue;
+		}
+
+		TypeTab->SetLabel(Game.Key);
+		TypeTab->SetTabColors(SelectedTabColor, UnselectedTabColor);
+
+		if (Game.Value.Campaigns.Num() > 0)
+		{
+			TypeTab->SetInteractable(true);
+			ActiveTabs.Add(TypeTab);
+
+			if (!bGridPopulated)
+			{
+				SelectedGameType = Game.Key;
+				PopulateCampaigns(Game.Value.Campaigns, SelectedGameType);
+				bGridPopulated = true;
+			}
+		}
+		else
+		{
+			TypeTab->SetInteractable(false);
+		}
+
+		TypeTab->OnGameTypeSelected.AddDynamic(this, &UCampaignManagerScreen::OnGameTypeSelected);
+		GameTypeTabBar->AddChild(TypeTab);
+	}
+
+	SetSelectedGameButton();
+}

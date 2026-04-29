@@ -5,6 +5,35 @@
 
 #include "PlayerSave.h"
 
+// Loads PlayerID from UPlayerSave; creates and saves a new one with a generated GUID if none exists.
+void USessionInstance::Init()
+{
+	Super::Init();
+
+	UPlayerSave* PlayerSave = Cast<UPlayerSave>(UGameplayStatics::LoadGameFromSlot(UPlayerSave::SaveSlotName, 0));
+	if (!IsValid(PlayerSave))
+	{
+		UE_LOG(LogTemp, Display, TEXT("USessionInstance::Init — No PlayerSave found; creating new one."));
+		PlayerID = FGuid::NewGuid();
+		PlayerSave = Cast<UPlayerSave>(UGameplayStatics::CreateSaveGameObject(UPlayerSave::StaticClass()));
+		if (!IsValid(PlayerSave))
+		{
+			UE_LOG(LogTemp, Error, TEXT("USessionInstance::Init — Failed to create UPlayerSave object."));
+			return;
+		}
+		PlayerSave->PlayerID = PlayerID;
+		UGameplayStatics::SaveGameToSlot(PlayerSave, UPlayerSave::SaveSlotName, 0);
+	}
+
+	PlayerID = PlayerSave->PlayerID;
+	if (!PlayerID.IsValid())
+	{
+		PlayerID = FGuid::NewGuid();
+		PlayerSave->PlayerID = PlayerID;
+		UGameplayStatics::SaveGameToSlot(PlayerSave, UPlayerSave::SaveSlotName, 0);
+	}
+}
+
 // Returns the stored campaign ID.
 FGuid USessionInstance::GetCampaignID() const
 {
@@ -39,33 +68,4 @@ void USessionInstance::SetSessionID(const FGuid& InSessionID)
 void USessionInstance::SetPlayerID(const FGuid& InPlayerID)
 {
 	PlayerID = InPlayerID;
-}
-
-// Loads PlayerID from UPlayerSave; creates and saves a new one with a generated GUID if none exists.
-void USessionInstance::Init()
-{
-	Super::Init();
-
-	UPlayerSave* PlayerSave = Cast<UPlayerSave>(UGameplayStatics::LoadGameFromSlot(UPlayerSave::SaveSlotName, 0));
-	if (!IsValid(PlayerSave))
-	{
-		UE_LOG(LogTemp, Display, TEXT("USessionInstance::Init — No PlayerSave found; creating new one."));
-		PlayerID = FGuid::NewGuid();
-		PlayerSave = Cast<UPlayerSave>(UGameplayStatics::CreateSaveGameObject(UPlayerSave::StaticClass()));
-		if (!IsValid(PlayerSave))
-		{
-			UE_LOG(LogTemp, Error, TEXT("USessionInstance::Init — Failed to create UPlayerSave object."));
-			return;
-		}
-		PlayerSave->PlayerID = PlayerID;
-		UGameplayStatics::SaveGameToSlot(PlayerSave, UPlayerSave::SaveSlotName, 0);
-	}
-
-	PlayerID = PlayerSave->PlayerID;
-	if (!PlayerID.IsValid())
-	{
-		PlayerID = FGuid::NewGuid();
-		PlayerSave->PlayerID = PlayerID;
-		UGameplayStatics::SaveGameToSlot(PlayerSave, UPlayerSave::SaveSlotName, 0);
-	}
 }

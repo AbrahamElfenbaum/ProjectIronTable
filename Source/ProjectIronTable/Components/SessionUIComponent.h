@@ -2,7 +2,6 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "BaseDiceActor.h"
 #include "SessionUIComponent.generated.h"
 
 class UChatBox;
@@ -21,30 +20,6 @@ UCLASS(Blueprintable, ClassGroup = (Custom), meta = (BlueprintSpawnableComponent
 class PROJECTIRONTABLE_API USessionUIComponent : public UActorComponent
 {
 	GENERATED_BODY()
-
-public:
-	/** Disables tick and enables replication so server RPCs function correctly. */
-	USessionUIComponent();
-
-	/** Creates and initializes all session UI widgets, binds delegates, and loads the saved panel layout. */
-	void Init();
-
-#pragma region Config
-	/** The root session screen widget class to instantiate and add to the viewport. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UUserWidget> SessionScreenClass;
-#pragma endregion
-
-#pragma region Public Methods
-	/** Returns a reference to the chat box widget. */
-	UChatBox* GetChatBox() const;
-
-	/** Returns a reference to the dice tray widget. */
-	UDiceTray* GetDiceTray() const;
-
-	/** Returns a reference to the player list widget. */
-	UPlayerList* GetPlayerList() const;
-#pragma endregion
 
 private:
 
@@ -116,5 +91,30 @@ private:
 
 	/** Reads the given panel's layout data from the save object and applies it if a matching key exists. */
 	void ApplyPanelLayout(UDraggablePanel* Panel, UPanelLayoutSave* LoadedLayout);
+#pragma endregion
+
+public:
+
+#pragma region Config
+	/** The root session screen widget class to instantiate and add to the viewport. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<UUserWidget> SessionScreenClass;
+#pragma endregion
+
+	/** Disables tick and enables replication so server RPCs function correctly. */
+	USessionUIComponent();
+
+	/** Creates and initializes all session UI widgets, binds delegates, and loads the saved panel layout. */
+	void Init();
+
+#pragma region Public Methods
+	/** Returns a reference to the chat box widget. */
+	UChatBox* GetChatBox() const;
+
+	/** Returns a reference to the dice tray widget. */
+	UDiceTray* GetDiceTray() const;
+
+	/** Returns a reference to the player list widget. */
+	UPlayerList* GetPlayerList() const;
 #pragma endregion
 };

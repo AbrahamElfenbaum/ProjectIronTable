@@ -9,33 +9,11 @@ class UButton;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnToggled);
 
-/**
- * A single button in the taskbar that tracks and toggles the visibility of one widget.
- */
+/** A single button in the taskbar that tracks and toggles the visibility of one widget. */
 UCLASS()
 class PROJECTIRONTABLE_API UTaskbarButton : public UUserWidget
 {
 	GENERATED_BODY()
-
-public:
-
-#pragma region Events
-	/** Broadcasts when the button is toggled, used to trigger taskbar visibility changes. */
-	UPROPERTY(BlueprintAssignable)
-	FOnToggled OnToggled;
-#pragma endregion
-
-#pragma region Public Methods
-	/** Assigns the widget to track and sets the button label. */
-	void SetTrackedWidget(UUserWidget* Widget, const FString& Label);
-
-	/** Returns the widget being tracked by this button. */
-	UUserWidget* GetTrackedWidget() const;
-#pragma endregion
-
-protected:
-	/** Binds the toggle button click event. */
-	virtual void NativeConstruct() override;
 
 private:
 
@@ -55,9 +33,34 @@ private:
 	TObjectPtr<UUserWidget> TrackedWidget;
 #pragma endregion
 
+public:
+
+#pragma region Events
+	/** Broadcasts when the button is toggled, used to trigger taskbar visibility changes. */
+	UPROPERTY(BlueprintAssignable)
+	FOnToggled OnToggled;
+#pragma endregion
+
+private:
+
 #pragma region Event Handlers
 	/** Toggles the tracked widget between Visible and Collapsed. */
 	UFUNCTION()
 	void OnToggleClicked();
+#pragma endregion
+
+protected:
+
+	/** Binds the toggle button click event. */
+	virtual void NativeConstruct() override;
+
+public:
+
+#pragma region Public Methods
+	/** Assigns the widget to track and sets the button label. */
+	void SetTrackedWidget(UUserWidget* Widget, const FString& Label);
+
+	/** Returns the widget being tracked by this button. */
+	UUserWidget* GetTrackedWidget() const;
 #pragma endregion
 };

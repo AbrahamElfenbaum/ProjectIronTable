@@ -14,29 +14,6 @@ class PROJECTIRONTABLE_API UPlayerList : public UUserWidget
 {
 	GENERATED_BODY()
 
-public:
-
-#pragma region Config
-	/** The widget class instantiated for each player row. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UPlayerRow> PlayerRowClass;
-#pragma endregion
-
-#pragma region Events
-	/** Forwarded from any player row's OnAddressClicked; passes the target player's name. */
-	UPROPERTY(BlueprintAssignable)
-	FOnAddressClicked OnAddressClicked;
-#pragma endregion
-
-#pragma region Public Methods
-	/** Clears and repopulates the list from the current game state's player array. */
-	void PopulateList();
-#pragma endregion
-
-protected:
-	/** Binds the toggle button, populates the list, and collapses the scroll box initially. */
-	virtual void NativeConstruct() override;
-
 private:
 
 #pragma region Widget References
@@ -54,6 +31,22 @@ private:
 	bool bIsExpanded = false;
 #pragma endregion
 
+public:
+
+#pragma region Config
+	/** The widget class instantiated for each player row. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<UPlayerRow> PlayerRowClass;
+#pragma endregion
+
+#pragma region Events
+	/** Forwarded from any player row's OnAddressClicked; passes the target player's name. */
+	UPROPERTY(BlueprintAssignable)
+	FOnAddressClicked OnAddressClicked;
+#pragma endregion
+
+private:
+
 #pragma region Event Handlers
 	/** Toggles list visibility and repopulates when expanding. */
 	UFUNCTION()
@@ -62,5 +55,17 @@ private:
 	/** Forwards the address click event upward to OnAddressClicked. */
 	UFUNCTION()
 	void OnPlayerAddressClicked(const FString& PlayerName);
+#pragma endregion
+
+protected:
+
+	/** Binds the toggle button, populates the list, and collapses the scroll box initially. */
+	virtual void NativeConstruct() override;
+
+public:
+
+#pragma region Public Methods
+	/** Clears and repopulates the list from the current game state's player array. */
+	void PopulateList();
 #pragma endregion
 };

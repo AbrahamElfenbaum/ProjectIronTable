@@ -11,6 +11,21 @@ class PROJECTIRONTABLE_API UEditableRichText : public UWidget
 {
 	GENERATED_BODY()
 
+private:
+
+#pragma region Runtime References
+	/** The underlying Slate rich-text editor widget created and owned by this UMG wrapper. */
+	TSharedPtr<SRichTextEditor> RichTextEditor;
+#pragma endregion
+
+protected:
+
+	/** Creates the underlying SRichTextEditor Slate widget and returns it for UMG to manage. */
+	virtual TSharedRef<SWidget> RebuildWidget() override;
+
+	/** Releases the Slate widget and cleans up the shared pointer when this widget is destroyed. */
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
+
 public:
 
 #pragma region Public Methods
@@ -32,19 +47,8 @@ public:
 	/** Replaces the current document with the given one, used when loading saved content. */
 	UFUNCTION(BlueprintCallable)
 	void SetDocument(const FRichTextDocument& InDocument);
-#pragma endregion
 
-protected:
-	/** Creates the underlying SRichTextEditor Slate widget and returns it for UMG to manage. */
-	virtual TSharedRef<SWidget> RebuildWidget() override;
-
-	/** Releases the Slate widget and cleans up the shared pointer when this widget is destroyed. */
-	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
-
-private:
-
-#pragma region Runtime References
-	/** The underlying Slate rich-text editor widget created and owned by this UMG wrapper. */
-	TSharedPtr<SRichTextEditor> RichTextEditor;
+	/** Returns a reference to the underlying Slate editor's OnDocumentChanged delegate for external binding. */
+	FOnDocumentChanged& GetOnDocumentChanged();
 #pragma endregion
 };

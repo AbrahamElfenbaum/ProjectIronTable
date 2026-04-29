@@ -22,6 +22,7 @@ struct FPanelLayoutData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bVisible;
 
+	/** Default constructor — initializes to zero position/size and visible. */
 	FPanelLayoutData():
 		Position(FVector2D::Zero()),
 		Size(FVector2D::Zero()),
@@ -29,7 +30,8 @@ struct FPanelLayoutData
 	{
 	}
 
-	FPanelLayoutData(FVector2D InPosition, FVector2D InSize, bool bInVisible):
+	/** Constructs with explicit position, size, and visibility. */
+	FPanelLayoutData(const FVector2D& InPosition, const FVector2D& InSize, bool bInVisible):
 		Position(InPosition),
 		Size(InSize),
 		bVisible(bInVisible)

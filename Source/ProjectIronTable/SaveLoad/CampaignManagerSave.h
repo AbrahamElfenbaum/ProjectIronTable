@@ -26,6 +26,7 @@ struct FCampaignRecord
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 NumberOfPlayers;
 
+	/** Default constructor — initializes to an empty GUID, empty name, default timestamp, and zero players. */
 	FCampaignRecord():
 		CampaignID(),
 		CampaignName(TEXT("")),
@@ -34,7 +35,8 @@ struct FCampaignRecord
 	{
 	}
 
-	FCampaignRecord(FGuid InCampaignID, FString InCampaignName, FDateTime InLastPlayed, int32 InNumberOfPlayers):
+	/** Constructs a campaign record with all fields provided. */
+	FCampaignRecord(const FGuid& InCampaignID, const FString& InCampaignName, const FDateTime& InLastPlayed, int32 InNumberOfPlayers):
 		CampaignID(InCampaignID),
 		CampaignName(InCampaignName),
 		LastPlayed(InLastPlayed),
@@ -53,6 +55,7 @@ struct FCampaignList
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FCampaignRecord> Campaigns;
 
+	/** Default constructor — initializes with an empty campaigns array. */
 	FCampaignList():
 		Campaigns()
 	{

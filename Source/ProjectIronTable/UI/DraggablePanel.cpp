@@ -4,6 +4,17 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Components/TextBlock.h"
 
+// Caches the canvas slot and applies the default panel title.
+void UDraggablePanel::NativeConstruct()
+{
+	Super::NativeConstruct();
+	CanvasSlot = Cast<UCanvasPanelSlot>(Slot);
+	if (TitleText)
+	{
+		TitleText->SetText(PanelTitle);
+	}
+}
+
 // Stores the panel ID used to key into the layout save game.
 void UDraggablePanel::SetPanelID(const FString& ID)
 {
@@ -88,15 +99,4 @@ void UDraggablePanel::ResetToDefaultLayout()
 	CanvasSlot->SetSize(DefaultSize);
 
 	OnPanelStateChanged.Broadcast();
-}
-
-// Caches the canvas slot and applies the default panel title.
-void UDraggablePanel::NativeConstruct()
-{
-	Super::NativeConstruct();
-	CanvasSlot = Cast<UCanvasPanelSlot>(Slot);
-	if (TitleText)
-	{
-		TitleText->SetText(PanelTitle);
-	}
 }

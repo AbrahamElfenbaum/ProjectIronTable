@@ -3,13 +3,13 @@
 
 #include "Kismet/GameplayStatics.h"
 
-#include "SessionInstance.h"
-#include "SessionSave.h"
-#include "SessionGameState.h"
-#include "SessionPlayerState.h"
 #include "MacroLibrary.h"
+#include "SessionGameState.h"
+#include "SessionInstance.h"
+#include "SessionPlayerState.h"
+#include "SessionSave.h"
 
-// Load session save and populate GameState before any player logs in
+// Loads the session save and populates ASessionGameState before any player logs in.
 void ASessionGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
 {
 	Super::InitGame(MapName, Options, ErrorMessage);
@@ -37,7 +37,7 @@ void ASessionGameMode::InitGame(const FString& MapName, const FString& Options, 
 	SessionGameState->SetLastSaved(SessionSave->LastSaved);
 }
 
-// Reject the connection if the session is already at capacity
+// Rejects the connection if the session has reached MaxPlayers.
 void ASessionGameMode::PreLogin(const FString& Options, const FString& Address, const FUniqueNetIdRepl& UniqueId, FString& ErrorMessage)
 {
 	Super::PreLogin(Options, Address, UniqueId, ErrorMessage);
@@ -50,18 +50,16 @@ void ASessionGameMode::PreLogin(const FString& Options, const FString& Address, 
 
 	ASessionGameState* SessionGameState = GetGameState<ASessionGameState>();
 	CHECK_IF_VALID(SessionGameState, );
-	
+
 	int32 CurrentPlayers = SessionGameState->PlayerArray.Num();
 	if (CurrentPlayers >= MaxPlayers)
 	{
 		ErrorMessage = TEXT("Session is full");
 		UE_LOG(LogTemp, Warning, TEXT("ASessionGameMode::PreLogin — Player rejected because session is full (current: %d, max: %d)"), CurrentPlayers, MaxPlayers);
-		return;
 	}
-
 }
 
-// Assign role flags to the player's SessionPlayerState on login
+// Assigns role flags to the player's ASessionPlayerState on login.
 void ASessionGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
@@ -107,7 +105,7 @@ void ASessionGameMode::PostLogin(APlayerController* NewPlayer)
 	}
 }
 
-// Remove the player from the active player list in SessionGameState on logout
+// Removes the player from the active player list in ASessionGameState on logout.
 void ASessionGameMode::Logout(AController* Exiting)
 {
 	Super::Logout(Exiting);

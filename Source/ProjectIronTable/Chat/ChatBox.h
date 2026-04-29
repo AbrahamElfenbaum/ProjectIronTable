@@ -17,44 +17,6 @@ class PROJECTIRONTABLE_API UChatBox : public UBaseChannelPanel
 {
 	GENERATED_BODY()
 
-public:
-
-#pragma region Config
-	/** Widget class forwarded to each channel for spawning individual message entries. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UChatEntry> ChatEntryClass;
-#pragma endregion
-
-#pragma region Public Methods
-	/** Focuses the editable text field and switches input mode to UI only. */
-	void FocusChat();
-
-	/** Clears and disables the input field and restores game-and-UI input mode. */
-	void ExitChat();
-
-	/** Creates a new channel for the given participant list, adds it to the tab bar, and returns it. */
-	virtual UBaseChannel* CreateChannel(const TArray<FString>& Participants) override;
-
-	/** Routes a message to the correct channel (creating one if needed) and shows a notification if not active. */
-	void AddChatMessage(const FString& Message, const TArray<FString>& Participants, bool bIsSender);
-
-	/** Appends text to the current contents of the input field. */
-	void AppendToInput(const FString& Text);
-
-	/** If the current input starts with a private message command, sends it and clears the input. */
-	void TrySendPrivateRollMessage();
-
-	/** Sets the chat component reference used to send messages to the server. Called by USessionChatComponent after Init. */
-	void SetChatComponent(USessionChatComponent* InChatComponent);
-#pragma endregion
-
-protected:
-	/** Binds the text committed delegate; base handles channel and button setup. */
-	virtual void NativeConstruct() override;
-
-	/** Focuses the chat box when clicked while unfocused. */
-	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-
 private:
 
 #pragma region Widget References
@@ -77,11 +39,15 @@ private:
 	TObjectPtr<USessionChatComponent> ChatComponentRef;
 #pragma endregion
 
-#pragma region Event Handlers
-	/** Sends the typed message to the server on Enter, or exits chat on focus loss. */
-	UFUNCTION()
-	void OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod);
+public:
+
+#pragma region Config
+	/** Widget class forwarded to each channel for spawning individual message entries. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<UChatEntry> ChatEntryClass;
 #pragma endregion
+
+private:
 
 #pragma region Private Methods
 	/** Splits a message string into @mention recipients and the remaining message body. */
@@ -98,5 +64,44 @@ private:
 
 	/** Clears the input field when switching to a new channel. */
 	virtual void OnChannelSwitched(UBaseChannel* Channel) override;
+#pragma endregion
+
+#pragma region Event Handlers
+	/** Sends the typed message to the server on Enter, or exits chat on focus loss. */
+	UFUNCTION()
+	void OnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod);
+#pragma endregion
+
+protected:
+
+	/** Binds the text committed delegate; base handles channel and button setup. */
+	virtual void NativeConstruct() override;
+
+	/** Focuses the chat box when clicked while unfocused. */
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
+public:
+
+#pragma region Public Methods
+	/** Focuses the editable text field and switches input mode to UI only. */
+	void FocusChat();
+
+	/** Clears and disables the input field and restores game-and-UI input mode. */
+	void ExitChat();
+
+	/** Creates a new channel for the given participant list, adds it to the tab bar, and returns it. */
+	virtual UBaseChannel* CreateChannel(const TArray<FString>& Participants) override;
+
+	/** Routes a message to the correct channel (creating one if needed) and shows a notification if not active. */
+	void AddChatMessage(const FString& Message, const TArray<FString>& Participants, bool bIsSender);
+
+	/** Appends text to the current contents of the input field. */
+	void AppendToInput(const FString& Text);
+
+	/** If the current input starts with a private message command, sends it and clears the input. */
+	void TrySendPrivateRollMessage();
+
+	/** Sets the chat component reference used to send messages to the server. Called by USessionChatComponent after Init. */
+	void SetChatComponent(USessionChatComponent* InChatComponent);
 #pragma endregion
 };
