@@ -14,12 +14,16 @@ private:
 
 	/** Current cursor position as a character index into the document. Pointer into SRichTextEditor's CursorPosition so it stays in sync. */
 	const int32* CursorPosition = nullptr;
+	
+	/** Active selection anchor as a character index into the document. Pointer into SRichTextEditor's SelectionAnchor so it stays in sync. -1 when no selection is active. */
+	const int32* SelectionAnchor = nullptr;
 
 public:
 
 	SLATE_BEGIN_ARGS(SRichTextArea) {}
 		SLATE_ARGUMENT(const FRichTextDocument*, Document)
 		SLATE_ARGUMENT(const int32*, CursorPosition)
+		SLATE_ARGUMENT(const int32*, SelectionAnchor)
 	SLATE_END_ARGS()
 
 	/** Stores the document reference passed in via SLATE_ARGUMENT. */
@@ -43,10 +47,19 @@ public:
 				  const FPaintGeometry& PaintGeometry, const FLinearColor& Color,
 				  float XOffset, float YOffset, float Width) const;
 
+	/** Draws a highlight rect behind each line segment that falls within the selection, from StartPos on the first line to EndPos on the last. */
+	void DrawHighlight(FSlateWindowElementList& ElementList, uint32 InLayer,
+					   const FGeometry& Geometry, const FLinearColor& Color,
+					   const TArray<FString>& InLines, const FSlateFontInfo& InFontInfo,
+					   FVector2f StartPos, FVector2f EndPos, float LineHeight, float InScale) const;
+
 	/** Returns the pixel X and Y position of the cursor within the document, accounting for tab stops and newlines. TabSpace is the pre-measured width of a single tab gap in layout coordinates. Used by SRichTextEditor for Up/Down navigation. */
 	static FVector2f GetCursorPosition(const FRichTextDocument& InDocument, int32 InCursorPosition, float TabSpace, float InScale);
 
 	/** Returns the layout-space pixel width of the given text string using the given font and scale. Scale division is applied internally — result is in unscaled layout coordinates. */
 	static float MeasureText(const FString& Text, const FSlateFontInfo& FontInfo, float InScale);
+
+	/** Converts a local-space mouse position to the nearest document character index by finding the target line via Y, then walking characters by X. */
+	static int32 HitTest(FVector2f LocalMousePos, const FRichTextDocument& InDocument, float InScale);
 };
 

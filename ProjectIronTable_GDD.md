@@ -1,4 +1,4 @@
-# ProjectIronTable — Game Design Document
+﻿# ProjectIronTable — Game Design Document
 
 **Version:** 0.1 (Draft)
 **Engine:** Unreal Engine 5.7
@@ -609,69 +609,7 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 
 ---
 
-*Last updated: 2026-04-27* — No design decisions changed. Internal: Visual formatting complete — bold, italic, underline, and strikethrough now render correctly in `SRichTextArea::OnPaint`. `PruneRuns()` implemented. Two Slate gotchas resolved: `SCheckBox::SetIsChecked` fires callback with old state; format checkboxes require `.IsFocusable(false)`.
-
-*Last updated: 2026-04-26* — No design decisions changed. Internal (session 1): Tab key support added; `DrawSpecialCharacter` helper consolidates Enter/Tab insertion; `SRichTextArea` rendering and cursor positioning are now tab-aware. Internal (session 2): Multi-run document model fully functional — format-aware insertion, cursor-driven `ActiveFormat` sync, Ctrl+B/I/U shortcuts, multi-run backspace/delete. Known bug 2.6: Up/Down into a line with two consecutive tabs snaps to nearest visible character (low priority). Pending: `PruneRuns()`, visual per-run rendering (bold/italic/underline/strikethrough), selection.
-
-*Last updated: 2026-04-25* — No design decisions changed. Internal: multi-line text entry, cursor rendering, and Up/Down/Enter navigation implemented in `SRichTextEditor` / `SRichTextArea`.
-
-*Last updated: 2026-04-23* — No design decisions changed. Internal: `OnKeyChar` implemented on `SRichTextEditor`; `URichTextEditorWidget` renamed to `UEditableRichText`. Coding standards layout rule updated (fields before functions, private→protected→public).
-
-*2026-04-22 (updated)* — Notes rich-text implementation approach revised: custom Slate rich-text editor (built natively in UE C++) chosen over WebBrowser + Quill. Rationale: no browser overhead, full theme control, better UE input integration, and opens the door to TTRPG-specific extensions. Markdown-with-preview rejected as a regression. Notes formatting scope unchanged: bold, italic, underline, strikethrough, headers, bullet lists.
-
-*Last updated: 2026-04-20* — No design decisions changed. Internal implementation: `UBaseChannelPanel` base class fully implemented and `UChatBox` reparented to it. Design decision confirmed: notes channels cannot use participant-list identity (multiple tabs can share the same participants; list changes via invite). Notes will use GUID-based channel identity instead.
-
-*Last updated: 2026-04-16* — Session notes foundation added: `USessionNotesPanel` is a plain-text, scrollable notes widget registered as a draggable panel. Rich-text formatting (bold, italic, underline) and collaborative editing deferred — plain text first. Design decision: no separate "Edit mode" button; clicking the text field activates editing, clicking away or pressing Escape returns to read mode (not yet implemented — foundation only). Hover-scroll (scroll without focus) identified as a desired improvement for both notes and chat; deferred. Server RPC infrastructure: `ServerTravel` now always executes on the server via `ASessionController::Server_TravelToSession`; client-side direct `ServerTravel` calls removed.
-
-*Last updated: 2026-04-15* — No design changes; internal code quality pass only. See TechDoc for details.
-
-*Last updated: 2026-04-14 (updated)* — Session save/load utilities extracted to `UFunctionLibrary`: `GetSessionSaveSlotName`, `LoadSessionSave`, `GetLocalPlayerName`. No design changes; internal refactor only.
-
-*2026-04-14* — Chat tab rename complete. Right-click on any non-Server tab opens a context menu with Rename and Close options. Close button removed from tabs. Rename is client-local, persisted to `USessionSave::ChatTabNames`.
-
-*2026-04-13* — Chat tab rename infrastructure complete: `UChatTab` supports inline rename via right-click → context menu → `EnterRenameMode()`. Rename is client-local and persisted in `USessionSave::ChatTabNames`. `UContextMenu` and `UContextMenuButton` added as reusable context menu system.
-
-*Last updated: 2026-04-12* — Chat log persistence implemented. `USessionSave` now holds the full chat log (`ChatLog` field). `USessionHUDComponent` saves each message server-side and restores the log on session load. Open question #6 ("Does the chat log persist across saves?") was already marked resolved; implementation is now complete.
-
-*2026-04-10 (updated)* — GM role finalized: multiple simultaneous GMs supported, role is transferable, default GM = campaign creator. Player Roles section consolidated (Host and GM merged into single GM section). Session Save model updated: each session is a separate file; sessions grouped into campaigns via `UCampaignManagerSave` index; slot-name storage, no custom file I/O. Open questions #27 and #28 resolved.
-
-*2026-04-10* — Session lifecycle fully designed (server startup, join, lobby, session start, late join) and added to Multiplayer section. Campaign sorting behaviour added (active sessions pinned to top). Save file inventory defined. Campaign Manager GM/Player mode toggle added. Server model confirmed as listen server (open question #2 resolved).
-
-*2026-04-09 (updated)* — No design changes. Implementation session: home screen navigation fully wired to Campaign Manager, Campaign Browser (stub), and Asset Library (stub) screens. `UBaseScreen` introduced as shared base class. Play button removed in favour of Campaign Manager button.
-
-*2026-04-09* — No design changes. Implementation session: `UCampaignManagerScreen` tab-switching and visual selection complete; `UDelegateLibrary` introduced for shared delegate types.
-
-*2026-04-08* — Environment system (Time of Day & Weather) fully designed. Voice/video chat moved from Out of Scope to Open Questions (undecided between built-in, Discord integration, or out of scope). Open question list renumbered. Expanded the Maps "Lighting and atmosphere" stub into a complete feature section covering time of day, weather types, intensity, GM panel, replication model, and planned C++ classes.
-
-*2026-04-03 (updated 1)* — Character Sheet GM edit limits fully resolved. Miniatures: default mini (wooden artist's mannequin), movement rules, difficult terrain, diagonal ruling all added. Multiplayer: server model (leaning listen), session discovery, join flow (invite code vs. public request with temporary chat), pre-session lobby all documented. Game Systems architecture defined: core layer + game system plugin layer, rule variants, campaign locking, custom rulesets deferred. Combat section added: GM-driven start/end. Initiative Tracker expanded: round tracking, manual turn advancement, skip/delay, removing combatants. Fog of War fully designed including camera boundary. Sound and Music added: all types, proximity-based SFX, map-baked audio, built-in library. Player Profiles added. Character Creation added: root + game system layer. Inventory and Loot added: send flow, GM item list, custom items. Measurement Tools noted as in scope. Entity Management Panel added. Session Save/Load fully designed. Vision system documented: player vs. character vision separation, outline tracking for vision-blocking effects. Out of Scope updated: campaign management and notes removed (now in scope).
-
-*2026-04-03 (updated)* — Shared Notes updated: rich-text formatting confirmed, out-of-session access confirmed via Campaign Manager. Home Screen Play button now leads to Campaign Manager. Campaign Manager section added: layout TBD (grid with collapsible columns or tab sidebar), campaign creation with private/public modes, public browser with filters, campaign card contents defined for D&D 5e. Scheduling added as in-scope with extensiveness TBD.
-
-*2026-04-03* — Map system redesigned as a 3D tile/prop builder (primary differentiator). Added Combat Map and World/Region Map scale modes with location pin linking. Host/Server Owner roles clarified and separated. Custom content section rewritten with auto-distribution model (no placeholders), glTF format decision, and manual peer-to-peer sharing. Host delegation added as a resolved design question. Player Roles section restructured with Server Owner and Host as distinct entries.
-
-*2026-04-02* — Added panel layout reset button to UI/UX section. Settings screen fully implemented (save/load/defaults). Reset Layout button added to taskbar.
-
-*2026-04-01 (updated 3)* — Panel layout persistence implemented. Private dice roll initiation implemented — players type `@Names` in chat input then click Roll to create a private channel and route the result there. Input field now persists on click-away; clears on channel switch or send.
-
-*2026-04-01 (updated 2)* — Dice collision SFX implemented. Sound plays on die-to-surface and die-to-die impacts; volume scales with impulse magnitude. Physics tuning (including sound values) deferred to a later polish pass. Kenney Impact Sounds (CC0) credited.
-
-*2026-04-01 (updated 1)* — Home screen implemented and working. Play button transitions to gameplay scene. Join, Library, and Settings are stubs pending their respective systems.
-
-*2026-04-01 (updated)* — Added Home Screen and Asset Library sections. Defined import flow: type selector → file dialog or drag-and-drop → copy to destination folder. Supported formats: PNG/JPG (images), WAV (audio); mesh import deferred. Established that home screen is a separate scene with its own controller and game mode.
-
-*2026-04-01* — Camera settings system in progress. Settings slider widget implemented; full settings screen and wiring pending. No GDD design decisions changed this session.
-
-*2026-03-31* — Draggable and resizable panels implemented. Close/reopen private chat tabs implemented. Confirmed tab renaming is user-independent (each client names tabs locally; channel identity is participant-based, not name-based).
-
-*2026-03-29* — Taskbar minimize system implemented: a taskbar widget at the bottom of the screen holds toggle buttons for Chat, Dice, and Players panels. Panel toggle behavior is live; full draggable/resizable layout system is still planned.
-
-*2026-03-27 (updated)* — Dice roll routing design decision added: rolls go to the active channel, not always broadcast. Private dice roll initiation (starting a channel via a roll) added as a future open item.
-
-*2026-03-27* — Private messaging and tabbed chat fully implemented. Player list widget added: collapsible scroll list of connected players, each row has an address button that appends `@PlayerName ` to the chat input field. No GDD design changes — all features match the existing design spec.
-
-*2026-03-26* — Chat section updated with tabbed channel design: Server tab, private tabs with `@P1 +2` labels, `@Name` addressing syntax, auto-switch on send, notification on receive, channels list for reopening closed tabs.
-
-*2026-03-25* — Initial GDD created.
+*Last updated: 2026-04-30* — No design decisions changed. Internal: Dead code removed from `GetSelectedRange`. Changelog consolidated into `ProjectIronTable_Changelog.md` — TechDoc and GDD now hold only a single `*Last updated*` one-liner each.
 
 ---
 

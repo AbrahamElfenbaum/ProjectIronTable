@@ -5,6 +5,7 @@
 #include "RichTextDocument.h"
 
 class SCheckBox;
+class SRichTextArea;
 
 DECLARE_MULTICAST_DELEGATE(FOnDocumentChanged)
 
@@ -15,8 +16,105 @@ public:
 	SLATE_BEGIN_ARGS(SRichTextEditor) {}
 	SLATE_END_ARGS()
 
+#pragma region Fields
+
+private:
+
+	/** Start of the active text selection as a character index. -1 when nothing is selected. */
+	int32 SelectionAnchor = -1;
+
+	/** Current cursor position as a character index into the document. */
+	int32 CursorPosition = 0;
+
+	/** The document being edited, stored as an ordered list of formatted runs. */
+	FRichTextDocument Document;
+
+	/** Formatting state applied to newly typed text. Updated when the cursor moves or a format toggle is pressed. Text field is unused — this is a format carrier only. */
+	FRichTextRun ActiveFormat;
+
+	/** Cached pointer to the text area child widget, used to resolve mouse positions relative to the text area rather than the full editor geometry. */
+	TSharedPtr<SRichTextArea> TextAreaRef;
+
+	/** Toolbar checkbox for toggling bold formatting. */
+	TSharedPtr<SCheckBox> BoldCheckbox;
+
+	/** Toolbar checkbox for toggling italic formatting. */
+	TSharedPtr<SCheckBox> ItalicCheckbox;
+
+	/** Toolbar checkbox for toggling underline formatting. */
+	TSharedPtr<SCheckBox> UnderlineCheckbox;
+
+	/** Toolbar checkbox for toggling strikethrough formatting. */
+	TSharedPtr<SCheckBox> StrikethroughCheckbox;
+
+	/** Guards against feedback loops when programmatically calling SetIsChecked on format checkboxes — SCheckBox fires OnCheckStateChanged with the previous state on programmatic updates, which would overwrite ActiveFormat. Set to true around all SetIsChecked calls in SyncActiveFormat; toggle callbacks return early while true. */
+	bool bIsSyncing;
+
+public:
+
 	/** Fired when the document content changes due to user input or format commands. */
 	FOnDocumentChanged OnDocumentChanged;
+
+#pragma endregion
+
+#pragma region Functions
+
+private:
+
+	/** Finds the run in Document.Runs that spans CharIndex and sets OutRunStart to the character index where that run begins. Returns the index of the run in Document.Runs. */
+	int32 FindRunAtIndex(int32 CharIndex, int32& OutRunStart) const;
+
+	/** Builds a single toolbar checkbox wired to the given format callback and labeled with the given string. */
+	TSharedRef<SWidget> MakeFormatCheckbox(TSharedPtr<SCheckBox>& Checkbox, TFunction<void(bool)> Callback, const TCHAR* Label);
+
+	/** Returns true if both runs share the same bold, italic, underline, strikethrough flags and font info. */
+	bool FormatsMatch(const FRichTextRun& A, const FRichTextRun& B) const;
+
+	/** Inserts a non-printable character (e.g. newline, tab) at CursorPosition using the same run-walk as OnKeyChar, then advances the cursor. */
+	void DrawSpecialCharacter(TCHAR SpecialCharacter);
+
+	/** Removes the character at the given document index, resolving the correct run using FindRunAtIndex and redirecting to the next run if the index falls on a run boundary. */
+	void OnBackspaceOrDeletePressed(int32 CursorPos);
+
+	/** Moves the cursor up or down one line, landing on the character closest to the current X pixel position. */
+	void OnUpOrDownPressed(const TArray<FString>& Lines, FVector2f CursorPos, float Scale, bool bUp);
+
+	/** Updates ActiveFormat to match the format flags of the run currently under the cursor. Called after any operation that moves CursorPosition. */
+	void SyncActiveFormat();
+
+	/** Removes all empty runs, merges adjacent runs with identical format, and re-adds a blank default run if none remain. */
+	void PruneRuns();
+
+	/** Returns the lower bound of the active selection as a character index. */
+	int32 GetSelectionMin() const { return FMath::Min(SelectionAnchor, CursorPosition); }
+
+	/** Returns the upper bound of the active selection as a character index. */
+	int32 GetSelectionMax() const { return FMath::Max(SelectionAnchor, CursorPosition); }
+
+	/** Converts a mouse event's screen-space position to a character index using TextAreaRef's geometry, correcting for the toolbar height offset. */
+	int32 GetAreaCursorPosition(const FPointerEvent& MouseEvent);
+
+	/** Returns a copy of the document runs that fall within the active selection, with each run's text clipped to the selection boundaries. */
+	TArray<FRichTextRun> GetSelectedRange();
+
+	/** Sets SelectionAnchor to the current CursorPosition when Shift is first held and a move begins, or clears it to -1 when Shift is not held. Must be called before CursorPosition is updated. */
+	void HandleSelectionOnMove(bool bShiftDown);
+
+protected:
+
+	/** Handles character input events. */
+	FReply OnKeyChar(const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent) override;
+
+	/** Handles key down events for cursor movement, deletion, and format shortcuts. */
+	FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
+
+	/** Requests keyboard focus when the widget is clicked. */
+	FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+
+	/** Extends the active selection by updating CursorPosition to the character under the mouse while the left button is held. */
+	FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+
+public:
 
 	/** Initializes the widget layout. Called by Slate when the widget is first created. */
 	void Construct(const FArguments& InArgs);
@@ -42,70 +140,6 @@ public:
 	/** Returns true so the widget can receive keyboard focus. */
 	bool SupportsKeyboardFocus() const override;
 
-protected:
+#pragma endregion
 
-	/** Handles character input events. */
-	FReply OnKeyChar(const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent) override;
-
-	/** Handles key down events for cursor movement, deletion, and format shortcuts. */
-	FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
-
-	/** Requests keyboard focus when the widget is clicked. */
-	FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
-
-private:
-
-	/** Start of the active text selection as a character index. -1 when nothing is selected. */
-	int32 SelectionStart = -1;
-
-	/** End of the active text selection as a character index. -1 when nothing is selected. */
-	int32 SelectionEnd = -1;
-
-	/** Current cursor position as a character index into the document. */
-	int32 CursorPosition = 0;
-
-	/** The document being edited, stored as an ordered list of formatted runs. */
-	FRichTextDocument Document;
-
-	/** Formatting state applied to newly typed text. Updated when the cursor moves or a format toggle is pressed. Text field is unused — this is a format carrier only. */
-	FRichTextRun ActiveFormat;
-
-	/** Toolbar checkbox for toggling bold formatting. */
-	TSharedPtr<SCheckBox> BoldCheckbox;
-
-	/** Toolbar checkbox for toggling italic formatting. */
-	TSharedPtr<SCheckBox> ItalicCheckbox;
-
-	/** Toolbar checkbox for toggling underline formatting. */
-	TSharedPtr<SCheckBox> UnderlineCheckbox;
-
-	/** Toolbar checkbox for toggling strikethrough formatting. */
-	TSharedPtr<SCheckBox> StrikethroughCheckbox;
-
-	/** Guards against feedback loops when programmatically calling SetIsChecked on format checkboxes — SCheckBox fires OnCheckStateChanged with the previous state on programmatic updates, which would overwrite ActiveFormat. Set to true around all SetIsChecked calls in SyncActiveFormat; toggle callbacks return early while true. */
-	bool bIsSyncing;
-
-	/** Finds the run in Document.Runs that spans CharIndex and sets OutRunStart to the character index where that run begins. Returns the index of the run in Document.Runs. */
-	int32 FindRunAtIndex(int32 CharIndex, int32& OutRunStart) const;
-
-	/** Builds a single toolbar checkbox wired to the given format callback and labeled with the given string. */
-	TSharedRef<SWidget> MakeFormatCheckbox(TSharedPtr<SCheckBox>& Checkbox, TFunction<void(bool)> Callback, const TCHAR* Label);
-
-	/** Returns true if both runs share the same bold, italic, underline, strikethrough flags and font info. */
-	bool FormatsMatch(const FRichTextRun& A, const FRichTextRun& B) const;
-
-	/** Inserts a non-printable character (e.g. newline, tab) at CursorPosition using the same run-walk as OnKeyChar, then advances the cursor. */
-	void DrawSpecialCharacter(TCHAR SpecialCharacter);
-
-	/** Removes the character at the given document index, resolving the correct run using FindRunAtIndex and redirecting to the next run if the index falls on a run boundary. */
-	void OnBackspaceOrDeletePressed(int32 CursorPos);
-
-	/** Moves the cursor up or down one line, landing on the character closest to the current X pixel position. */
-	void OnUpOrDownPressed(const TArray<FString>& Lines, FVector2f CursorPos, float Scale, bool bUp);
-
-	/** Updates ActiveFormat to match the format flags of the run currently under the cursor. Called after any operation that moves CursorPosition. */
-	void SyncActiveFormat();
-
-	/** Removes all empty runs from the document; re-adds a blank default run using ActiveFormat if none remain. */
-	void PruneRuns();
 };

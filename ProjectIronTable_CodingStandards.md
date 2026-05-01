@@ -196,7 +196,20 @@ The exception is `BindWidget` references — these are guaranteed valid if the w
 
 ---
 
-## 12. Const Correctness
+## 12. Inline Functions
+
+Trivial getters — single-expression, no side effects — may be defined inline in the `.h`:
+
+```cpp
+int32 GetSelectionMin() const { return FMath::Min(SelectionAnchor, CursorPosition); }
+int32 GetSelectionMax() const { return FMath::Max(SelectionAnchor, CursorPosition); }
+```
+
+All other functions must be defined in the `.cpp`.
+
+---
+
+## 13. Const Correctness
 
 - Methods that do not modify object state must be marked `const`:
 ```cpp
@@ -211,7 +224,7 @@ void ApplyPanelLayoutData(const FPanelLayoutData& LayoutData);
 
 ---
 
-## 13. Super:: in Overrides
+## 14. Super:: in Overrides
 
 Every overridden lifecycle function must call its `Super::` version as the **first line** of the body:
 
@@ -227,7 +240,7 @@ This applies to: `NativeConstruct`, `BeginPlay`, `OnPossess`, `PostEditChangePro
 
 ---
 
-## 14. Memory Management
+## 15. Memory Management
 
 Never use raw `new` or `delete` for UObject-derived types. Always use UE's managed allocation:
 
@@ -242,13 +255,13 @@ Raw `new` / `delete` is only acceptable for non-UObject types (plain C++ structs
 
 ---
 
-## 15. Boilerplate Cleanup
+## 16. Boilerplate Cleanup
 
 UE creates stub implementations for `BeginPlay`, `Tick`, and `SetupPlayerInputComponent` in new actor/pawn classes. If these functions contain no logic beyond `Super::`, **remove them entirely** from both `.h` and `.cpp` rather than leaving empty stubs.
 
 ---
 
-## 16. Defensive Programming
+## 17. Defensive Programming
 
 ### Null checks on external pointers
 Any pointer retrieved from an external source must be null-checked before use. External sources include:
@@ -303,7 +316,7 @@ if (ChatBoxRef)
 
 ---
 
-## 17. Logging
+## 18. Logging
 
 ### Log levels
 | Situation | Level |
@@ -328,7 +341,7 @@ If a null check or cast fails and causes a function to return early, a log entry
 
 ---
 
-## 18. Include Order
+## 19. Include Order
 
 In `.cpp` files, includes must follow this order with a blank line between each group:
 
@@ -351,13 +364,13 @@ This order ensures that `MyWidget.h` is self-contained (missing includes surface
 
 ---
 
-## 19. Function Order in `.cpp`
+## 20. Function Order in `.cpp`
 
 Function definitions in `.cpp` must appear in the **same order** as their declarations in the `.h`. If the `.h` declaration order changes, the `.cpp` must be reordered to match.
 
 ---
 
-## 20. Garbage Collection Safety
+## 21. Garbage Collection Safety
 
 Every `UObject`-derived pointer stored as a class member **must** be covered by `UPROPERTY()`. A raw pointer with no `UPROPERTY` is invisible to Unreal's garbage collector — the object it points to can be collected while the pointer still holds an address, producing a dangling pointer that `IsValid()` will not reliably catch.
 
@@ -376,7 +389,7 @@ Local variables inside function bodies are not subject to this rule.
 
 ---
 
-## 20. No Debug Output in Committed Code
+## 22. No Debug Output in Committed Code
 
 The following are only acceptable during local debugging and must be removed before committing:
 
