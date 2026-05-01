@@ -1617,7 +1617,7 @@ This approach keeps all save I/O within UE's native save game system and makes a
 
 ---
 
-*Last updated: 2026-05-01* — `SRichTextEditor` selection system complete: `PreferredX` column drift fix (bug 2.9), drag select, selection-aware backspace/delete/typing/paste, Ctrl+A/C/X/V, `FormatToSelection(TFunction)` applied by all four toggle methods and Ctrl+B/I/U/S; `bIsSyncing` guard prevents checkbox feedback loop on programmatic `SetIsChecked`.
+*Last updated: 2026-05-01* — `SRichTextEditor` selection system complete (PreferredX column drift fix, drag select, selection-aware editing, Ctrl+A/C/X/V, FormatToSelection); `RichText/` folder added to source folder hierarchy (was missing from the tree, class sections already present).
 
 ---
 
