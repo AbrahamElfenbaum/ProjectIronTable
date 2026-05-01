@@ -7,25 +7,6 @@
 
 ---
 
-## Versioning
-
-**Scheme:** Major.Minor (no patch — pre-release work doesn't warrant patch tracking)
-
-| Version | Meaning |
-|---------|---------|
-| 0.x     | Pre-release. Each minor increment = a roadmap phase complete and stable end-to-end. |
-| 1.0     | First shippable build — all core features functional, stable enough for a real group to play a full session. |
-
-**Current phase milestones (minor bumps):**
-- **0.1** — Foundation: dice, chat, notes editor (current)
-- **0.2** — Phase 2 complete: notes fully working, session save/load, multiplayer stable
-- **0.3** — Phase 3 complete: Campaign Manager, player profiles, public browser
-- **0.4+** — Subsequent phases (map builder, miniatures, D&D 5e, UI polish)
-
-Bump the minor version when a phase is finished and working end-to-end — not per feature, not per commit.
-
----
-
 ## Overview
 
 ProjectIronTable is a virtual tabletop (VTT) simulator built in Unreal Engine. It lets a group of players run a tabletop RPG session online — rolling dice, moving miniatures on a shared map, tracking initiative and character stats, and communicating through an in-session chat. The GM runs the session and controls the environment; players control their own characters.

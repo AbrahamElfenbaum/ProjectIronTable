@@ -398,3 +398,22 @@ The following are only acceptable during local debugging and must be removed bef
 - `DrawDebugLine`, `DrawDebugSphere`, and other `DrawDebug*` calls
 
 `UE_LOG` is the only accepted logging path in committed code. If information needs to be visible during a play session, add a `Display`-level log entry instead.
+
+---
+
+## 23. Versioning
+
+**Scheme:** Major.Minor (no patch — pre-release work doesn't warrant patch tracking)
+
+| Version | Meaning |
+|---------|---------|
+| 0.x | Pre-release. Each minor increment = a roadmap phase complete and stable end-to-end. |
+| 1.0 | First shippable build — all core features functional, stable enough for a real group to play a full session. |
+
+**Current phase milestones (minor bumps):**
+- **0.1** — Foundation: dice, chat, notes editor (current)
+- **0.2** — Phase 2 complete: notes fully working, session save/load, multiplayer stable
+- **0.3** — Phase 3 complete: Campaign Manager, player profiles, public browser
+- **0.4+** — Subsequent phases (map builder, miniatures, D&D 5e, UI polish)
+
+Bump the minor version when a phase is finished and working end-to-end — not per feature, not per commit.
