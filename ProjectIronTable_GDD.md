@@ -609,7 +609,7 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 
 ---
 
-*Last updated: 2026-04-30* — No design decisions changed. Internal: Dead code removed from `GetSelectedRange`. Changelog consolidated into `ProjectIronTable_Changelog.md` — TechDoc and GDD now hold only a single `*Last updated*` one-liner each.
+*Last updated: 2026-05-01* — No design decisions changed this session.
 
 ---
 

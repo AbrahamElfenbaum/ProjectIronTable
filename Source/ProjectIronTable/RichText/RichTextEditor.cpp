@@ -107,18 +107,29 @@ void SRichTextEditor::OnUpOrDownPressed(const TArray<FString>& Lines, FVector2f 
 	int32 CurrentLine = CursorPos.Y / LineHeight;
 	int32 TargetLine = CurrentLine + (bUp ? -1 : 1);
 
+	if (PreferredX < 0)
+	{
+		PreferredX = CursorPos.X;
+	}
+
 	if (!((bUp && TargetLine < 0) || (!bUp && TargetLine >= Lines.Num())))
 	{
 		int32 CharInLine = 0;
+		float LeftEdge = 0.f;
+
 		for (int32 i = 0; i < Lines[TargetLine].Len(); i++)
 		{
-			float CharWidth = FSlateApplication::Get().GetRenderer()->GetFontMeasureService()
+			float RightEdge = FSlateApplication::Get().GetRenderer()->GetFontMeasureService()
 				->Measure(Lines[TargetLine].Left(i + 1), Document.Runs[0].FontInfo, Scale).X / Scale;
-			if (CharWidth > CursorPos.X)
+
+			float Midpoint = (RightEdge + LeftEdge) / 2.f;
+
+			if (Midpoint > PreferredX)
 			{
 				break;
 			}
 			CharInLine = i + 1;
+			LeftEdge = RightEdge;
 		}
 
 		int32 NewCursorPosition = 0;
@@ -206,8 +217,8 @@ TArray<FRichTextRun> SRichTextEditor::GetSelectedRange()
 	{
 		FRichTextRun CurRun = Document.Runs[i];
 		CurRun.Text = Document.Runs[i].Text.Mid((FMath::Max(RunStart, SelectionMin) - RunStart),
-												 FMath::Min(RunStart + Document.Runs[i].Text.Len(), SelectionMax) -
-												 FMath::Max(RunStart, SelectionMin));
+			FMath::Min(RunStart + Document.Runs[i].Text.Len(), SelectionMax) -
+			FMath::Max(RunStart, SelectionMin));
 		SelectedRuns.Add(CurRun);
 		RunStart += Document.Runs[i].Text.Len();
 	}
@@ -218,7 +229,7 @@ TArray<FRichTextRun> SRichTextEditor::GetSelectedRange()
 // Sets SelectionAnchor on the first Shift+move to capture the pre-move position, or clears it to -1 on a bare move to collapse the selection.
 void SRichTextEditor::HandleSelectionOnMove(bool bShiftDown)
 {
-	if(bShiftDown)
+	if (bShiftDown)
 	{
 		if (SelectionAnchor == -1)
 		{
@@ -232,6 +243,71 @@ void SRichTextEditor::HandleSelectionOnMove(bool bShiftDown)
 	}
 }
 
+// Deletes SelectionMax - SelectionMin characters at SelectionMin, then moves the cursor to SelectionMin and clears the selection.
+void SRichTextEditor::RangeDelete()
+{
+	int32 SelectionMin = GetSelectionMin();
+	int32 SelectionMax = GetSelectionMax();
+
+	for (int i = 0; i < SelectionMax - SelectionMin; i++)
+	{
+		OnBackspaceOrDeletePressed(SelectionMin);
+	}
+	CursorPosition = SelectionMin;
+	SelectionAnchor = -1;
+}
+
+// Splits runs at SelectionMin and SelectionMax, applies ApplyFormat to all runs within the selection, then prunes and merges.
+void SRichTextEditor::FormatToSelection(TFunction<void(FRichTextRun&)> ApplyFormat)
+{
+	if (SelectionAnchor != -1)
+	{
+		int32 Min = GetSelectionMin();
+
+		int32 MinRunStart = 0;
+		int32 MinRunIndex = FindRunAtIndex(Min, MinRunStart);
+
+		FRichTextRun MinFoundRun = Document.Runs[MinRunIndex];
+
+		FRichTextRun MinLeftRun = MinFoundRun;
+		MinLeftRun.Text = MinFoundRun.Text.Left(Min - MinRunStart);
+
+		FRichTextRun MinRightRun = MinFoundRun;
+		MinRightRun.Text = MinFoundRun.Text.Mid(Min - MinRunStart);
+
+		Document.Runs.RemoveAt(MinRunIndex);
+
+		Document.Runs.Insert(MinLeftRun, MinRunIndex);
+		Document.Runs.Insert(MinRightRun, MinRunIndex + 1);
+
+
+		int32 Max = GetSelectionMax();
+
+		int32 MaxRunStart = 0;
+		int32 MaxRunIndex = FindRunAtIndex(Max, MaxRunStart);
+
+		FRichTextRun MaxFoundRun = Document.Runs[MaxRunIndex];
+
+		FRichTextRun MaxLeftRun = MaxFoundRun;
+		MaxLeftRun.Text = MaxFoundRun.Text.Left(Max - MaxRunStart);
+
+		FRichTextRun MaxRightRun = MaxFoundRun;
+		MaxRightRun.Text = MaxFoundRun.Text.Mid(Max - MaxRunStart);
+
+		Document.Runs.RemoveAt(MaxRunIndex);
+
+		Document.Runs.Insert(MaxLeftRun, MaxRunIndex);
+		Document.Runs.Insert(MaxRightRun, MaxRunIndex + 1);
+
+		for (int32 i = MinRunIndex + 1; i <= MaxRunIndex; i++)
+		{
+			ApplyFormat(Document.Runs[i]);
+		}
+		
+		PruneRuns();
+	}
+}
+
 // Inserts the typed character into the correct run at CursorPosition and advances the cursor.
 FReply SRichTextEditor::OnKeyChar(const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent)
 {
@@ -240,6 +316,11 @@ FReply SRichTextEditor::OnKeyChar(const FGeometry& MyGeometry, const FCharacterE
 	if (Character < 32)
 	{
 		return FReply::Unhandled();
+	}
+
+	if (SelectionAnchor != -1)
+	{
+		RangeDelete();
 	}
 
 	int32 RunStart = 0;
@@ -280,6 +361,7 @@ FReply SRichTextEditor::OnKeyChar(const FGeometry& MyGeometry, const FCharacterE
 FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
 	bool bHandled = false;
+	bool bVerticalMove = false;
 	FKey DownKey = InKeyEvent.GetKey();
 	bool bControlDown = InKeyEvent.IsControlDown();
 	bool bShiftDown = InKeyEvent.IsLeftShiftDown() || InKeyEvent.IsRightShiftDown();
@@ -291,6 +373,14 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 
 	if (DownKey == EKeys::BackSpace)
 	{
+		if (SelectionAnchor != -1)
+		{
+			RangeDelete();
+			SyncActiveFormat();
+			PreferredX = -1.f;
+			return FReply::Handled();
+		}
+
 		if (CursorPosition != 0)
 		{
 			OnBackspaceOrDeletePressed(CursorPosition - 1);
@@ -300,6 +390,14 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 	}
 	else if (DownKey == EKeys::Delete)
 	{
+		if (SelectionAnchor != -1)
+		{
+			RangeDelete();
+			SyncActiveFormat();
+			PreferredX = -1.f;
+			return FReply::Handled();
+		}
+
 		if (CursorPosition != Document.GetFullText().Len())
 		{
 			OnBackspaceOrDeletePressed(CursorPosition);
@@ -322,12 +420,14 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 	{
 		HandleSelectionOnMove(bShiftDown);
 		OnUpOrDownPressed(Lines, CursorPos, MyGeometry.Scale, true);
+		bVerticalMove = true;
 		bHandled = true;
 	}
 	else if (DownKey == EKeys::Down)
 	{
 		HandleSelectionOnMove(bShiftDown);
 		OnUpOrDownPressed(Lines, CursorPos, MyGeometry.Scale, false);
+		bVerticalMove = true;
 		bHandled = true;
 	}
 	else if (DownKey == EKeys::Home)
@@ -344,14 +444,112 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 	else if (DownKey == EKeys::Enter)
 	{
 		DrawSpecialCharacter('\n');
+		if (SelectionAnchor != -1)
+		{
+			RangeDelete();
+		}
 		bHandled = true;
 	}
 	else if (DownKey == EKeys::Tab)
 	{
+		if (SelectionAnchor != -1)
+		{
+			RangeDelete();
+		}
 		DrawSpecialCharacter('\t');
 		bHandled = true;
 	}
 	else if (bControlDown && DownKey == EKeys::A)
+	{
+		SelectionAnchor = 0;
+		CursorPosition = Document.GetFullText().Len();
+		bHandled = true;
+	}
+	else if (bControlDown && DownKey == EKeys::B)
+	{
+		ActiveFormat.bIsBold = !ActiveFormat.bIsBold;
+		FormatToSelection([this](FRichTextRun& Run) { Run.bIsBold = ActiveFormat.bIsBold; });
+		bIsSyncing = true;
+		BoldCheckbox->SetIsChecked(ActiveFormat.bIsBold ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+		bIsSyncing = false;
+		return FReply::Handled();
+	}
+	else if (bControlDown && DownKey == EKeys::C)
+	{
+		if (SelectionAnchor != -1)
+		{
+			CopiedRuns = GetSelectedRange();
+			bHandled = true;
+		}
+	}
+	else if (bControlDown && DownKey == EKeys::I)
+	{
+		ActiveFormat.bIsItalic = !ActiveFormat.bIsItalic;
+		FormatToSelection([this](FRichTextRun& Run) { Run.bIsItalic = ActiveFormat.bIsItalic; });
+		bIsSyncing = true;
+		ItalicCheckbox->SetIsChecked(ActiveFormat.bIsItalic ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+		bIsSyncing = false;
+		return FReply::Handled();
+	}
+	else if (bControlDown && DownKey == EKeys::U)
+	{
+		ActiveFormat.bIsUnderline = !ActiveFormat.bIsUnderline;
+		FormatToSelection([this](FRichTextRun& Run) { Run.bIsUnderline = ActiveFormat.bIsUnderline; });
+		bIsSyncing = true;
+		UnderlineCheckbox->SetIsChecked(ActiveFormat.bIsUnderline ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+		bIsSyncing = false;
+		return FReply::Handled();
+	}
+	else if (bControlDown && DownKey == EKeys::V)
+	{
+		if (!CopiedRuns.IsEmpty())
+		{
+			if (SelectionAnchor != -1)
+			{
+				RangeDelete();
+			}
+
+			int32 RunStart = 0;
+			int32 RunIndex = FindRunAtIndex(CursorPosition, RunStart);
+			int32 TotalCharacterCount = 0;
+
+			FRichTextRun& FoundRun = Document.Runs[RunIndex];
+
+			FRichTextRun LeftRun = FoundRun;
+			LeftRun.Text = FoundRun.Text.Left(CursorPosition - RunStart);
+
+			FRichTextRun RightRun = FoundRun;
+			RightRun.Text = FoundRun.Text.Mid(CursorPosition - RunStart);
+
+			Document.Runs.RemoveAt(RunIndex);
+
+			Document.Runs.Insert(LeftRun, RunIndex);
+
+			int32 CopyIndex = RunIndex + 1;
+			for (FRichTextRun& Run : CopiedRuns)
+			{
+				Document.Runs.Insert(Run, CopyIndex);
+				TotalCharacterCount += Run.Text.Len();
+				CopyIndex++;
+			}
+
+			Document.Runs.Insert(RightRun, RunIndex + CopiedRuns.Num() + 1);
+			CursorPosition += TotalCharacterCount;
+
+			PruneRuns();
+			bHandled = true;
+		}
+	}
+	else if (bControlDown && DownKey == EKeys::X)
+	{
+		if (SelectionAnchor != -1)
+		{
+			CopiedRuns = GetSelectedRange();
+			RangeDelete();
+			bHandled = true;
+		}
+	}
+	else if (bControlDown && DownKey == EKeys::Y)
 	{
 		bHandled = false;
 	}
@@ -359,27 +557,10 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 	{
 		bHandled = false;
 	}
-	else if (bControlDown && DownKey == EKeys::Y)
+
+	if (!bVerticalMove)
 	{
-		bHandled = false;
-	}
-	else if (bControlDown && DownKey == EKeys::B)
-	{
-		ActiveFormat.bIsBold = !ActiveFormat.bIsBold;
-		BoldCheckbox->SetIsChecked(ActiveFormat.bIsBold ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
-		bHandled = true;
-	}
-	else if (bControlDown && DownKey == EKeys::I)
-	{
-		ActiveFormat.bIsItalic = !ActiveFormat.bIsItalic;
-		ItalicCheckbox->SetIsChecked(ActiveFormat.bIsItalic ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
-		bHandled = true;
-	}
-	else if (bControlDown && DownKey == EKeys::U)
-	{
-		ActiveFormat.bIsUnderline = !ActiveFormat.bIsUnderline;
-		UnderlineCheckbox->SetIsChecked(ActiveFormat.bIsUnderline ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
-		bHandled = true;
+		PreferredX = -1.f;
 	}
 
 	if (bHandled)
@@ -387,6 +568,7 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 		SyncActiveFormat();
 		return FReply::Handled();
 	}
+
 	return FReply::Unhandled();
 }
 
@@ -397,6 +579,7 @@ FReply SRichTextEditor::OnMouseButtonDown(const FGeometry& MyGeometry, const FPo
 
 	CursorPosition = GetAreaCursorPosition(MouseEvent);
 	SelectionAnchor = -1;
+	PreferredX = -1.f;
 
 	return FReply::Handled();
 }
@@ -406,7 +589,13 @@ FReply SRichTextEditor::OnMouseMove(const FGeometry& MyGeometry, const FPointerE
 {
 	if (MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
 	{
-		CursorPosition = GetAreaCursorPosition(MouseEvent);
+		int32 NewCursorPos = GetAreaCursorPosition(MouseEvent);
+		if (SelectionAnchor == -1 && CursorPosition != NewCursorPos)
+		{
+			SelectionAnchor = CursorPosition;
+		}
+
+		CursorPosition = NewCursorPos;
 
 		return FReply::Handled();
 	}
@@ -430,8 +619,8 @@ void SRichTextEditor::Construct(const FArguments& InArgs)
 			+ SVerticalBox::Slot().FillHeight(1.0f)
 				[
 					SAssignNew(TextAreaRef, SRichTextArea).Document(&Document)
-														  .CursorPosition(&CursorPosition)
-														  .SelectionAnchor(&SelectionAnchor)
+						.CursorPosition(&CursorPosition)
+						.SelectionAnchor(&SelectionAnchor)
 				]
 		];
 
@@ -447,6 +636,7 @@ void SRichTextEditor::ToggleBold(bool bEnable)
 		return;
 	}
 	ActiveFormat.bIsBold = bEnable;
+	FormatToSelection([bEnable](FRichTextRun& Run) { Run.bIsBold = bEnable; });
 }
 
 // Sets the italic flag on ActiveFormat, applying to newly typed text and any current selection.
@@ -457,6 +647,7 @@ void SRichTextEditor::ToggleItalic(bool bEnable)
 		return;
 	}
 	ActiveFormat.bIsItalic = bEnable;
+	FormatToSelection([bEnable](FRichTextRun& Run) { Run.bIsItalic = bEnable; });
 }
 
 // Sets the underline flag on ActiveFormat, applying to newly typed text and any current selection.
@@ -467,6 +658,7 @@ void SRichTextEditor::ToggleUnderline(bool bEnable)
 		return;
 	}
 	ActiveFormat.bIsUnderline = bEnable;
+	FormatToSelection([bEnable](FRichTextRun& Run) { Run.bIsUnderline = bEnable; });
 }
 
 // Sets the strikethrough flag on ActiveFormat, applying to newly typed text and any current selection.
@@ -477,6 +669,7 @@ void SRichTextEditor::ToggleStrikethrough(bool bEnable)
 		return;
 	}
 	ActiveFormat.bIsStrikethrough = bEnable;
+	FormatToSelection([bEnable](FRichTextRun& Run) { Run.bIsStrikethrough = bEnable; });
 }
 
 // Returns the current document.

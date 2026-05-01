@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-05-01
+
+**Implementation:** `SRichTextEditor` selection system complete. `PreferredX (float)` field added — captured on first Up/Down press, reused across consecutive vertical moves, reset on all other keys and mouse clicks; fixes column drift (bug 2.9). Off-by-one in `OnUpOrDownPressed` fixed via midpoint character comparison (LeftEdge + RightEdge) / 2 instead of right-edge strict comparison. Drag select implemented in `OnMouseMove` — anchor set on first character boundary cross while left button held; guard prevents anchor from being set on sub-character-boundary wobble. `RangeDelete()` helper added — loops `OnBackspaceOrDeletePressed(SelectionMin)` N times, resets anchor; called by backspace, delete, typing, and paste when a selection is active. `FormatToSelection(TFunction<void(FRichTextRun&)>)` helper added — splits runs at `SelectionMin` and `SelectionMax`, applies lambda to all covered runs, calls `PruneRuns()`; called by all four `Toggle*` methods and Ctrl+B/I/U/S in `OnKeyDown`. Ctrl+A (select all), Ctrl+C/X (fill `CopiedRuns` via `GetSelectedRange`), Ctrl+V (insert `CopiedRuns` at cursor, guarded `RangeDelete` if selection active) added to `OnKeyDown`. `OnKeyChar` guards `RangeDelete()` before insert when selection active. Ctrl+B/I/U/S early-return pattern added — bypasses `SyncActiveFormat` to prevent checkbox state being overwritten by the document run, then explicitly calls `SetIsChecked` inside `bIsSyncing` guard. `CopiedRuns (TArray<FRichTextRun>)` field added. `bVerticalMove` flag tracks whether the current key is a vertical move; `PreferredX` reset only when false.
+
+---
+
 ## 2026-04-30
 
 **Implementation (session 2):** Dead code block removed from `GetSelectedRange`. Full changelogs removed from TechDoc and GDD — both docs now hold only a single `*Last updated*` one-liner; full history in `ProjectIronTable_Changelog.md`. `/update-docs` command updated to include changelog step and corrected memory path.

@@ -26,11 +26,17 @@ private:
 	/** Current cursor position as a character index into the document. */
 	int32 CursorPosition = 0;
 
+	/** Target X pixel position held across consecutive Up/Down presses to prevent column drift. Set to the cursor's X on the first vertical move, reset to -1 on any non-vertical key or mouse click. */
+	float PreferredX = -1.f;
+
 	/** The document being edited, stored as an ordered list of formatted runs. */
 	FRichTextDocument Document;
 
 	/** Formatting state applied to newly typed text. Updated when the cursor moves or a format toggle is pressed. Text field is unused — this is a format carrier only. */
 	FRichTextRun ActiveFormat;
+
+	/** Runs copied by the last Ctrl+C or Ctrl+X operation, used as the source for Ctrl+V paste. */
+	TArray<FRichTextRun> CopiedRuns;
 
 	/** Cached pointer to the text area child widget, used to resolve mouse positions relative to the text area rather than the full editor geometry. */
 	TSharedPtr<SRichTextArea> TextAreaRef;
@@ -99,6 +105,12 @@ private:
 
 	/** Sets SelectionAnchor to the current CursorPosition when Shift is first held and a move begins, or clears it to -1 when Shift is not held. Must be called before CursorPosition is updated. */
 	void HandleSelectionOnMove(bool bShiftDown);
+
+	/** Removes all characters in [SelectionMin, SelectionMax) from the document, moves the cursor to SelectionMin, and clears the selection. */
+	void RangeDelete();
+
+	/** Applies a format change to all runs within the active selection, splitting runs at SelectionMin and SelectionMax as needed so partial runs are handled correctly. */
+	void FormatToSelection(TFunction<void(FRichTextRun&)> ApplyFormat);
 
 protected:
 
