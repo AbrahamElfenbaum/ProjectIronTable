@@ -31,6 +31,7 @@ Source/ProjectIronTable/
 ├── PlayerControllers/ — Player controller classes
 ├── PlayerList/        — Player list widget classes (PlayerList, PlayerRow)
 ├── PlayerStates/      — Player state classes (SessionPlayerState)
+├── RichText/          — Rich text widget classes (FRichTextRun, FRichTextDocument, SRichTextArea, SRichTextEditor, UEditableRichText)
 ├── SaveLoad/          — Save game classes (PanelLayoutSave, CameraSettingsSave, CampaignManagerSave, SessionSave, PlayerSave)
 ├── Screens/           — Generic/shared screen widgets (HomeScreen, BaseScreen)
 ├── SessionNotes/      — Session notes panel widget (SessionNotesPanel)
