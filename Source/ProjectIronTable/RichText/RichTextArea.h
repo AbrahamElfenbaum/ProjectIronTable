@@ -18,6 +18,9 @@ private:
 	/** Active selection anchor as a character index into the document. Pointer into SRichTextEditor's SelectionAnchor so it stays in sync. -1 when no selection is active. */
 	const int32* SelectionAnchor = nullptr;
 
+	/** Returns the FontInfo of the run that owns the character at CharIndex. Falls back to a default FSlateFontInfo if CharIndex is out of range. */
+	static FSlateFontInfo FindFontAtIndex(const FRichTextDocument& InDocument, int32 CharIndex);
+
 public:
 
 	SLATE_BEGIN_ARGS(SRichTextArea) {}

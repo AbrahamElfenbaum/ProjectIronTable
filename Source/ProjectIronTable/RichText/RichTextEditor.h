@@ -112,6 +112,12 @@ private:
 	/** Applies a format change to all runs within the active selection, splitting runs at SelectionMin and SelectionMax as needed so partial runs are handled correctly. */
 	void FormatToSelection(TFunction<void(FRichTextRun&)> ApplyFormat);
 
+	/** Splits the run at RunIndex into Left and Right pieces at LocalOffset, replacing the original in Document.Runs. Returns the index of the Right piece. */
+	int32 SplitRunAt(int32 RunIndex, int32 LocalOffset);
+
+	/** Toggles Flag, applies the format change to the active selection via Apply, and syncs the Checkbox state. Returns FReply::Handled(). */
+	FReply ApplyFormatShortcut(bool& Flag, TSharedPtr<SCheckBox>& Checkbox, TFunction<void(FRichTextRun&)> Apply);
+
 protected:
 
 	/** Handles character input events. */

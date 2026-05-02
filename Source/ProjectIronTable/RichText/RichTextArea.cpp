@@ -4,6 +4,7 @@
 #include "Fonts/FontMeasure.h"
 
 #include "RichTextDocument.h"
+#include "FunctionLibrary.h"
 
 // Stores the document reference for use during painting.
 void SRichTextArea::Construct(const FArguments& InArgs)
@@ -11,6 +12,22 @@ void SRichTextArea::Construct(const FArguments& InArgs)
 	Document = InArgs._Document;
 	CursorPosition = InArgs._CursorPosition;
 	SelectionAnchor = InArgs._SelectionAnchor;
+}
+
+// Returns the FontInfo of the run that owns the character at CharIndex. Falls back to a default FSlateFontInfo if CharIndex is out of range.
+FSlateFontInfo SRichTextArea::FindFontAtIndex(const FRichTextDocument& InDocument, int32 CharIndex)
+{
+	int32 CharCount = 0;
+	for (const FRichTextRun& Run : InDocument.Runs)
+	{
+		if (CharCount + Run.Text.Len() > CharIndex)
+		{
+			return Run.FontInfo;
+		}
+		CharCount += Run.Text.Len();
+	}
+
+	return FSlateFontInfo();
 }
 
 // Returns zero until document content is measured.
@@ -30,11 +47,9 @@ int32 SRichTextArea::OnPaint(const FPaintArgs& InArgs, const FGeometry& InAllott
 			if (CursorPosition)
 			{
 				float Scale = InAllottedGeometry.Scale;
-
-				float TabSpace = MeasureText(TEXT("    "), Document->Runs[0].FontInfo, Scale);
-
-				float LineHeight = FSlateApplication::Get().GetRenderer()->GetFontMeasureService()
-					->GetMaxCharacterHeight(Document->Runs[0].FontInfo, Scale);
+				FSlateFontInfo BestFontInfo;
+				float LineHeight = UFunctionLibrary::GetDocumentLineHeight(*Document, Scale, &BestFontInfo);
+				float TabSpace = MeasureText(TEXT("    "), BestFontInfo, Scale);
 
 				if (SelectionAnchor && 
 					*SelectionAnchor != -1 &&
@@ -46,13 +61,12 @@ int32 SRichTextArea::OnPaint(const FPaintArgs& InArgs, const FGeometry& InAllott
 					FVector2f HighlightEndPos = GetCursorPosition(*Document, FMath::Max(*SelectionAnchor, *CursorPosition),
 						TabSpace, Scale);
 
-					TArray<FString> Lines;
-					Document->GetFullText().ParseIntoArray(Lines, TEXT("\n"), false);
+					TArray<FString> Lines = Document->GetLines();
 
 					DrawHighlight(InOutDrawElements, InLayerId, InAllottedGeometry,
 						FLinearColor(0.2f, 0.5f, 1.0f, 0.5f), Lines,
-						Document->Runs[0].FontInfo, HighlightStartPos,
-						HighlightEndPos, LineHeight, Scale);
+						BestFontInfo, HighlightStartPos, HighlightEndPos, 
+						LineHeight, Scale);
 				}
 				
 
@@ -188,11 +202,8 @@ void SRichTextArea::DrawHighlight(FSlateWindowElementList& ElementList, uint32 I
 // Returns the pixel X and Y position of the cursor within the document, based on font measurement and line splitting.
 FVector2f SRichTextArea::GetCursorPosition(const FRichTextDocument& InDocument, int32 InCursorPosition, float TabSpace, float InScale)
 {
-	TArray<FString> Lines;
-	InDocument.GetFullText().ParseIntoArray(Lines, TEXT("\n"), false);
-
-	float LineHeight = FSlateApplication::Get().GetRenderer()->GetFontMeasureService()
-		->GetMaxCharacterHeight(InDocument.Runs[0].FontInfo, InScale);
+	TArray<FString> Lines = InDocument.GetLines();
+	float LineHeight = UFunctionLibrary::GetDocumentLineHeight(InDocument, InScale);
 
 	float CursorX = 0;
 	float CursorY = 0;
@@ -211,11 +222,12 @@ FVector2f SRichTextArea::GetCursorPosition(const FRichTextDocument& InDocument, 
 			{
 				if (SegCharCount + LineSegment.Len() >= InCursorPosition - CharCount)
 				{
-					CursorX = SegmentOffset + MeasureText(LineSegment.Left(InCursorPosition - CharCount - SegCharCount), InDocument.Runs[0].FontInfo, InScale) + 1;
+					CursorX = SegmentOffset + MeasureText(LineSegment.Left(InCursorPosition - CharCount - SegCharCount), 
+														  FindFontAtIndex(InDocument, CharCount + SegCharCount), InScale) + 1;
 					break;
 				}
+				SegmentOffset += MeasureText(LineSegment, FindFontAtIndex(InDocument, CharCount + SegCharCount), InScale) + TabSpace;
 				SegCharCount += LineSegment.Len() + 1;
-				SegmentOffset += MeasureText(LineSegment, InDocument.Runs[0].FontInfo, InScale) + TabSpace;
 			}
 			break;
 		}
@@ -237,31 +249,33 @@ float SRichTextArea::MeasureText(const FString& Text, const FSlateFontInfo& Font
 // Converts a local-space mouse position to the nearest document character index by finding the target line via Y, then walking characters by X.
 int32 SRichTextArea::HitTest(FVector2f LocalMousePos, const FRichTextDocument& InDocument, float InScale)
 {
-	float LineHeight = FSlateApplication::Get().GetRenderer()->GetFontMeasureService()
-		->GetMaxCharacterHeight(InDocument.Runs[0].FontInfo, InScale);
-
-	TArray<FString> Lines;
-	InDocument.GetFullText().ParseIntoArray(Lines, TEXT("\n"), false);
-
+	TArray<FString> Lines = InDocument.GetLines();
+	float LineHeight = UFunctionLibrary::GetDocumentLineHeight(InDocument, InScale);
 	int32 TargetLine = FMath::Clamp((int32)(LocalMousePos.Y / LineHeight), 0, Lines.Num() - 1);
-
-	int32 CharInLine = 0;
-	for (int32 i = 0; i < Lines[TargetLine].Len(); i++)
-	{
-		float CharWidth = FSlateApplication::Get().GetRenderer()->GetFontMeasureService()
-			->Measure(Lines[TargetLine].Left(i + 1), InDocument.Runs[0].FontInfo, InScale).X / InScale;
-		if (CharWidth > LocalMousePos.X)
-		{
-			break;
-		}
-		CharInLine = i + 1;
-	}
 
 	int32 CursorPosition = 0;
 	for (int32 i = 0; i < TargetLine; i++)
 	{
 		CursorPosition += Lines[i].Len() + 1;
 	}
+
+	int32 CharInLine = 0;
+	float LeftEdge = 0.f;
+	for (int32 i = 0; i < Lines[TargetLine].Len(); i++)
+	{
+		float RightEdge = FSlateApplication::Get().GetRenderer()->GetFontMeasureService()
+			->Measure(Lines[TargetLine].Left(i + 1), FindFontAtIndex(InDocument, CursorPosition + i), InScale).X / InScale;
+
+		float Midpoint = (RightEdge + LeftEdge) / 2.f;
+
+		if (Midpoint > LocalMousePos.X)
+		{
+			break;
+		}
+		CharInLine = i + 1;
+		LeftEdge = RightEdge;
+	}
+	
 	CursorPosition += CharInLine;
 
 	return CursorPosition;

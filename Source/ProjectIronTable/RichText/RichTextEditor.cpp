@@ -9,6 +9,7 @@
 
 #include "RichTextArea.h"
 #include "RichTextRun.h"
+#include "FunctionLibrary.h"
 
 // Walks Document.Runs, accumulating character offsets, and returns the index of the run whose range spans CharIndex.
 int32 SRichTextEditor::FindRunAtIndex(int32 CharIndex, int32& OutRunStart) const
@@ -101,8 +102,8 @@ void SRichTextEditor::OnBackspaceOrDeletePressed(int32 CursorPos)
 // Moves the cursor up or down one line, finding the character on the target line closest to the cursor's X pixel position.
 void SRichTextEditor::OnUpOrDownPressed(const TArray<FString>& Lines, FVector2f CursorPos, float Scale, bool bUp)
 {
-	float LineHeight = FSlateApplication::Get().GetRenderer()->GetFontMeasureService()
-		->GetMaxCharacterHeight(Document.Runs[0].FontInfo, Scale);
+	FSlateFontInfo FontInfo;
+	float LineHeight = UFunctionLibrary::GetDocumentLineHeight(Document, Scale, &FontInfo);
 
 	int32 CurrentLine = CursorPos.Y / LineHeight;
 	int32 TargetLine = CurrentLine + (bUp ? -1 : 1);
@@ -120,7 +121,7 @@ void SRichTextEditor::OnUpOrDownPressed(const TArray<FString>& Lines, FVector2f 
 		for (int32 i = 0; i < Lines[TargetLine].Len(); i++)
 		{
 			float RightEdge = FSlateApplication::Get().GetRenderer()->GetFontMeasureService()
-				->Measure(Lines[TargetLine].Left(i + 1), Document.Runs[0].FontInfo, Scale).X / Scale;
+				->Measure(Lines[TargetLine].Left(i + 1), FontInfo, Scale).X / Scale;
 
 			float Midpoint = (RightEdge + LeftEdge) / 2.f;
 
@@ -263,49 +264,52 @@ void SRichTextEditor::FormatToSelection(TFunction<void(FRichTextRun&)> ApplyForm
 	if (SelectionAnchor != -1)
 	{
 		int32 Min = GetSelectionMin();
-
 		int32 MinRunStart = 0;
 		int32 MinRunIndex = FindRunAtIndex(Min, MinRunStart);
-
-		FRichTextRun MinFoundRun = Document.Runs[MinRunIndex];
-
-		FRichTextRun MinLeftRun = MinFoundRun;
-		MinLeftRun.Text = MinFoundRun.Text.Left(Min - MinRunStart);
-
-		FRichTextRun MinRightRun = MinFoundRun;
-		MinRightRun.Text = MinFoundRun.Text.Mid(Min - MinRunStart);
-
-		Document.Runs.RemoveAt(MinRunIndex);
-
-		Document.Runs.Insert(MinLeftRun, MinRunIndex);
-		Document.Runs.Insert(MinRightRun, MinRunIndex + 1);
-
+		int32 SelectionStartIndex = SplitRunAt(MinRunIndex, Min - MinRunStart);
 
 		int32 Max = GetSelectionMax();
-
 		int32 MaxRunStart = 0;
 		int32 MaxRunIndex = FindRunAtIndex(Max, MaxRunStart);
+		int32 SelectionEndIndex = SplitRunAt(MaxRunIndex, Max - MaxRunStart);
 
-		FRichTextRun MaxFoundRun = Document.Runs[MaxRunIndex];
-
-		FRichTextRun MaxLeftRun = MaxFoundRun;
-		MaxLeftRun.Text = MaxFoundRun.Text.Left(Max - MaxRunStart);
-
-		FRichTextRun MaxRightRun = MaxFoundRun;
-		MaxRightRun.Text = MaxFoundRun.Text.Mid(Max - MaxRunStart);
-
-		Document.Runs.RemoveAt(MaxRunIndex);
-
-		Document.Runs.Insert(MaxLeftRun, MaxRunIndex);
-		Document.Runs.Insert(MaxRightRun, MaxRunIndex + 1);
-
-		for (int32 i = MinRunIndex + 1; i <= MaxRunIndex; i++)
+		for (int32 i = SelectionStartIndex; i <= SelectionEndIndex; i++)
 		{
 			ApplyFormat(Document.Runs[i]);
 		}
 		
 		PruneRuns();
 	}
+}
+
+// Splits the run at RunIndex into Left and Right pieces at LocalOffset, replacing the original. Returns the index of the Right piece.
+int32 SRichTextEditor::SplitRunAt(int32 RunIndex, int32 LocalOffset)
+{
+	FRichTextRun FoundRun = Document.Runs[RunIndex];
+
+	FRichTextRun LeftRun = FoundRun;
+	LeftRun.Text = FoundRun.Text.Left(LocalOffset);
+
+	FRichTextRun RightRun = FoundRun;
+	RightRun.Text = FoundRun.Text.Mid(LocalOffset);
+
+	Document.Runs.RemoveAt(RunIndex);
+
+	Document.Runs.Insert(LeftRun, RunIndex);
+	Document.Runs.Insert(RightRun, RunIndex + 1);
+
+	return RunIndex + 1;
+}
+
+// Toggles Flag, applies the format change to the active selection via Apply, syncs Checkbox, and returns FReply::Handled().
+FReply SRichTextEditor::ApplyFormatShortcut(bool& Flag, TSharedPtr<SCheckBox>& Checkbox, TFunction<void(FRichTextRun&)> Apply)
+{
+	Flag = !Flag;
+	FormatToSelection(Apply);
+	bIsSyncing = true;
+	Checkbox->SetIsChecked(Flag ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+	bIsSyncing = false;
+	return FReply::Handled();
 }
 
 // Inserts the typed character into the correct run at CursorPosition and advances the cursor.
@@ -365,12 +369,14 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 	FKey DownKey = InKeyEvent.GetKey();
 	bool bControlDown = InKeyEvent.IsControlDown();
 	bool bShiftDown = InKeyEvent.IsLeftShiftDown() || InKeyEvent.IsRightShiftDown();
+	FSlateFontInfo FontInfo;
+	float LineHeight = UFunctionLibrary::GetDocumentLineHeight(Document, MyGeometry.Scale, &FontInfo);
 
-	TArray<FString> Lines;
-	Document.GetFullText().ParseIntoArray(Lines, TEXT("\n"), false);
-	float TabSpace = SRichTextArea::MeasureText(TEXT("    "), Document.Runs[0].FontInfo, MyGeometry.Scale);
+	float TabSpace = SRichTextArea::MeasureText(TEXT("    "), FontInfo, MyGeometry.Scale);
 	FVector2f CursorPos = SRichTextArea::GetCursorPosition(Document, CursorPosition, TabSpace, MyGeometry.Scale);
 
+	TArray<FString> Lines = Document.GetLines();
+	
 	if (DownKey == EKeys::BackSpace)
 	{
 		if (SelectionAnchor != -1)
@@ -443,11 +449,11 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 	}
 	else if (DownKey == EKeys::Enter)
 	{
-		DrawSpecialCharacter('\n');
 		if (SelectionAnchor != -1)
 		{
 			RangeDelete();
 		}
+		DrawSpecialCharacter('\n');
 		bHandled = true;
 	}
 	else if (DownKey == EKeys::Tab)
@@ -467,12 +473,8 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 	}
 	else if (bControlDown && DownKey == EKeys::B)
 	{
-		ActiveFormat.bIsBold = !ActiveFormat.bIsBold;
-		FormatToSelection([this](FRichTextRun& Run) { Run.bIsBold = ActiveFormat.bIsBold; });
-		bIsSyncing = true;
-		BoldCheckbox->SetIsChecked(ActiveFormat.bIsBold ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
-		bIsSyncing = false;
-		return FReply::Handled();
+		return ApplyFormatShortcut(ActiveFormat.bIsBold, BoldCheckbox,
+								   [this](FRichTextRun& Run) { Run.bIsBold = ActiveFormat.bIsBold; });
 	}
 	else if (bControlDown && DownKey == EKeys::C)
 	{
@@ -484,21 +486,13 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 	}
 	else if (bControlDown && DownKey == EKeys::I)
 	{
-		ActiveFormat.bIsItalic = !ActiveFormat.bIsItalic;
-		FormatToSelection([this](FRichTextRun& Run) { Run.bIsItalic = ActiveFormat.bIsItalic; });
-		bIsSyncing = true;
-		ItalicCheckbox->SetIsChecked(ActiveFormat.bIsItalic ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
-		bIsSyncing = false;
-		return FReply::Handled();
+		return ApplyFormatShortcut(ActiveFormat.bIsItalic, ItalicCheckbox,
+								   [this](FRichTextRun& Run) { Run.bIsItalic = ActiveFormat.bIsItalic; });
 	}
 	else if (bControlDown && DownKey == EKeys::U)
 	{
-		ActiveFormat.bIsUnderline = !ActiveFormat.bIsUnderline;
-		FormatToSelection([this](FRichTextRun& Run) { Run.bIsUnderline = ActiveFormat.bIsUnderline; });
-		bIsSyncing = true;
-		UnderlineCheckbox->SetIsChecked(ActiveFormat.bIsUnderline ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
-		bIsSyncing = false;
-		return FReply::Handled();
+		return ApplyFormatShortcut(ActiveFormat.bIsUnderline, UnderlineCheckbox,
+								   [this](FRichTextRun& Run) { Run.bIsUnderline = ActiveFormat.bIsUnderline; });
 	}
 	else if (bControlDown && DownKey == EKeys::V)
 	{
@@ -510,30 +504,17 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 			}
 
 			int32 RunStart = 0;
-			int32 RunIndex = FindRunAtIndex(CursorPosition, RunStart);
 			int32 TotalCharacterCount = 0;
+			int32 RunIndex = FindRunAtIndex(CursorPosition, RunStart);
+			int32 SelectionIndex = SplitRunAt(RunIndex, CursorPosition - RunStart);
 
-			FRichTextRun& FoundRun = Document.Runs[RunIndex];
-
-			FRichTextRun LeftRun = FoundRun;
-			LeftRun.Text = FoundRun.Text.Left(CursorPosition - RunStart);
-
-			FRichTextRun RightRun = FoundRun;
-			RightRun.Text = FoundRun.Text.Mid(CursorPosition - RunStart);
-
-			Document.Runs.RemoveAt(RunIndex);
-
-			Document.Runs.Insert(LeftRun, RunIndex);
-
-			int32 CopyIndex = RunIndex + 1;
 			for (FRichTextRun& Run : CopiedRuns)
 			{
-				Document.Runs.Insert(Run, CopyIndex);
+				Document.Runs.Insert(Run, SelectionIndex);
 				TotalCharacterCount += Run.Text.Len();
-				CopyIndex++;
+				SelectionIndex++;
 			}
 
-			Document.Runs.Insert(RightRun, RunIndex + CopiedRuns.Num() + 1);
 			CursorPosition += TotalCharacterCount;
 
 			PruneRuns();

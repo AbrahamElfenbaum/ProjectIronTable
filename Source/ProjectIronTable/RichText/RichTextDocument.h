@@ -26,4 +26,12 @@ struct PROJECTIRONTABLE_API FRichTextDocument
 
 		return FullText;
 	}
+
+	/** Splits the full document text on newlines and returns each line as a separate string. Preserves empty lines. */
+	TArray<FString> GetLines() const
+	{
+		TArray<FString> Lines;
+		GetFullText().ParseIntoArray(Lines, TEXT("\n"), false);
+		return Lines;
+	}
 };

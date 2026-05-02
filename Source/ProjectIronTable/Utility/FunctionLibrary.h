@@ -7,6 +7,8 @@
 
 class USessionInstance;
 class USessionSave;
+struct FRichTextDocument;
+struct FSlateFontInfo;
 
 /** General-purpose static utility functions exposed to Blueprints. */
 UCLASS()
@@ -56,4 +58,7 @@ public:
 
 	/** Sorts the participant list and joins it with '|' to produce a stable channel identity key. */
 	static FString MakeParticipantKey(const TArray<FString>& Participants);
+
+	/** Returns the maximum character height across all runs in the document at the given scale. Optionally writes the FontInfo of the tallest run to OutFontInfo if non-null. */
+	static float GetDocumentLineHeight(const FRichTextDocument& InDocument, float Scale, FSlateFontInfo* OutFontInfo = nullptr);
 };

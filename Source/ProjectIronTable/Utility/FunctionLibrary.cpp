@@ -3,7 +3,11 @@
 
 #include "GameFramework/PlayerState.h"
 #include "Kismet/GameplayStatics.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Fonts/FontMeasure.h"
 
+#include "RichTextDocument.h"
+#include "RichTextRun.h"
 #include "SessionInstance.h"
 #include "SessionSave.h"
 
@@ -61,4 +65,32 @@ FString UFunctionLibrary::MakeParticipantKey(const TArray<FString>& Participants
 	TArray<FString> Sorted = Participants;
 	Sorted.Sort();
 	return FString::Join(Sorted, TEXT("|"));
+}
+
+float UFunctionLibrary::GetDocumentLineHeight(const FRichTextDocument& InDocument, float Scale, FSlateFontInfo* OutFontInfo)
+{
+	float LineHeight = 0;
+	FSlateFontInfo BestFontInfo;
+
+	const TArray<FRichTextRun>& Runs = InDocument.Runs;
+
+	for (const FRichTextRun& Run : Runs)
+	{
+		float NewLineHeight = FSlateApplication::Get().GetRenderer()
+												 ->GetFontMeasureService()
+												 ->GetMaxCharacterHeight(Run.FontInfo, Scale);
+
+		if (NewLineHeight > LineHeight)
+		{
+			LineHeight = NewLineHeight;
+			BestFontInfo = Run.FontInfo;
+		}
+	}
+
+	if (OutFontInfo)
+	{ 
+		*OutFontInfo = BestFontInfo; 
+	}
+
+	return LineHeight;
 }
