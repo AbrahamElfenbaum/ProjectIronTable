@@ -14,8 +14,13 @@ class PROJECTIRONTABLE_API UResizeHandle : public UUserWidget
 	GENERATED_BODY()
 
 private:
+
+#pragma region State
 	/** True while the left mouse button is held down on this handle. */
 	bool bActive;
+#pragma endregion
+
+protected:
 
 	/** Activates resize mode, notifies the parent panel of the starting mouse position, and captures the mouse. */
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;

@@ -16,6 +16,7 @@ struct FContextMenuOption
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FString ButtonName;
 
+    /** Callback invoked when this menu entry is selected. */
     FOnContextMenuButtonClicked OnClicked;
 };
 

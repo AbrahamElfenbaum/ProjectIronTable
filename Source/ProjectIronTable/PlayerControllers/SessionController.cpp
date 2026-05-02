@@ -173,13 +173,6 @@ float ASessionController::CalculateCameraMovementSpeed() const
 	return 10.f;
 }
 
-// Creates and attaches the UI and chat component subobjects.
-ASessionController::ASessionController()
-{
-	UIComponent = CreateDefaultSubobject<USessionUIComponent>(TEXT("UIComponent"));
-	ChatComponent = CreateDefaultSubobject<USessionChatComponent>(TEXT("ChatComponent"));
-}
-
 // Clamps all camera config properties to valid ranges; shared between editor validation and runtime apply.
 void ASessionController::ValidateCameraSettings()
 {
@@ -252,4 +245,11 @@ void ASessionController::Server_TravelToSession_Implementation(const FString& Tr
 	}
 
 	World->ServerTravel(TravelURL);
+}
+
+// Creates and attaches the UI and chat component subobjects.
+ASessionController::ASessionController()
+{
+	UIComponent = CreateDefaultSubobject<USessionUIComponent>(TEXT("UIComponent"));
+	ChatComponent = CreateDefaultSubobject<USessionChatComponent>(TEXT("ChatComponent"));
 }

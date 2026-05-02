@@ -8,6 +8,7 @@
 class UTextBlock;
 class UCanvasPanelSlot;
 
+/** Fired when a panel finishes being dragged, resized, or toggled; used to trigger layout saves. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPanelStateChanged);
 
 /**

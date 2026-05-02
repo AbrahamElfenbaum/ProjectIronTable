@@ -67,6 +67,7 @@ FString UFunctionLibrary::MakeParticipantKey(const TArray<FString>& Participants
 	return FString::Join(Sorted, TEXT("|"));
 }
 
+// Iterates all runs, finds the tallest character height at the given scale, and optionally writes the winning FontInfo to OutFontInfo.
 float UFunctionLibrary::GetDocumentLineHeight(const FRichTextDocument& InDocument, float Scale, FSlateFontInfo* OutFontInfo)
 {
 	float LineHeight = 0;

@@ -7,6 +7,7 @@
 class UTextBlock;
 class UButton;
 
+/** Fired when a taskbar button is toggled; used to trigger layout saves. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnToggled);
 
 /** A single button in the taskbar that tracks and toggles the visibility of one widget. */
