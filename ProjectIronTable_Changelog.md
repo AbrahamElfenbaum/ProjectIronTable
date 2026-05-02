@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-05-02
+
+**Implementation:** Per-run font throughout the RichText system. `FindFontAtIndex(const FRichTextDocument&, int32 CharIndex) → FSlateFontInfo` added as a static helper on `SRichTextArea` — walks runs using `CharCount + Run.Text.Len() > CharIndex` boundary check (not `>=`, which returns the wrong run). `UFunctionLibrary::GetDocumentLineHeight(const FRichTextDocument&, float Scale, FSlateFontInfo* OutFontInfo = nullptr) → float` added — single shared implementation for line-height + best-font computation; uses `FSlateFontInfo*` (not reference) so `nullptr` default is valid. `FRichTextDocument::GetLines() const → TArray<FString>` inline method added — replaces inline `ParseIntoArray` calls throughout the system. `SRichTextArea::OnPaint`, `GetCursorPosition`, and `HitTest` updated to use `GetDocumentLineHeight` and `FindFontAtIndex` per segment. Critical ordering in `GetCursorPosition`: `SegmentOffset` update (calls `MeasureText` with `FindFontAtIndex`) must happen before `SegCharCount` increment — inverting them causes the wrong run's font. `HitTest` now uses `LineStartDocIndex` accumulated before the character walk; midpoint landing `(LeftEdge + RightEdge) / 2 > X` consistent with `OnUpOrDownPressed`. `SRichTextEditor::OnKeyDown` and `OnUpOrDownPressed` updated to use `GetDocumentLineHeight`. Enter key ordering bug fixed: `RangeDelete()` now runs before `DrawSpecialCharacter('\n')` — was inserting newline before deleting selection. `SplitRunAt(int32 RunIndex, int32 LocalOffset) → int32` added — copy-remove-insert-return-right-index helper; used by `FormatToSelection` and Ctrl+V paste. `ApplyFormatShortcut(bool& Flag, TSharedPtr<SCheckBox>& Checkbox, TFunction<void(FRichTextRun&)> Apply) → FReply` added — toggle/apply/sync/return pattern shared by all four Ctrl+B/I/U/S blocks. Full format-all pass run across all source files.
+
+---
+
 ## 2026-05-01
 
 **Documentation:** Added `RichText/` to the source folder hierarchy in `ProjectIronTable_TechDoc.md` — the folder was missing from the tree, though the class sections were already present.
