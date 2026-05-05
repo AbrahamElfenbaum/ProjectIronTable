@@ -22,7 +22,7 @@ Source/ProjectIronTable/
 ├── CampaignBrowser/   — Campaign browser screen (CampaignBrowserScreen)
 ├── CampaignManager/   — Campaign manager widget classes (GameTypeTab, CampaignCard, CampaignManagerScreen)
 ├── Chat/              — Chat widget classes (ChatBox, ChatEntry, ChatChannel, ChatTab, ChatChannelListEntry)
-├── Components/        — Actor component classes (SessionUIComponent, SessionChatComponent, MainScreenUIComponent)
+├── Components/        — Actor component classes (SessionUIComponent, SessionChatComponent, MainScreenUIComponent, SessionNotesComponent [planned])
 ├── Dice/              — Dice actors and data assets (DiceTray, DiceSelector, BaseDiceActor, DiceSpawnVolume, DiceData)
 ├── GameInstances/     — Game instance class (SessionInstance)
 ├── GameModes/         — Game mode classes (SessionGameMode)
@@ -419,9 +419,39 @@ Per-session save file. One instance per game session. `UCampaignManagerSave` is 
 | `LastSaved`     | `FDateTime`                     | —          | Used to sort sessions when loading a campaign (most recent first)                                                                                                                                                                 |
 | `ChatLog`       | `TMap<FString, FChatLogRecord>` | —          | Keyed by sorted, pipe-joined participant names (e.g. `"Alice\|Bob"`). Empty string key = Server channel. `FChatLogRecord` wraps `TArray<FChatMessageRecord>`; each record holds `SenderName` and `Message` body.                  |
 | `ChatTabNames`  | `TMap<FString, FString>`        | —          | Keyed by sorted, pipe-joined participant names (same key format as `ChatLog`). Value is the user-assigned display name for that tab. Persisted on rename; restored by `USessionUIComponent::Init` after the chat log is restored. |
-| `NotesTabNames` | `TMap<FGuid, FString>`          | —          | Keyed by notes channel GUID (`USessionNotesChannel::ChannelID`). Value is the user-assigned display name for that notes tab. Persisted on creation and rename.                                                                    |
-
 `FChatMessageRecord` and `FChatLogRecord` are declared in `SessionSave.h`.
+
+> **Pending removal:** `NotesTabNames (TMap<FGuid, FString>)` and `NotesTabContent (TMap<FGuid, FRichTextDocument>)` are currently declared here but will be removed when the notes save system is implemented. Notes are moving to a per-player save (`USessionNotesSave`) — they are not server-owned data. See `USessionNotesSave` below.
+
+---
+
+#### USessionNotesSave *(planned)*
+**Type:** `USaveGame` | **Slot:** `"Notes_{PlayerID}_{SessionID}"`
+
+Per-player-per-session notes save. Stores all notes tabs belonging to a player for one session — both private notes (creator only) and copies of shared notes the player has edit access to. **Not server-owned** — this file lives on each player's machine.
+
+**Planned fields:**
+| Field           | Type                    | Notes                                                                                   |
+|-----------------|-------------------------|-----------------------------------------------------------------------------------------|
+| `Notes`         | `TArray<FNoteRecord>`   | All notes for this player in this session                                               |
+| `NoteTabOrder`  | `TArray<FGuid>`         | Explicit tab ordering, stable across sessions                                           |
+
+**Slot name helper:** `UFunctionLibrary::GetNotesSaveSlotName(FGuid PlayerID, FGuid SessionID) → FString` (planned) — returns `"Notes_{PlayerID}_{SessionID}"`.
+
+See `FNoteRecord` in the `SessionNotes/` section below.
+
+---
+
+#### FNoteRecord *(planned)*
+**Type:** `USTRUCT`
+
+Single notes tab entry stored in `USessionNotesSave`.
+
+**Planned fields:** `NoteID (FGuid)`, `DisplayName (FString)`, `Content (FRichTextDocument)`, `LastEdited (FDateTime)`, `CreatorPlayerID (FGuid)`, `EditorPlayerIDs (TArray<FGuid>)`.
+
+- `EditorPlayerIDs` empty → private note (creator-only access, no sync).
+- `EditorPlayerIDs` non-empty → shared note. All editors are equal peers — creator has no special runtime authority (creator identity stored for a future "remove editor" feature only).
+- Conflict resolution: `LastEdited` timestamp wins — most recently modified copy takes precedence when syncing shared notes.
 
 ---
 
@@ -1036,7 +1066,9 @@ Notes support rich-text formatting (bold, italic, underline, strikethrough, head
 
 > **Note:** Notes channels use GUID-based identity (not participant-list). Each `USessionNotesChannel` holds a `FGuid ChannelID`. `FindOrCreateChannel` is chat-only — do not use it here.
 >
-> **Note:** Save/load (`TMap<FGuid, FString>` for tab names and content in `USessionSave`) and input context (`IMC_Notes`) are pending.
+> **Save design (implementation pending):** Notes are saved in `USessionNotesSave` (player-local, not `USessionSave`). `OnDocumentChanged` saves the changed channel; `OnChannelSwitched` saves all channels. Default tab on new session: one private tab per player (not a shared tab for all). `NativeConstruct` default-channel creation will be conditioned on no existing save data. `USessionUIComponent::Init` calls `RestoreChannels(USessionNotesSave*)` for the local player. `IMC_Notes` input context is still pending.
+>
+> **Shared notes sync (planned):** A `USessionNotesComponent` (attached to `ASessionController`) will maintain an in-memory relay cache of shared notes during a session. RPC stubs (`Server_PushNote`, `Multicast_ReceiveNote`, `Server_RequestNoteSync`) will be built now; bodies filled in when real-time sync is implemented. All editors are peers — creator has no special relay authority.
 
 ---
 
@@ -1058,7 +1090,7 @@ Notes support rich-text formatting (bold, italic, underline, strikethrough, head
 **Feature scope (in scope):** Bold, italic, underline, strikethrough, H1/H2/H3 headers, bullet lists, numbered lists.
 **Feature scope (out of scope):** Track changes, inline comments, collaborative edit history, custom styles, tables, image embeds — anything beyond the standard word-processor set.
 
-**Save format:** HTML string (serialised from the Slate document model). Stored in `USessionSave::NotesTabContent` (`TMap<FGuid, FString>`), keyed by `USessionNotesChannel::ChannelID`. HTML chosen over a custom binary format for readability and future portability.
+**Save format:** `FRichTextDocument` (native UE `USTRUCT`). Stored in `USessionNotesSave::Notes` as part of each `FNoteRecord`, keyed by `NoteID`. Notes are **not** stored in `USessionSave` — they are player-owned, not server-owned.
 
 **Class structure:**
 
@@ -1397,7 +1429,7 @@ Bug codes: `Phase.Sequence` — phase is the feature area the bug lives in, sequ
 - [ ] Session player cap (default 8, removable)
 - [x] Tab renaming (client-local) — right-click opens `UContextMenu` with Rename and Close options; rename persisted to `USessionSave::ChatTabNames`; close button removed from tab in favour of context menu
 - [x] Chat log persistence
-- [~] Shared notes — `SRichTextEditor` + `SRichTextArea` functional: multi-run document model, format-aware insertion, cursor sync, Ctrl+B/I/U/S, multi-run backspace/delete, run merging, visual per-run rendering, and selection rendering all working. Selection model: fixed `SelectionAnchor` + moving `CursorPosition`; `GetSelectionMin/Max()` inline helpers; `GetSelectedRange()` returns clipped run array; `HandleSelectionOnMove(bShiftDown)` wires Shift+Arrow; `DrawHighlight` draws per-line selection rects in `SRichTextArea::OnPaint`. Drag select: `OnMouseMove` sets anchor on first character boundary cross while left button held. Selection-aware editing: `RangeDelete()` called before insert/paste/backspace/delete when selection is active. Column drift fixed via `PreferredX` (bug 2.9). Ctrl+A (select all), Ctrl+C/X (copy/cut to `CopiedRuns`), Ctrl+V (paste from `CopiedRuns`, guard `RangeDelete` if selection active). Format-to-selection: `FormatToSelection(TFunction<void(FRichTextRun&)>)` now uses `SplitRunAt` helper; called by Ctrl+B/I/U/S (via `ApplyFormatShortcut` helper) and all four `Toggle*` public methods. Per-run font: `FindFontAtIndex` added to `SRichTextArea`; `GetCursorPosition`, `HitTest`, and `OnPaint` now use per-segment font; `UFunctionLibrary::GetDocumentLineHeight` centralises line-height + best-font computation across both classes; `FRichTextDocument::GetLines()` inline helper replaces inline `ParseIntoArray` calls. Known bug 2.6 (consecutive tabs). Pending: `USessionNotesPanel` override bodies, save/load, input context (`IMC_Notes`)
+- [~] Shared notes — `SRichTextEditor` + `SRichTextArea` functional: multi-run document model, format-aware insertion, cursor sync, Ctrl+B/I/U/S, multi-run backspace/delete, run merging, visual per-run rendering, and selection rendering all working. Selection model: fixed `SelectionAnchor` + moving `CursorPosition`; `GetSelectionMin/Max()` inline helpers; `GetSelectedRange()` returns clipped run array; `HandleSelectionOnMove(bShiftDown)` wires Shift+Arrow; `DrawHighlight` draws per-line selection rects in `SRichTextArea::OnPaint`. Drag select: `OnMouseMove` sets anchor on first character boundary cross while left button held. Selection-aware editing: `RangeDelete()` called before insert/paste/backspace/delete when selection is active. Column drift fixed via `PreferredX` (bug 2.9). Ctrl+A (select all), Ctrl+C/X (copy/cut to `CopiedRuns`), Ctrl+V (paste from `CopiedRuns`, guard `RangeDelete` if selection active). Format-to-selection: `FormatToSelection(TFunction<void(FRichTextRun&)>)` now uses `SplitRunAt` helper; called by Ctrl+B/I/U/S (via `ApplyFormatShortcut` helper) and all four `Toggle*` public methods. Per-run font: `FindFontAtIndex` added to `SRichTextArea`; `GetCursorPosition`, `HitTest`, and `OnPaint` now use per-segment font; `UFunctionLibrary::GetDocumentLineHeight` centralises line-height + best-font computation across both classes; `FRichTextDocument::GetLines()` inline helper replaces inline `ParseIntoArray` calls. Known bug 2.6 (consecutive tabs). **Save/load design settled (implementation pending):** private notes = player-local (`USessionNotesSave`), no server; shared notes = player-local on each editor's machine, in-session relay via `USessionNotesComponent` (planned); conflict resolution via `LastEdited` timestamp; all editors are peers; default tab = one private tab per player. Still pending: `USessionNotesSave`, `FNoteRecord`, `USessionNotesComponent` (stubs), `RestoreChannels` in `USessionNotesPanel`, input context (`IMC_Notes`)
 - [ ] Pre-session lobby (waiting room; pre-game chat; character sheet accessible while waiting; Host sees connection status and launches when ready)
 - [ ] Session discovery and join flow
   - [ ] Invite code — immediate join, no approval
@@ -1572,7 +1604,8 @@ The Campaign Manager is the primary hub between the home screen and an active se
 | Combat / initiative state                               | Server (Host machine) | `USaveGame` on Host machine + `GameState` at runtime | Restored on reload if session closed mid-combat                                              |
 | Chat log                                                | Server (Host machine) | `USaveGame` on Host machine                          | Persists across sessions                                                                     |
 | Volatile copies of player data (character sheets, etc.) | Server (runtime only) | `PlayerState`                                        | Populated on join, discarded on disconnect/session end. Never written to disk by the server. |
-| Character sheets, private notes                         | Player                | `USaveGame` on player's machine                      | Server requests a copy on join; player machine is always the source of truth                 |
+| Character sheets                                        | Player                | `USaveGame` on player's machine                      | Server requests a copy on join; player machine is always the source of truth                 |
+| Notes (private and shared)                              | Player (each editor)  | `USessionNotesSave` on each editor's machine         | Private notes: local only, no sync. Shared notes: local on each editor; `USessionNotesComponent` relays updates in-session; `LastEdited` timestamp wins on conflict. **Migration path:** if a dedicated server is introduced, shared note content moves to a server-owned save; `USessionNotesComponent` becomes the authoritative store rather than a relay. Private notes remain player-local. |
 
 **Session lifecycle:**
 
@@ -1624,7 +1657,7 @@ This approach keeps all save I/O within UE's native save game system and makes a
 
 ---
 
-*Last updated: 2026-05-02* — Per-run font throughout RichText: `FindFontAtIndex` added to `SRichTextArea`; `UFunctionLibrary::GetDocumentLineHeight` centralises line-height/font computation; `FRichTextDocument::GetLines()` inline helper; `OnPaint`, `GetCursorPosition`, `HitTest`, `OnUpOrDownPressed`, and `OnKeyDown` all updated to use per-run fonts. Helpers `SplitRunAt` and `ApplyFormatShortcut` added to `SRichTextEditor` to reduce code bloat. Enter key ordering bug fixed (RangeDelete before DrawSpecialCharacter). HitTest midpoint landing aligned with OnUpOrDownPressed.
+*Last updated: 2026-05-05* — Notes save/sync design settled: notes move from `USessionSave` to per-player `USessionNotesSave`; `FNoteRecord` struct planned with `LastEdited` timestamp and `EditorPlayerIDs` peer list; `USessionNotesComponent` planned as in-session relay with RPC stubs; private notes are local-only, shared notes sync via relay with timestamp conflict resolution; default tab changes to one private tab per player. No code written this session — design only.
 
 ---
 

@@ -211,18 +211,42 @@ Audio is GM-controlled during a session. All sound types are supported with no r
 
 **Default miniature:** A wooden artist's mannequin (the jointed human analog used for figure drawing reference). Natural wood tone. Animated if suitable animations can be sourced — at minimum a walk cycle and idle. Used as the default for all entity types (humanoid, creature, monster) regardless of size or type; the same model is scaled to fit. Easy to swap out if a better fit is found later.
 
-### Shared Notes
+### Notes
 
-Any user can create a notes document within the session. By default a note is private (visible only to its creator). The creator can share it with specific users or with the entire group, and can grant read-only or edit access.
+Each player receives one **private notes tab** automatically when they join a session for the first time. Additional tabs can be created at any time. All new tabs are private by default. A player can share a tab with specific other players, granting all of them edit access.
 
-- Multiple users can edit a shared document simultaneously, with changes visible in real time (collaborative editing, similar to Google Docs)
-- Notes support rich-text formatting: bold, italic, underline, strikethrough, headers, bullet points — standard word-processor features
-- Notes are saved as part of the session and persist across reloads
-- Notes are also accessible outside of an active session via the Campaign Manager — players can read and edit their notes between sessions without launching a game
-- Typical uses: session recap, lore the party has discovered, quest tracking, GM prep notes shared selectively with players
-- A user can have multiple notes documents open at once
+**Private notes (Word doc model)**
+- Visible and editable only by the creator
+- Saved locally on the creator's machine — no server involvement, no sync
+- `LastEdited` timestamp is recorded but unused; the creator is always the only source of truth
 
-> **Design Note:** Real-time collaborative editing requires an operational transform or CRDT-style conflict resolution strategy for simultaneous edits. This is a non-trivial networking problem — scope carefully when this feature is built.
+**Shared notes (Google Docs model)**
+- Any player listed as an editor has full read/write access
+- The creator holds no special authority once the note is shared — all editors are equal peers
+- Creator identity is stored (for a future "remove editor" feature), but being the creator does not require the creator to be present for other editors to read and edit the note
+- Saved locally on each editor's machine for redundancy
+- Conflict resolution: `LastEdited` timestamp wins — the most recently modified copy takes precedence when syncing
+
+**Real-time sync**
+During a session the server (listen server host) maintains an in-memory relay cache of shared notes — not persisted, relay only. When an editor saves a change it is pushed to the relay; the relay multicasts to all other currently online editors. An editor who reconnects mid-session requests the current state from the relay. If the relay cache is lost (host disconnects), all online editors retain up-to-date local copies.
+
+Real-time sync is planned but deferred. The component infrastructure (`USessionNotesComponent`) is built with RPC stubs now so wiring it up later is filling in bodies, not restructuring.
+
+**Save model**
+Notes are stored in a per-player-per-session save file (`USessionNotesSave`, slot `"Notes_{PlayerID}_{SessionID}"`), separate from the server-owned `USessionSave`. Content is saved on every document change (crash safety) and on tab switch. Tab order is saved explicitly so tabs appear in a consistent sequence across sessions.
+
+**Formatting**
+Rich text: bold, italic, underline, strikethrough. Additional formatting (headers, bullet points) is planned. See Out of Scope for what is not planned.
+
+**Multiple tabs**
+A player can have multiple notes tabs open at once.
+
+**Out of session access**
+Notes are accessible outside of an active session via the Campaign Manager — players can read and edit notes between sessions without launching a game.
+
+**Typical uses:** session recap, lore the party has discovered, quest tracking, GM prep notes shared selectively with players.
+
+> **Design Note:** Real-time collaborative editing via `USessionNotesComponent` uses the listen server as a relay. All editors are peers — the relay does not favour the creator. **Dedicated server migration:** if a dedicated server is introduced, shared note content moves from player-local saves (`USessionNotesSave`) to a server-owned save. `USessionNotesComponent` becomes the authoritative store rather than a relay cache. Private notes always remain on the player's machine regardless of server model.
 
 ### Character Creation
 
@@ -609,7 +633,7 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 
 ---
 
-*Last updated: 2026-05-01* — No design decisions changed this session.
+*Last updated: 2026-05-05* — Notes section rewritten: private/shared model, Google Docs peer model, `USessionNotesSave` replacing notes in `USessionSave`, real-time sync deferred with component infrastructure planned.
 
 ---
 
