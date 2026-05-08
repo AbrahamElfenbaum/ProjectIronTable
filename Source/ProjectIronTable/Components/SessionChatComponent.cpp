@@ -73,7 +73,6 @@ void USessionChatComponent::OnRollInitiated()
 // Disables tick and enables replication so server RPCs function correctly.
 USessionChatComponent::USessionChatComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
 }
 
@@ -192,8 +191,3 @@ void USessionChatComponent::ExitChat()
 	if (IsValid(ChatBoxRef)) ChatBoxRef->ExitChat();
 }
 
-// Delegates scroll direction to the chat box widget.
-void USessionChatComponent::ScrollChat(bool bUp)
-{
-	if (IsValid(ChatBoxRef)) ChatBoxRef->Scroll(bUp);
-}

@@ -7,6 +7,7 @@
 
 class USessionInstance;
 class USessionSave;
+class USessionNotesSave;
 struct FRichTextDocument;
 struct FSlateFontInfo;
 
@@ -50,8 +51,14 @@ public:
 	/** Returns the save slot name for the given session instance (e.g. "Session_<guid>"), or an empty string if invalid. */
 	static FString GetSessionSaveSlotName(USessionInstance* SessionInstance);
 
+	/** Returns the save slot name for the given player and session (e.g. "Notes_<PlayerID>_<SessionID>"). */
+	static FString GetNotesSaveSlotName(const FGuid& InPlayerID, const FGuid& InSessionID);
+
 	/** Loads and returns the USessionSave for the current session using the world context, or nullptr on any failure. */
 	static USessionSave* LoadSessionSave(UObject* WorldContext);
+
+	/** Loads and returns the notes save for the local player in the current session, or nullptr if the instance or save is not found. */
+	static USessionNotesSave* LoadSessionNotesSave(UObject* WorldContext);
 
 	/** Returns the local player's name from their PlayerState, or "Unknown" if unavailable. */
 	static FString GetLocalPlayerName(UObject* WorldContext);

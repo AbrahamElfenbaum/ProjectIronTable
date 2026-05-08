@@ -89,13 +89,6 @@ void ASessionController::Input_ExitChat()
 	if (IsValid(ChatComponent)) ChatComponent->ExitChat();
 }
 
-// Forwards the scroll direction (positive = up) to the HUD chat scroll handler.
-void ASessionController::Input_ScrollChat(const FInputActionValue& Value)
-{
-	float ScrollInput = Value.Get<float>();
-	if (IsValid(ChatComponent)) ChatComponent->ScrollChat(ScrollInput > 0);
-}
-
 // Caches the pawn reference, registers the session input context, and binds all input actions.
 void ASessionController::OnPossess(APawn* InPawn)
 {
@@ -126,7 +119,6 @@ void ASessionController::OnPossess(APawn* InPawn)
 			EIC->BindAction(IA_CameraZoom, ETriggerEvent::Triggered, this, &ASessionController::Input_CameraZoom);
 			EIC->BindAction(IA_FocusChat, ETriggerEvent::Triggered, this, &ASessionController::Input_FocusChat);
 			EIC->BindAction(IA_ExitChat, ETriggerEvent::Triggered, this, &ASessionController::Input_ExitChat);
-			EIC->BindAction(IA_ScrollChat, ETriggerEvent::Triggered, this, &ASessionController::Input_ScrollChat);
 		}
 	}
 }

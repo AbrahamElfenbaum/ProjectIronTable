@@ -4,6 +4,20 @@
 
 ---
 
+## 2026-05-08
+
+**Implementation:** Notes system save/load complete. `USessionUIComponent::Init` now loads `USessionNotesSave` via `UFunctionLibrary::LoadSessionNotesSave`; creates a default private tab if no save exists, or calls `RestoreChannels(USessionNotesSave*)` to rebuild all saved tabs with stored content. `UFunctionLibrary::LoadSessionNotesSave` and `GetNotesSaveSlotName` added. Scroll chain removed: `Scroll(bool bUp)` and `ScrollMultiplier` dropped from `UBaseChannel`; `Scroll(bool bUp)` dropped from `UBaseChannelPanel`; `ScrollChat(bool)` dropped from `USessionChatComponent`; `IA_ScrollChat` input action removed from `ASessionController` and `IMC_Chat` — `UScrollBox` handles mouse-wheel scroll natively. `SRichTextArea::ComputeDesiredSize` fixed to return `LineHeight * LineCount` height (was returning zero, causing the text area to collapse inside a `UScrollBox`). `ChatBox.cpp` save bug fixed: `SaveGameToSlot` was outside the `if (!Find)` guard; moved inside. `UMainScreenUIComponent` field layout fixed.
+
+---
+
+## 2026-05-07
+
+**Implementation:** Notes system — steps 1–4 complete. `FNoteRecord` (USTRUCT) and `USessionNotesSave` (USaveGame, slot `"Notes_{PlayerID}_{SessionID}"`) implemented in `SaveLoad/SessionNotesSave.h/.cpp`. `USessionNotesSave::SessionNoteRecords (TArray<FNoteRecord>)` — array position determines tab order; `NoteTabOrder` dropped as redundant. `UFunctionLibrary::GetNotesSaveSlotName(const FGuid& PlayerID, const FGuid& SessionID) → FString` implemented. `USessionNotesComponent` implemented in `Components/` — holds `TMap<FGuid, FNoteRecord> SharedNoteCache` (in-memory relay, no UPROPERTY); RPC stubs: `Server_PushNote(FNoteRecord)` (Server, Reliable), `Multicast_ReceiveNote(FNoteRecord)` (NetMulticast, Reliable), `Server_RequestNoteSync()` (Server, Reliable); all bodies log "not yet implemented". `UMainScreenUIComponent.h` field layout fixed — Config region was below function regions; moved above Event Handlers and Private Methods.
+
+**Design:** `NoteTabOrder` dropped — `SessionNoteRecords` array order is sufficient for stable tab ordering, consistent with how chat tabs work. Draggable tab reordering added to GDD Out of Scope as an explicitly deferred extra-credit feature.
+
+---
+
 ## 2026-05-05
 
 **Design:** Notes save/sync architecture settled. Private notes (Word doc model): creator-only, saved locally in `USessionNotesSave` (slot `"Notes_{PlayerID}_{SessionID}"`), no server involvement. Shared notes (Google Docs model): all editors are peers — creator has no special runtime authority; creator identity stored as `CreatorPlayerID` for a future "remove editor" feature only. Conflict resolution: `LastEdited` timestamp wins. In-session relay: `USessionNotesComponent` (planned, attached to `ASessionController`) maintains an in-memory cache of shared notes during a session; any editor pushes updates to the relay; relay multicasts to other online editors; cache lost when host drops but all online editors retain up-to-date local copies. Real-time sync deferred; RPC stubs (`Server_PushNote`, `Multicast_ReceiveNote`, `Server_RequestNoteSync`) built now. Default tab changes from one shared tab to one private tab per player on session join. `FNoteRecord` struct planned: `NoteID`, `DisplayName`, `Content (FRichTextDocument)`, `LastEdited`, `CreatorPlayerID`, `EditorPlayerIDs`. `NotesTabNames` and `NotesTabContent` will be removed from `USessionSave`. `UFunctionLibrary::GetNotesSaveSlotName(PlayerID, SessionID)` planned.

@@ -4,6 +4,8 @@
 #include "BaseChannelPanel.h"
 #include "SessionNotesPanel.generated.h"
 
+class USessionNotesSave;
+
 /** Widget panel that manages multiple tabbed notes channels, each containing an editable rich text document. */
 UCLASS()
 class PROJECTIRONTABLE_API USessionNotesPanel : public UBaseChannelPanel
@@ -19,7 +21,7 @@ private:
 	/** No-op — save is handled directly in CreateChannel. */
 	virtual void SaveCreatedTab() override;
 
-	/** Updates the saved tab label in USessionSave when the user renames a notes tab. */
+	/** Finds the matching FNoteRecord by ChannelID and updates its DisplayName in USessionNotesSave when the user renames a notes tab. */
 	virtual void OnChannelRenamed(UBaseChannelTab* Tab, const FString& NewName, const FString& ParticipantsKey) override;
 
 	/** No-op — the channel widget retains its in-memory document on switch. */
@@ -31,5 +33,8 @@ public:
 #pragma region Public Methods
 	/** Creates a new USessionNotesChannel, assigns it a GUID, saves initial state to USessionSave, and returns it. */
 	virtual UBaseChannel* CreateChannel(const TArray<FString>& Participants) override;
+
+	/** Restores all notes channels from a loaded save, reusing the default channel for the first record and creating new channels for the rest. */
+	void RestoreChannels(USessionNotesSave* NotesSave);
 #pragma endregion
 };

@@ -31,20 +31,25 @@
         </mxCell>
         <mxCell id="a13b" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="13" target="13b" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
 
-        <mxCell id="14" value="FindAndRegisterPanel() for each:&#xa;• DicePanel → &quot;Dice&quot;&#xa;• ChatPanel → &quot;Chat&quot;&#xa;• PlayersPanel → &quot;Players&quot;&#xa;&#xa;Finds UDraggablePanel by name&#xa;Registers with Taskbar (toggle button)&#xa;Binds OnDragged/OnResized/OnToggled → SavePanelLayout" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="60" y="505" width="300" height="120" as="geometry" />
+        <mxCell id="13c" value="Notes Restore (SessionNotesPanel found):&#xa;&#xa;LoadSessionNotesSave(WorldContext) → USessionNotesSave*&#xa;No save? → SessionNotesPanel::CreateChannel (default private tab)&#xa;Save found? → SessionNotesPanel::RestoreChannels(save)&#xa;  For each FNoteRecord: CreateChannel, SetDocument(Content)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="620" width="300" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="a13c" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="13b" target="13c" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="14" value="FindAndRegisterPanel() for each:&#xa;• DicePanel → &quot;Dice&quot;&#xa;• ChatPanel → &quot;Chat&quot;&#xa;• PlayersPanel → &quot;Players&quot;&#xa;• SessionNotesPanelDraggable → &quot;Notes&quot;&#xa;&#xa;Finds UDraggablePanel by name&#xa;Registers with Taskbar (toggle button)&#xa;Binds OnDragged/OnResized/OnToggled → SavePanelLayout" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="750" width="300" height="130" as="geometry" />
         </mxCell>
 
         <mxCell id="15" value="LoadPanelLayout()&#xa;&#xa;Load UPanelLayoutSave from slot &quot;PanelLayout&quot;&#xa;Apply saved Position/Size/Visibility&#xa;to each registered UDraggablePanel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="80" y="665" width="260" height="90" as="geometry" />
+          <mxGeometry x="80" y="900" width="260" height="90" as="geometry" />
         </mxCell>
 
         <mxCell id="16" value="Bind delegates:&#xa;• DiceTray.OnAllDiceRolled → AddRollResultToChat&#xa;• DiceTray.OnDiceFailsafeDestroyed → OnDiceFailsafeHandler&#xa;• DiceTray.OnRollInitiated → OnRollInitiated&#xa;• PlayerList.OnPlayerAddressClicked → OnPlayerAddressClicked" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="50" y="795" width="320" height="100" as="geometry" />
+          <mxGeometry x="50" y="1020" width="320" height="100" as="geometry" />
         </mxCell>
 
         <mxCell id="17" value="ADiceSpawnVolume found via GetActorOfClass&#xa;Assigned to DiceTray.SpawnVolume&#xa;&#xa;USessionChatComponent::Init()&#xa;Get ChatBoxRef from UIComponent-&gt;GetChatBox()&#xa;ChatBoxRef-&gt;SetChatComponent(this)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="70" y="935" width="280" height="100" as="geometry" />
+          <mxGeometry x="70" y="1160" width="280" height="100" as="geometry" />
         </mxCell>
 
         <!-- CHAT RPC FLOW -->
@@ -85,7 +90,7 @@
         <mxCell id="a1" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="10" target="11" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="a2" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="11" target="12" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="a3" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="12" target="13" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="a4" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="13" target="14" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a4" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="13c" target="14" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="a5" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="14" target="15" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="a6" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="15" target="16" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="a7" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="16" target="17" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>

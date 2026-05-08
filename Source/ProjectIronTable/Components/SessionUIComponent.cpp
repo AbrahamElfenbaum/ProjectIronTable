@@ -22,6 +22,8 @@
 #include "SessionSave.h"
 #include "Taskbar.h"
 #include "TaskbarButton.h"
+#include "SessionNotesSave.h"
+#include "SessionNotesChannel.h"
 
 // Serializes all panel layouts and saves to slot.
 void USessionUIComponent::SavePanelLayout()
@@ -113,7 +115,6 @@ void USessionUIComponent::ApplyPanelLayout(UDraggablePanel* Panel, UPanelLayoutS
 // Disables tick and enables replication so server RPCs function correctly.
 USessionUIComponent::USessionUIComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
 }
 
@@ -215,7 +216,51 @@ void USessionUIComponent::Init()
 			UE_LOG(LogTemp, Warning, TEXT("USessionUIComponent::Init — PlayerList not found"));
 		}
 
-		if (!IsValid(SessionNotesPanelRef))
+		if (IsValid(SessionNotesPanelRef))
+		{
+			USessionNotesSave* SessionNotesSave = UFunctionLibrary::LoadSessionNotesSave(this);
+			if (IsValid(SessionNotesSave))
+			{
+				if (SessionNotesSave->SessionNoteRecords.IsEmpty())
+				{
+					UBaseChannel* Channel = SessionNotesPanelRef->CreateChannel({});
+					USessionNotesChannel* NotesChannel = Cast<USessionNotesChannel>(Channel);
+					if (!IsValid(NotesChannel))
+					{
+						UE_LOG(LogTemp, Warning, TEXT("USessionUIComponent::Init — Failed to cast default notes channel; record will not be saved"));
+					}
+					else
+					{
+						USessionInstance* SessionInstance = Cast<USessionInstance>(UGameplayStatics::GetGameInstance(this));
+						if (!IsValid(SessionInstance))
+						{
+							UE_LOG(LogTemp, Warning, TEXT("USessionUIComponent::Init — Failed to get SessionInstance; default note record will not be saved"));
+						}
+						else
+						{
+							FNoteRecord Record = { };
+							Record.NoteID = NotesChannel->ChannelID;
+							Record.DisplayName = NotesChannel->DisplayName;
+							Record.LastEdited = FDateTime::Now();
+							Record.CreatorPlayerID = SessionInstance->GetPlayerID();
+							SessionNotesSave->SessionNoteRecords.Add(Record);
+
+							FString SlotName = UFunctionLibrary::GetNotesSaveSlotName(SessionInstance->GetPlayerID(), SessionInstance->GetSessionID());
+							UGameplayStatics::SaveGameToSlot(SessionNotesSave, SlotName, 0);
+						}
+					}
+				}
+				else
+				{
+					SessionNotesPanelRef->RestoreChannels(SessionNotesSave);
+				}
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("USessionUIComponent::Init — Failed to load notes save; notes channels will not be restored"));
+			}
+		}
+		else
 		{
 			UE_LOG(LogTemp, Warning, TEXT("USessionUIComponent::Init — SessionNotesPanel not found"));
 		}

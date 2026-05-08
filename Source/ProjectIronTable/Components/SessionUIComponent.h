@@ -79,6 +79,16 @@ private:
 	void SavePanelLayout();
 #pragma endregion
 
+public:
+
+#pragma region Config
+	/** The root session screen widget class to instantiate and add to the viewport. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<UUserWidget> SessionScreenClass;
+#pragma endregion
+
+private:
+
 #pragma region Private Methods
 	/** Finds a DraggablePanel by widget name, registers it with the Taskbar, and returns it. Logs a warning if not found. */
 	UDraggablePanel* FindAndRegisterPanel(const FName& WidgetName, const FString& Label);
@@ -94,12 +104,6 @@ private:
 #pragma endregion
 
 public:
-
-#pragma region Config
-	/** The root session screen widget class to instantiate and add to the viewport. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UUserWidget> SessionScreenClass;
-#pragma endregion
 
 	/** Disables tick and enables replication so server RPCs function correctly. */
 	USessionUIComponent();

@@ -187,8 +187,8 @@ UBaseChannel* UChatBox::CreateChannel(const TArray<FString>& Participants)
 		if (!SessionSave->ChatTabNames.Find(ParticipantsKey))
 		{
 			SessionSave->ChatTabNames.Add(ParticipantsKey, Channel->DisplayName);
+			UGameplayStatics::SaveGameToSlot(SessionSave, UFunctionLibrary::GetSessionSaveSlotName(GetGameInstance<USessionInstance>()), 0);
 		}
-		UGameplayStatics::SaveGameToSlot(SessionSave, UFunctionLibrary::GetSessionSaveSlotName(GetGameInstance<USessionInstance>()), 0);
 	}
 
 	return Channel;

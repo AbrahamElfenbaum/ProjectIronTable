@@ -22,7 +22,7 @@ Source/ProjectIronTable/
 ├── CampaignBrowser/   — Campaign browser screen (CampaignBrowserScreen)
 ├── CampaignManager/   — Campaign manager widget classes (GameTypeTab, CampaignCard, CampaignManagerScreen)
 ├── Chat/              — Chat widget classes (ChatBox, ChatEntry, ChatChannel, ChatTab, ChatChannelListEntry)
-├── Components/        — Actor component classes (SessionUIComponent, SessionChatComponent, MainScreenUIComponent, SessionNotesComponent [planned])
+├── Components/        — Actor component classes (SessionUIComponent, SessionChatComponent, MainScreenUIComponent, SessionNotesComponent)
 ├── Dice/              — Dice actors and data assets (DiceTray, DiceSelector, BaseDiceActor, DiceSpawnVolume, DiceData)
 ├── GameInstances/     — Game instance class (SessionInstance)
 ├── GameModes/         — Game mode classes (SessionGameMode)
@@ -32,7 +32,7 @@ Source/ProjectIronTable/
 ├── PlayerList/        — Player list widget classes (PlayerList, PlayerRow)
 ├── PlayerStates/      — Player state classes (SessionPlayerState)
 ├── RichText/          — Rich text widget classes (FRichTextRun, FRichTextDocument, SRichTextArea, SRichTextEditor, UEditableRichText)
-├── SaveLoad/          — Save game classes (PanelLayoutSave, CameraSettingsSave, CampaignManagerSave, SessionSave, PlayerSave)
+├── SaveLoad/          — Save game classes (PanelLayoutSave, CameraSettingsSave, CampaignManagerSave, SessionSave, PlayerSave, SessionNotesSave)
 ├── Screens/           — Generic/shared screen widgets (HomeScreen, BaseScreen)
 ├── SessionNotes/      — Session notes panel widget (SessionNotesPanel)
 ├── Settings/          — Settings widget classes (CameraSettingsPanel, SettingsScreen, SettingsSlider)
@@ -56,7 +56,7 @@ Content/
 ├── Data/DataAssets/Dice/       — DA_ prefixed dice data assets
 ├── Input/
 │   ├── Session/                — IMC_Session, IA_CameraMove, IA_CameraPan, IA_CameraPanReset, IA_CameraSprint, IA_CameraZoom, IA_FocusChat
-│   └── Chat/                   — IMC_Chat, IA_ExitChat, IA_ScrollChat
+│   └── Chat/                   — IMC_Chat, IA_ExitChat
 ├── UI/
 │   ├── Dice/                   — WE_DiceSelector, W_DiceSelectorManager, W_DiceTray
 │   ├── Chat/                   — W_ChatBox, WE_ChatChannel, WE_ChatTab, WE_ChatEntry
@@ -421,33 +421,30 @@ Per-session save file. One instance per game session. `UCampaignManagerSave` is 
 | `ChatTabNames`  | `TMap<FString, FString>`        | —          | Keyed by sorted, pipe-joined participant names (same key format as `ChatLog`). Value is the user-assigned display name for that tab. Persisted on rename; restored by `USessionUIComponent::Init` after the chat log is restored. |
 `FChatMessageRecord` and `FChatLogRecord` are declared in `SessionSave.h`.
 
-> **Pending removal:** `NotesTabNames (TMap<FGuid, FString>)` and `NotesTabContent (TMap<FGuid, FRichTextDocument>)` are currently declared here but will be removed when the notes save system is implemented. Notes are moving to a per-player save (`USessionNotesSave`) — they are not server-owned data. See `USessionNotesSave` below.
-
 ---
 
-#### USessionNotesSave *(planned)*
+#### USessionNotesSave
 **Type:** `USaveGame` | **Slot:** `"Notes_{PlayerID}_{SessionID}"`
 
 Per-player-per-session notes save. Stores all notes tabs belonging to a player for one session — both private notes (creator only) and copies of shared notes the player has edit access to. **Not server-owned** — this file lives on each player's machine.
 
-**Planned fields:**
-| Field           | Type                    | Notes                                                                                   |
-|-----------------|-------------------------|-----------------------------------------------------------------------------------------|
-| `Notes`         | `TArray<FNoteRecord>`   | All notes for this player in this session                                               |
-| `NoteTabOrder`  | `TArray<FGuid>`         | Explicit tab ordering, stable across sessions                                           |
+**Fields:**
+| Field                  | Type                    | Notes                                                       |
+|------------------------|-------------------------|-------------------------------------------------------------|
+| `SessionNoteRecords`   | `TArray<FNoteRecord>`   | All notes for this player in this session; array order = tab display order |
 
-**Slot name helper:** `UFunctionLibrary::GetNotesSaveSlotName(FGuid PlayerID, FGuid SessionID) → FString` (planned) — returns `"Notes_{PlayerID}_{SessionID}"`.
+**Slot name helper:** `UFunctionLibrary::GetNotesSaveSlotName(const FGuid& PlayerID, const FGuid& SessionID) → FString` — returns `"Notes_{PlayerID}_{SessionID}"`.
 
 See `FNoteRecord` in the `SessionNotes/` section below.
 
 ---
 
-#### FNoteRecord *(planned)*
+#### FNoteRecord
 **Type:** `USTRUCT`
 
 Single notes tab entry stored in `USessionNotesSave`.
 
-**Planned fields:** `NoteID (FGuid)`, `DisplayName (FString)`, `Content (FRichTextDocument)`, `LastEdited (FDateTime)`, `CreatorPlayerID (FGuid)`, `EditorPlayerIDs (TArray<FGuid>)`.
+**Fields:** `NoteID (FGuid)`, `DisplayName (FString)`, `Content (FRichTextDocument)`, `LastEdited (FDateTime)`, `CreatorPlayerID (FGuid)`, `EditorPlayerIDs (TArray<FGuid>)`.
 
 - `EditorPlayerIDs` empty → private note (creator-only access, no sync).
 - `EditorPlayerIDs` non-empty → shared note. All editors are equal peers — creator has no special runtime authority (creator identity stored for a future "remove editor" feature only).
@@ -599,7 +596,7 @@ Owns all chat networking, dice-to-chat routing, and chat passthrough methods. Ge
 
 **Key Methods:**
 - `Init()` — called by `ASessionController::BeginPlay` (after `UIComponent->Init()`); gets `ChatBoxRef`, `DiceTrayRef`, and `PlayerListRef` from `UIComponent` getters; wires `ChatBoxRef->SetChatComponent(this)`; binds dice and player list delegates. Local controller only.
-- `FocusChat()` / `ExitChat()` / `ScrollChat(bool)` — delegate to `ChatBoxRef`
+- `FocusChat()` / `ExitChat()` — delegate to `ChatBoxRef`
 
 **RPCs:**
 - `SendChatMessageOnServer` (Server, Reliable) — resolves sender name, builds participant list, routes to each player's chat component via `AddChatMessageOnOwningClient`. After routing, persists the message to `USessionSave`: parses sender/body from the formatted message string, builds a sorted pipe-joined participant key, and saves the record via `FindOrAdd` on `ChatLog`.
@@ -612,6 +609,25 @@ Owns all chat networking, dice-to-chat routing, and chat passthrough methods. Ge
 - `OnPlayerAddressClicked(FString)` — bound to `UPlayerList::OnAddressClicked`; appends `@Name` to chat input
 
 **Chat log restore:** Handled in `USessionUIComponent::Init` after `ChatBoxRef` is initialized. Loads `USessionSave`, iterates `ChatLog`, splits each key on `|` to recover the participant list, calls `FindOrCreateChannel`, then calls `RestoreMessage` per record.
+
+---
+
+#### USessionNotesComponent
+**Type:** `UActorComponent` | **Replicated:** yes
+**Owner:** `ASessionController`
+
+Relays shared notes between players during a session. Holds an in-memory cache of shared note records on the server — not persisted, relay only. All RPC bodies are stubs; real-time sync is a later task.
+
+**State:**
+- `SharedNoteCache` (`TMap<FGuid, FNoteRecord>`) — in-memory relay cache keyed by `NoteID`. No `UPROPERTY` — not GC-tracked, not replicated, relay only.
+
+**Key Methods:**
+- `Init()` — caches the owning player controller reference.
+
+**RPCs:**
+- `Server_PushNote(FNoteRecord)` (Server, Reliable) — receives an updated note from a client and stores it in `SharedNoteCache`. Stub — logs "not yet implemented."
+- `Multicast_ReceiveNote(FNoteRecord)` (NetMulticast, Reliable) — broadcasts a note update from the server to all clients. Stub — logs "not yet implemented."
+- `Server_RequestNoteSync()` (Server, Reliable) — called by a reconnecting client to request the current shared note state. Stub — logs "not yet implemented."
 
 ---
 
@@ -809,7 +825,6 @@ ChatComponent = CreateDefaultSubobject<USessionChatComponent>(TEXT("ChatComponen
 | `IA_CameraZoom`     | float    | Adjust `SpringArm->TargetArmLength` by `Sign * ZoomSpeed` (clamped) |
 | `IA_FocusChat`      | —        | Swap in `IMC_Chat` (priority 1), delegate to `ChatComponent`        |
 | `IA_ExitChat`       | —        | Swap out `IMC_Chat`, delegate to `ChatComponent`                    |
-| `IA_ScrollChat`     | float    | Delegate sign to `ChatComponent->ScrollChat()`                      |
 
 **Camera Properties (defaults):**
 
@@ -849,12 +864,7 @@ Base class for all channel content widgets (chat, notes, etc.). Provides the scr
 
 **Bound Widgets (protected):** `ScrollBox` (`UScrollBox`) — must be `protected` so subclasses can add children
 
-**Config (EditAnywhere):** `ScrollMultiplier` (default 60)
-
 **State (VisibleAnywhere):** `DisplayName` (`FString`), `Participants` (`TArray<FString>`)
-
-**Key Methods:**
-- `Scroll(bool bUp)` — adjusts `ScrollBox` offset by `ScrollMultiplier`
 
 ---
 
@@ -911,7 +921,6 @@ Base class for all tabbed channel panel widgets (chat box, session notes panel, 
 **State (protected):** `Channels` (`TArray<UBaseChannel*>`), `ChannelTabMap` (`TMap<UBaseChannel*, UBaseChannelTab*>`), `ActiveChannel`, `ClosedChannels` (`TSet<UBaseChannel*>`)
 
 **Key Methods (public):**
-- `Scroll(bool bUp)` — delegates to `ActiveChannel`
 - `CreateChannel(TArray<FString> Participants)` — creates channel + tab widgets, wires all delegates, calls `CreateTabLabel` and `SaveCreatedTab` virtual hooks, adds to `ChannelTabMap`. Returns the new channel. Subclasses call `Super::CreateChannel` then add their own setup (e.g. setting `ChatEntryClass`).
 - `GetActiveChannelParticipants()` — returns active channel's `Participants` or `{}`
 - `FindOrCreateChannel(TArray<FString> Participants)` — searches `Channels` by `MakeParticipantKey`, calls `CreateChannel` if no match. Chat-specific; notes will need GUID-based lookup.
@@ -946,7 +955,9 @@ General-purpose helper functions accessible from C++ and Blueprint.
 - `GetTypedWidgetFromName<T>(UUserWidget* Widget, FName Name)` → `T*` — template; casts result of `GetWidgetFromName`. Logs a warning if `Widget` is null or the cast fails. **C++-only** (no `UFUNCTION` — templates can't be `UFUNCTION`). Use this everywhere instead of `Cast<T>(Widget->GetWidgetFromName(...))`.
 - `GetEnumDisplayName<T>(T Value)` → `FString` — template; returns the display name for a `UENUM` value via `StaticEnum<T>()`. Requires `DisplayName` metadata on each enum value. **C++-only**. Use instead of `GetValueAsString` + `RightChop` pattern.
 - `GetSessionSaveSlotName(USessionInstance*)` → `FString` — returns `"Session_{SessionID}"` or empty string on null. All session save/load calls go through this; never hardcode the slot name.
+- `GetNotesSaveSlotName(const FGuid& PlayerID, const FGuid& SessionID)` → `FString` — returns `"Notes_{PlayerID}_{SessionID}"`. All notes save/load calls go through this.
 - `LoadSessionSave(UObject* WorldContext)` → `USessionSave*` — gets `USessionInstance` from the world context, resolves the slot name, loads and returns the save object. Returns nullptr (with warning) on any failure. Use this everywhere instead of inline `GetGameInstance` + `LoadGameFromSlot` blocks.
+- `LoadSessionNotesSave(UObject* WorldContext)` → `USessionNotesSave*` — gets `USessionInstance`, builds the notes slot name from `PlayerID` and `SessionID`, loads and returns the notes save object. Returns nullptr (with warning) on any failure.
 - `GetLocalPlayerName(UObject* WorldContext)` → `FString` — returns the local player's name from `PlayerState->GetPlayerName()`, or `"Unknown"` on failure. Use this everywhere instead of inline `GetPlayerController(0)` + null-check chains.
 - `MakeParticipantKey(TArray<FString> Participants)` → `FString` — sorts the participant list and joins with `|` to produce a stable channel identity key. Use everywhere a pipe-joined participant key is needed; never sort+join inline.
 - `GetDocumentLineHeight(const FRichTextDocument& InDocument, float Scale, FSlateFontInfo* OutFontInfo = nullptr)` → `float` — walks `Document.Runs`, calls `GetMaxCharacterHeight` on each run's `FSlateFontInfo` (with typeface name set from bold/italic flags), and returns the maximum height. If `OutFontInfo` is provided, also sets it to the font with the greatest height. Used by `SRichTextArea::OnPaint`, `GetCursorPosition`, `HitTest`, and `SRichTextEditor::OnKeyDown`/`OnUpOrDownPressed` so `LineHeight` and `BestFontInfo` are computed in one pass without duplicating the run-walk. `OutFontInfo` uses pointer-not-reference to allow a `nullptr` default.
@@ -1066,9 +1077,9 @@ Notes support rich-text formatting (bold, italic, underline, strikethrough, head
 
 > **Note:** Notes channels use GUID-based identity (not participant-list). Each `USessionNotesChannel` holds a `FGuid ChannelID`. `FindOrCreateChannel` is chat-only — do not use it here.
 >
-> **Save design (implementation pending):** Notes are saved in `USessionNotesSave` (player-local, not `USessionSave`). `OnDocumentChanged` saves the changed channel; `OnChannelSwitched` saves all channels. Default tab on new session: one private tab per player (not a shared tab for all). `NativeConstruct` default-channel creation will be conditioned on no existing save data. `USessionUIComponent::Init` calls `RestoreChannels(USessionNotesSave*)` for the local player. `IMC_Notes` input context is still pending.
+> **Save/load:** Notes are saved in `USessionNotesSave` (player-local, not `USessionSave`). `OnDocumentChanged` saves the changed channel; `OnChannelSwitched` saves all channels. Default tab: one private tab per player when joining for the first time. `USessionUIComponent::Init` loads `USessionNotesSave` and either creates the default tab (no existing save) or calls `RestoreChannels` to rebuild all saved tabs with their stored content. `IMC_Notes` input context is wired.
 >
-> **Shared notes sync (planned):** A `USessionNotesComponent` (attached to `ASessionController`) will maintain an in-memory relay cache of shared notes during a session. RPC stubs (`Server_PushNote`, `Multicast_ReceiveNote`, `Server_RequestNoteSync`) will be built now; bodies filled in when real-time sync is implemented. All editors are peers — creator has no special relay authority.
+> **Shared notes sync:** `USessionNotesComponent` (attached to `ASessionController`) holds an in-memory relay cache (`TMap<FGuid, FNoteRecord> SharedNoteCache`). RPC stubs implemented: `Server_PushNote(FNoteRecord)` (`Server, Reliable`), `Multicast_ReceiveNote(FNoteRecord)` (`NetMulticast, Reliable`), `Server_RequestNoteSync()` (`Server, Reliable`). Bodies log "not yet implemented" — real-time sync is a later task. All editors are peers — creator has no special relay authority.
 
 ---
 
@@ -1164,6 +1175,8 @@ Leaf widget responsible for rendering document text and the cursor. Owned by `SR
 
 **Static helper — `HitTest(FVector2f LocalMousePos, const FRichTextDocument& InDocument, float InScale) → int32`:** Inverse of `GetCursorPosition`. Computes `LineHeight` via `UFunctionLibrary::GetDocumentLineHeight`; parses full text into `Lines` via `Document.GetLines()`; clamps `TargetLine = FMath::Clamp((int32)(LocalMousePos.Y / LineHeight), 0, Lines.Num() - 1)`. Accumulates `LineStartDocIndex` (sum of prior line lengths + 1 per newline) before entering the character walk — this value doubles as the final return value. Character walk: caches `LeftEdge` per iteration; measures `RightEdge = MeasureText(Lines[TargetLine].Left(i + 1), FindFontAtIndex(InDocument, LineStartDocIndex + i), InScale)`; breaks before updating `CharInLine` when `(LeftEdge + RightEdge) / 2 > LocalMousePos.X`; updates `LeftEdge = RightEdge`. Returns `LineStartDocIndex + CharInLine`. Called by `SRichTextEditor::OnMouseButtonDown` and `OnMouseMove`.
 
+**ComputeDesiredSize:** Returns `FVector2f(0, LineHeight * LineCount)` — height is proportional to the number of document lines at the current font size. Width returns 0 (the parent scroll box drives width). Fixed from an earlier version that returned zero for height, causing the text area to collapse inside a `UScrollBox`.
+
 > **Gotcha:** `FSlateFontMeasure::Measure` returns pixel values scaled by the geometry scale. Divide by `InScale` before using as a layout coordinate — otherwise cursor drifts right as more text is typed. Include `"Fonts/FontMeasure.h"` (not `"Framework/Text/SlateFontMeasure.h"`).
 
 ---
@@ -1200,8 +1213,12 @@ Custom Slate rich-text editor widget. Owns the document model, cursor, selection
 
 > **Known bug:** Up/Down navigation into a line containing two consecutive tabs snaps the cursor to the nearest visible character rather than accounting for the tab gap. `OnUpOrDownPressed` walks the target line without tab-stop awareness. Low priority edge case.
 
+> **Pending — Word Wrapping:** Text currently renders in a single continuous line per hard `\n` break — long lines overflow the widget bounds rather than wrapping. Implementing word wrap requires: (1) A **visual line** model — `OnPaint` splits each logical line (hard `\n`) into wrapped visual lines at word boundaries based on allotted width; character-level fallback for words longer than the full width. (2) **`ComputeDesiredSize` chicken-and-egg** — height depends on visual line count, but visual line count depends on available width, which is unknown at desired-size time. Fix: cache last allotted width from `OnPaint` in a mutable member and use it in `ComputeDesiredSize`; call `Invalidate(EInvalidateWidget::Layout)` when width changes. (3) **Cursor system rewrite** — `GetCursorPosition`, `HitTest`, and `OnUpOrDownPressed` all work on document lines (split by `\n`). All three must be updated to work on visual lines instead. This is a significant rendering pipeline change — schedule as a dedicated task after current feature work.
+
 
 **Layout:** `Construct` builds a `SVerticalBox` — `AutoHeight` slot holds a `SHorizontalBox` toolbar (four `SCheckBox` buttons: B, I, U, S); `FillHeight(1.0f)` slot holds `SAssignNew(TextAreaRef, SRichTextArea).Document(&Document).CursorPosition(&CursorPosition).SelectionAnchor(&SelectionAnchor)`. No scroll box — scrolling is owned by the parent panel. `Construct` also initializes `ActiveFormat.FontInfo = FCoreStyle::GetDefaultFontStyle("Regular", 12)` — required so `FormatsMatch` correctly matches the initial run's font.
+
+> **Pending — Toolbar + FillHeight fix:** The toolbar is currently built inside `Construct` as part of an `SVerticalBox`. Since `UEditableRichText` sits inside a `UScrollBox` in the Blueprint, the toolbar scrolls with the content. Fix: remove the toolbar from `SRichTextEditor`, pull the B/I/U/S controls into the Blueprint as `UCheckBox` widgets above the scroll box, and expose format state via a multicast delegate. The `FillHeight(1.0f)` slot collapses to 0 inside an unbounded `UScrollBox` parent (available height is infinite, so no fraction of it is allocated); removing the `SVerticalBox` fixes this automatically. See `project_rich_text_backlog.md` for the full plan.
 
 **Document sync:** `GetDocument` returns `Document` directly. `SetDocument` assigns `Document = InDocument` and resets `CursorPosition` to 0.
 
@@ -1429,7 +1446,9 @@ Bug codes: `Phase.Sequence` — phase is the feature area the bug lives in, sequ
 - [ ] Session player cap (default 8, removable)
 - [x] Tab renaming (client-local) — right-click opens `UContextMenu` with Rename and Close options; rename persisted to `USessionSave::ChatTabNames`; close button removed from tab in favour of context menu
 - [x] Chat log persistence
-- [~] Shared notes — `SRichTextEditor` + `SRichTextArea` functional: multi-run document model, format-aware insertion, cursor sync, Ctrl+B/I/U/S, multi-run backspace/delete, run merging, visual per-run rendering, and selection rendering all working. Selection model: fixed `SelectionAnchor` + moving `CursorPosition`; `GetSelectionMin/Max()` inline helpers; `GetSelectedRange()` returns clipped run array; `HandleSelectionOnMove(bShiftDown)` wires Shift+Arrow; `DrawHighlight` draws per-line selection rects in `SRichTextArea::OnPaint`. Drag select: `OnMouseMove` sets anchor on first character boundary cross while left button held. Selection-aware editing: `RangeDelete()` called before insert/paste/backspace/delete when selection is active. Column drift fixed via `PreferredX` (bug 2.9). Ctrl+A (select all), Ctrl+C/X (copy/cut to `CopiedRuns`), Ctrl+V (paste from `CopiedRuns`, guard `RangeDelete` if selection active). Format-to-selection: `FormatToSelection(TFunction<void(FRichTextRun&)>)` now uses `SplitRunAt` helper; called by Ctrl+B/I/U/S (via `ApplyFormatShortcut` helper) and all four `Toggle*` public methods. Per-run font: `FindFontAtIndex` added to `SRichTextArea`; `GetCursorPosition`, `HitTest`, and `OnPaint` now use per-segment font; `UFunctionLibrary::GetDocumentLineHeight` centralises line-height + best-font computation across both classes; `FRichTextDocument::GetLines()` inline helper replaces inline `ParseIntoArray` calls. Known bug 2.6 (consecutive tabs). **Save/load design settled (implementation pending):** private notes = player-local (`USessionNotesSave`), no server; shared notes = player-local on each editor's machine, in-session relay via `USessionNotesComponent` (planned); conflict resolution via `LastEdited` timestamp; all editors are peers; default tab = one private tab per player. Still pending: `USessionNotesSave`, `FNoteRecord`, `USessionNotesComponent` (stubs), `RestoreChannels` in `USessionNotesPanel`, input context (`IMC_Notes`)
+- [~] Shared notes — `SRichTextEditor` + `SRichTextArea` functional: multi-run document model, format-aware insertion, cursor sync, Ctrl+B/I/U/S, multi-run backspace/delete, run merging, visual per-run rendering, and selection rendering all working. Selection, drag-select, copy/cut/paste, per-run font, and `ComputeDesiredSize` fix all complete. `FNoteRecord` + `USessionNotesSave` implemented; `UFunctionLibrary::GetNotesSaveSlotName` + `LoadSessionNotesSave` added; `USessionNotesComponent` with RPC stubs implemented; `USessionUIComponent::Init` loads save and calls `RestoreChannels`; default tab (one private tab per player on first join) working; `IMC_Notes` wired. Known bug 2.6 (consecutive tabs). Still pending: rich text toolbar fix (toolbar scrolls with content), word wrapping, Enter key scroll bug — see `project_rich_text_backlog.md`.
+> **Testing blocked:** Chat log persistence and session notes save/restore have not been tested end-to-end. Both require a fully initialized session context (`USessionInstance` with valid `PlayerID` and `SessionID`, live `USessionSave`/`USessionNotesSave`). Testing is blocked until session start/join flow is functional.
+
 - [ ] Pre-session lobby (waiting room; pre-game chat; character sheet accessible while waiting; Host sees connection status and launches when ready)
 - [ ] Session discovery and join flow
   - [ ] Invite code — immediate join, no approval
@@ -1453,8 +1472,10 @@ The Campaign Manager is the primary hub between the home screen and an active se
 - [ ] Campaign card — per-game-system content (D&D 5e: character sheet, notes, party list, character art, next session)
 - [ ] Player Profiles — username (required), bio (optional), games played (auto from campaign history + self-reported); shown alongside join requests
 - [ ] Campaign locking to a single game system at creation
+- [ ] `MaxPlayers` cap — per-campaign setting, configurable at campaign creation and editable by the host; stored in `UCampaignManagerSave`; enforced in `ASessionGameMode::PostLogin`
 - [ ] Scheduling — meeting days, frequency, typical session length; surfaces on campaign card and public browser filter
 - [ ] Notes accessible outside active session (read and edit via Campaign Manager)
+- [ ] Replace `MapName` travel URL placeholder in `Server_TravelToSession` with the actual session level path once a session level exists
 
 ---
 
@@ -1657,7 +1678,7 @@ This approach keeps all save I/O within UE's native save game system and makes a
 
 ---
 
-*Last updated: 2026-05-05* — Notes save/sync design settled: notes move from `USessionSave` to per-player `USessionNotesSave`; `FNoteRecord` struct planned with `LastEdited` timestamp and `EditorPlayerIDs` peer list; `USessionNotesComponent` planned as in-session relay with RPC stubs; private notes are local-only, shared notes sync via relay with timestamp conflict resolution; default tab changes to one private tab per player. No code written this session — design only.
+*Last updated: 2026-05-08* — Notes system fully implemented: `USessionNotesSave`/`FNoteRecord` complete; `UFunctionLibrary::LoadSessionNotesSave`/`GetNotesSaveSlotName` added; `USessionNotesComponent` with three RPC stubs added; `USessionUIComponent::Init` now loads notes save and restores or creates default tabs; scroll chain removed (`Scroll(bool bUp)` dropped from `UBaseChannel`, `UBaseChannelPanel`, `USessionChatComponent`; `IA_ScrollChat` removed from `ASessionController`); `SRichTextArea::ComputeDesiredSize` fixed; `USessionSave::NotesTabNames/NotesTabContent` removed from codebase.
 
 ---
 

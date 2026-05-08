@@ -176,12 +176,6 @@ void UBaseChannelPanel::NativeConstruct()
 	SwitchToChannel(CreateChannel({}));
 }
 
-// Delegates scroll to the active channel.
-void UBaseChannelPanel::Scroll(bool bUp)
-{
-	if (IsValid(ActiveChannel)) ActiveChannel->Scroll(bUp);
-}
-
 // Creates and wires a new channel and tab for the given participant list and returns the channel.
 UBaseChannel* UBaseChannelPanel::CreateChannel(const TArray<FString>& Participants)
 {

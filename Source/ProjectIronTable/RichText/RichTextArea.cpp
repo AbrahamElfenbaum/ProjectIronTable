@@ -31,9 +31,17 @@ FSlateFontInfo SRichTextArea::FindFontAtIndex(const FRichTextDocument& InDocumen
 }
 
 // Returns zero until document content is measured.
+// Returns zero width (filled by parent) and the total document height based on line count and line height.
 FVector2D SRichTextArea::ComputeDesiredSize(float InLayoutScaleMultiplier) const
 {
-	return FVector2D();
+	if (!Document)
+	{
+		return FVector2D::ZeroVector;
+	}
+
+	TArray<FString> Lines = Document->GetLines();
+	float LineHeight = UFunctionLibrary::GetDocumentLineHeight(*Document, InLayoutScaleMultiplier);
+	return FVector2D(0.f, FMath::Max(1, Lines.Num()) * LineHeight);
 }
 
 // Iterates document runs and draws each as text within the allotted geometry.

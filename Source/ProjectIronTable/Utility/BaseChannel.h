@@ -31,14 +31,4 @@ public:
 	TArray<FString> Participants;
 #pragma endregion
 
-#pragma region Config
-	/** Pixels scrolled per Scroll() call. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float ScrollMultiplier = 60.f;
-#pragma endregion
-
-#pragma region Public Methods
-	/** Scrolls the channel up (bUp = true) or down by ScrollMultiplier pixels. */
-	void Scroll(bool bUp);
-#pragma endregion
 };

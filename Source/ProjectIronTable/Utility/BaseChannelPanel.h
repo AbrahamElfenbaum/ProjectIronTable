@@ -134,9 +134,6 @@ protected:
 public:
 
 #pragma region Public Methods
-	/** Scrolls the active channel up or down. */
-	void Scroll(bool bUp);
-
 	/** Creates a new channel for the given participant list, adds it to the tab bar, and returns it. */
 	virtual UBaseChannel* CreateChannel(const TArray<FString>& Participants);
 

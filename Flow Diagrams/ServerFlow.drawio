@@ -49,9 +49,9 @@
           <mxGeometry x="800" y="140" width="300" height="200" as="geometry" />
         </mxCell>
 
-        <!-- USessionUIComponent + USessionChatComponent -->
-        <mxCell id="hudcomp" value="&lt;b&gt;USessionUIComponent&lt;/b&gt; (Replicated)&#xa;Init(): creates SessionScreen widget,&#xa;caches refs (ChatBox, DiceTray,&#xa;PlayerList, SessionNotesPanel, Taskbar),&#xa;registers panels, loads panel layout,&#xa;restores chat log from USessionSave.&#xa;GetChatBox() → UChatBox*&#xa;&#xa;&lt;b&gt;USessionChatComponent&lt;/b&gt; (Replicated)&#xa;Init(): gets ChatBoxRef from UIComponent,&#xa;wires ChatBox.SetChatComponent(this)&#xa;&#xa;SendChatMessageOnServer [Server RPC]:&#xa;  Resolves sender, routes to participants,&#xa;  saves message to USessionSave&#xa;&#xa;AddChatMessageOnOwningClient [Client RPC]:&#xa;  Delivers message to local ChatBox" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
-          <mxGeometry x="800" y="380" width="300" height="230" as="geometry" />
+        <!-- USessionUIComponent + USessionChatComponent + USessionNotesComponent -->
+        <mxCell id="hudcomp" value="&lt;b&gt;USessionUIComponent&lt;/b&gt; (Replicated)&#xa;Init(): creates SessionScreen widget,&#xa;caches refs (ChatBox, DiceTray,&#xa;PlayerList, SessionNotesPanel, Taskbar),&#xa;registers panels, loads panel layout,&#xa;restores chat log from USessionSave,&#xa;loads USessionNotesSave → RestoreChannels.&#xa;GetChatBox() → UChatBox*&#xa;&#xa;&lt;b&gt;USessionChatComponent&lt;/b&gt; (Replicated)&#xa;Init(): gets ChatBoxRef from UIComponent,&#xa;wires ChatBox.SetChatComponent(this)&#xa;&#xa;SendChatMessageOnServer [Server RPC]:&#xa;  Resolves sender, routes to participants,&#xa;  saves message to USessionSave&#xa;&#xa;AddChatMessageOnOwningClient [Client RPC]:&#xa;  Delivers message to local ChatBox&#xa;&#xa;&lt;b&gt;USessionNotesComponent&lt;/b&gt; (Replicated)&#xa;SharedNoteCache (in-memory relay, no UPROPERTY)&#xa;Server_PushNote / Multicast_ReceiveNote /&#xa;Server_RequestNoteSync — all stubs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="800" y="380" width="300" height="310" as="geometry" />
         </mxCell>
 
         <!-- Save files -->
@@ -63,12 +63,16 @@
           <mxGeometry x="1180" y="270" width="280" height="160" as="geometry" />
         </mxCell>
 
+        <mxCell id="save_notes" value="&lt;b&gt;USessionNotesSave&lt;/b&gt;&#xa;Slot: &quot;Notes_{PlayerID}_{SessionID}&quot;&#xa;&#xa;SessionNoteRecords (TArray&lt;FNoteRecord&gt;)&#xa;Array position = tab display order.&#xa;&#xa;Player-owned — NOT server-owned.&#xa;Loaded/saved by: USessionUIComponent&#xa;  (on Init, OnDocumentChanged, OnChannelSwitched)&#xa;&#xa;FNoteRecord: NoteID, DisplayName, Content,&#xa;LastEdited, CreatorPlayerID, EditorPlayerIDs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="460" width="280" height="160" as="geometry" />
+        </mxCell>
+
         <mxCell id="save_panel" value="&lt;b&gt;UPanelLayoutSave&lt;/b&gt;&#xa;Slot: &quot;PanelLayout&quot;&#xa;&#xa;PanelLayouts (TMap&lt;FString, FPanelLayoutData&gt;)&#xa;Keyed by PanelID.&#xa;&#xa;Saved: on drag/resize/toggle.&#xa;Loaded: on HUD startup." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
-          <mxGeometry x="1180" y="460" width="280" height="120" as="geometry" />
+          <mxGeometry x="1180" y="640" width="280" height="120" as="geometry" />
         </mxCell>
 
         <mxCell id="save_campaign" value="&lt;b&gt;UCampaignManagerSave&lt;/b&gt;&#xa;Slot: &quot;CampaignManager&quot;&#xa;&#xa;TMap&lt;FString, FCampaignList&gt;&#xa;Keyed by game type (e.g. &quot;DnD5e&quot;).&#xa;FCampaignRecord contains SessionIDs array.&#xa;&#xa;Authoritative campaign→session index." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
-          <mxGeometry x="1180" y="610" width="280" height="120" as="geometry" />
+          <mxGeometry x="1180" y="790" width="280" height="120" as="geometry" />
         </mxCell>
 
         <!-- SERVER TRAVEL FLOW -->
@@ -106,6 +110,7 @@
         <mxCell id="a5" value="sets role flags" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" source="gamemode" target="playerstate" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="a6" value="saves messages + tab names" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" source="hudcomp" target="save_session" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="a7" value="saves/loads panel layout" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" source="hudcomp" target="save_panel" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="a10" value="loads/saves notes" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" source="hudcomp" target="save_notes" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="a8" value="owned by" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" source="controller" target="hudcomp" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="a9" value="reads PlayerArray for routing" style="edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" source="hudcomp" target="gamestate" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
 

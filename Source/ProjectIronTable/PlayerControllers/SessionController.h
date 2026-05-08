@@ -129,9 +129,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Chat Input")
 	TObjectPtr<UInputAction> IA_ExitChat;
 
-	/** Scrolls the active chat channel up or down. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Chat Input")
-	TObjectPtr<UInputAction> IA_ScrollChat;
 #pragma endregion
 
 private:
@@ -158,8 +155,6 @@ private:
 	/** Removes the chat input mapping context and unfocuses the chat box. */
 	void Input_ExitChat();
 
-	/** Forwards scroll direction to the HUD chat scroll handler. */
-	void Input_ScrollChat(const FInputActionValue& Value);
 #pragma endregion
 
 protected:

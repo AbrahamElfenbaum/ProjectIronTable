@@ -10,6 +10,7 @@
 #include "RichTextRun.h"
 #include "SessionInstance.h"
 #include "SessionSave.h"
+#include "SessionNotesSave.h"
 
 // Returns the session save slot name for the given session instance, or an empty string if the instance is invalid.
 FString UFunctionLibrary::GetSessionSaveSlotName(USessionInstance* SessionInstance)
@@ -23,10 +24,21 @@ FString UFunctionLibrary::GetSessionSaveSlotName(USessionInstance* SessionInstan
 	return FString::Printf(TEXT("Session_%s"), *SessionInstance->GetSessionID().ToString());
 }
 
+// Returns the formatted notes save slot name for the given player and session IDs.
+FString UFunctionLibrary::GetNotesSaveSlotName(const FGuid& InPlayerID, const FGuid& InSessionID)
+{
+	return FString::Printf(TEXT("Notes_%s_%s"), *InPlayerID.ToString(), *InSessionID.ToString());
+}
+
 // Loads and returns the session save for the current session, or nullptr if the instance or save is not found.
 USessionSave* UFunctionLibrary::LoadSessionSave(UObject* WorldContext)
 {
 	USessionInstance* SessionInstance = Cast<USessionInstance>(UGameplayStatics::GetGameInstance(WorldContext));
+	if (!IsValid(SessionInstance))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UFunctionLibrary::LoadSessionSave — Failed to get valid SessionInstance"));
+		return nullptr;
+	}
 
 	FString SlotName = GetSessionSaveSlotName(SessionInstance);
 
@@ -43,6 +55,34 @@ USessionSave* UFunctionLibrary::LoadSessionSave(UObject* WorldContext)
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("UFunctionLibrary::LoadSessionSave — Failed to get valid session save"));
+	return nullptr;
+}
+
+// Loads and returns the notes save for the local player in the current session, or nullptr if the instance or save is not found.
+USessionNotesSave* UFunctionLibrary::LoadSessionNotesSave(UObject* WorldContext)
+{
+	USessionInstance* SessionInstance = Cast<USessionInstance>(UGameplayStatics::GetGameInstance(WorldContext));
+	if (!IsValid(SessionInstance))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UFunctionLibrary::LoadSessionNotesSave — Failed to get valid SessionInstance"));
+		return nullptr;
+	}
+
+	FString SlotName = GetNotesSaveSlotName(SessionInstance->GetPlayerID(), SessionInstance->GetSessionID());
+
+	if (SlotName.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UFunctionLibrary::LoadSessionNotesSave — Failed to get valid slot name; cannot load session notes save"));
+		return nullptr;
+	}
+
+	USessionNotesSave* SessionNotesSave = Cast<USessionNotesSave>(UGameplayStatics::LoadGameFromSlot(SlotName, 0));
+	if (IsValid(SessionNotesSave))
+	{
+		return SessionNotesSave;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("UFunctionLibrary::LoadSessionNotesSave — Failed to get valid session notes save"));
 	return nullptr;
 }
 

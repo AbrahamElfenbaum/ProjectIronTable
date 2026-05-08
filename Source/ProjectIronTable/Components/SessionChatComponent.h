@@ -77,7 +77,5 @@ public:
 	/** Exits chat focus, clears the input field, and restores game-and-UI input mode. */
 	void ExitChat();
 
-	/** Scrolls the active chat channel up or down. */
-	void ScrollChat(bool bUp);
 #pragma endregion
 };

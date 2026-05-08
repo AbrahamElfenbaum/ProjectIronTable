@@ -101,12 +101,4 @@ public:
 	/** Per-player saved tab display names, keyed by sorted pipe-joined participant names. Populated on first channel creation; updated on rename. */
 	UPROPERTY()
 	TMap<FString, FString> ChatTabNames;
-
-	/** Display names for notes tabs, keyed by the channel's GUID. Populated on tab creation; updated on rename. */
-	UPROPERTY()
-	TMap<FGuid, FString> NotesTabNames;
-
-	/** Rich text document content for each notes channel, keyed by ChannelID. Populated on tab creation; updated on channel switch. */
-	UPROPERTY()
-	TMap<FGuid, FRichTextDocument> NotesTabContent;
 };

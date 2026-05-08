@@ -129,9 +129,3 @@ void UMainScreenUIComponent::BeginPlay()
 		}
 	}
 }
-
-// Disables tick.
-UMainScreenUIComponent::UMainScreenUIComponent()
-{
-	PrimaryComponentTick.bCanEverTick = false;
-}

@@ -233,7 +233,7 @@ During a session the server (listen server host) maintains an in-memory relay ca
 Real-time sync is planned but deferred. The component infrastructure (`USessionNotesComponent`) is built with RPC stubs now so wiring it up later is filling in bodies, not restructuring.
 
 **Save model**
-Notes are stored in a per-player-per-session save file (`USessionNotesSave`, slot `"Notes_{PlayerID}_{SessionID}"`), separate from the server-owned `USessionSave`. Content is saved on every document change (crash safety) and on tab switch. Tab order is saved explicitly so tabs appear in a consistent sequence across sessions.
+Notes are stored in a per-player-per-session save file (`USessionNotesSave`, slot `"Notes_{PlayerID}_{SessionID}"`), separate from the server-owned `USessionSave`. Content is saved on every document change (crash safety) and on tab switch. Tab order is determined by the order of records in `SessionNoteRecords` — no separate ordering array is needed.
 
 **Formatting**
 Rich text: bold, italic, underline, strikethrough. Additional formatting (headers, bullet points) is planned. See Out of Scope for what is not planned.
@@ -582,6 +582,7 @@ The following are explicitly not planned for the current development arc:
 - Real-time physics on miniatures (minis snap to grid, no physics simulation)
 - **Notes formatting beyond standard word-processor features** — Bold, italic, underline, strikethrough, headers, and bullets are in scope. Whether TTRPG players want or need anything beyond that — custom styles, track changes, inline comments, collaborative edit history, or other Google Docs / Word extended features — is unknown. Demand and feasibility are both TBD; nothing beyond the standard set is planned for the current arc.
 - **Markdown-with-preview notes editing** — Considered and rejected as a fallback. A markdown input mode is a regression in user experience compared to a WYSIWYG editor, not an enhancement. Not planned.
+- **Draggable tab reordering** — Browser-style click-drag-reorder for chat and notes tabs. Not being considered for the current arc. This is purely an extra-credit polish feature — only worth revisiting if the project reaches a state where it genuinely feels incomplete without it.
 
 ---
 
@@ -633,7 +634,7 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 
 ---
 
-*Last updated: 2026-05-05* — Notes section rewritten: private/shared model, Google Docs peer model, `USessionNotesSave` replacing notes in `USessionSave`, real-time sync deferred with component infrastructure planned.
+*Last updated: 2026-05-08* — No new design decisions; notes save/sync architecture from 2026-05-05 fully implemented.
 
 ---
 
