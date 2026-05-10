@@ -4,10 +4,10 @@
 #include "Widgets/SCompoundWidget.h"
 #include "RichTextDocument.h"
 
-class SCheckBox;
 class SRichTextArea;
 
 DECLARE_MULTICAST_DELEGATE(FOnDocumentChanged)
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnFormatStateChanged, bool, bool, bool, bool)
 
 class SRichTextEditor : public SCompoundWidget
 {
@@ -41,25 +41,13 @@ private:
 	/** Cached pointer to the text area child widget, used to resolve mouse positions relative to the text area rather than the full editor geometry. */
 	TSharedPtr<SRichTextArea> TextAreaRef;
 
-	/** Toolbar checkbox for toggling bold formatting. */
-	TSharedPtr<SCheckBox> BoldCheckbox;
-
-	/** Toolbar checkbox for toggling italic formatting. */
-	TSharedPtr<SCheckBox> ItalicCheckbox;
-
-	/** Toolbar checkbox for toggling underline formatting. */
-	TSharedPtr<SCheckBox> UnderlineCheckbox;
-
-	/** Toolbar checkbox for toggling strikethrough formatting. */
-	TSharedPtr<SCheckBox> StrikethroughCheckbox;
-
-	/** Guards against feedback loops when programmatically calling SetIsChecked on format checkboxes — SCheckBox fires OnCheckStateChanged with the previous state on programmatic updates, which would overwrite ActiveFormat. Set to true around all SetIsChecked calls in SyncActiveFormat; toggle callbacks return early while true. */
-	bool bIsSyncing;
-
 public:
 
 	/** Fired when the document content changes due to user input or format commands. */
 	FOnDocumentChanged OnDocumentChanged;
+
+	/** Fired when bold, italic, underline, and strikethrough format state changes, typically after a cursor move or format toggle. */
+	FOnFormatStateChanged OnFormatStateChanged;
 
 #pragma endregion
 
@@ -69,9 +57,6 @@ private:
 
 	/** Finds the run in Document.Runs that spans CharIndex and sets OutRunStart to the character index where that run begins. Returns the index of the run in Document.Runs. */
 	int32 FindRunAtIndex(int32 CharIndex, int32& OutRunStart) const;
-
-	/** Builds a single toolbar checkbox wired to the given format callback and labeled with the given string. */
-	TSharedRef<SWidget> MakeFormatCheckbox(TSharedPtr<SCheckBox>& Checkbox, TFunction<void(bool)> Callback, const TCHAR* Label);
 
 	/** Returns true if both runs share the same bold, italic, underline, strikethrough flags and font info. */
 	bool FormatsMatch(const FRichTextRun& A, const FRichTextRun& B) const;
@@ -83,7 +68,7 @@ private:
 	void OnBackspaceOrDeletePressed(int32 CursorPos);
 
 	/** Moves the cursor up or down one line, landing on the character closest to the current X pixel position. */
-	void OnUpOrDownPressed(const TArray<FString>& Lines, FVector2f CursorPos, float Scale, bool bUp);
+	void OnUpOrDownPressed(const TArray<FString>& Lines, FVector2f CursorPos, float Scale, float TabSpace, bool bUp);
 
 	/** Updates ActiveFormat to match the format flags of the run currently under the cursor. Called after any operation that moves CursorPosition. */
 	void SyncActiveFormat();
@@ -115,8 +100,8 @@ private:
 	/** Splits the run at RunIndex into Left and Right pieces at LocalOffset, replacing the original in Document.Runs. Returns the index of the Right piece. */
 	int32 SplitRunAt(int32 RunIndex, int32 LocalOffset);
 
-	/** Toggles Flag, applies the format change to the active selection via Apply, and syncs the Checkbox state. Returns FReply::Handled(). */
-	FReply ApplyFormatShortcut(bool& Flag, TSharedPtr<SCheckBox>& Checkbox, TFunction<void(FRichTextRun&)> Apply);
+	/** Toggles Flag, applies the format change to the active selection via Apply, and broadcasts the new format state. Returns FReply::Handled(). */
+	FReply ApplyFormatShortcut(bool& Flag, TFunction<void(FRichTextRun&)> Apply);
 
 protected:
 

@@ -50,5 +50,8 @@ public:
 
 	/** Returns a reference to the underlying Slate editor's OnDocumentChanged delegate for external binding. */
 	FOnDocumentChanged& GetOnDocumentChanged();
+
+	/** Returns a reference to the underlying Slate editor's OnFormatStateChanged delegate for external binding. */
+	FOnFormatStateChanged& GetOnFormatStateChanged();
 #pragma endregion
 };

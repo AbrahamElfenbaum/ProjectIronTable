@@ -1,11 +1,7 @@
-﻿// Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
+// Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "RichTextEditor.h"
 
 #include "Fonts/FontMeasure.h"
-#include "Widgets/Input/SCheckBox.h"
-#include "Widgets/Layout/SBox.h"
-#include "Widgets/SBoxPanel.h"
-#include "Widgets/Text/STextBlock.h"
 
 #include "RichTextArea.h"
 #include "RichTextRun.h"
@@ -29,18 +25,6 @@ int32 SRichTextEditor::FindRunAtIndex(int32 CharIndex, int32& OutRunStart) const
 
 	OutRunStart = CurrentIndex;
 	return Document.Runs.Num() - 1;
-}
-
-// Creates a checkbox wired to the given callback and labeled with the given string, assigning the shared pointer for later access.
-TSharedRef<SWidget> SRichTextEditor::MakeFormatCheckbox(TSharedPtr<SCheckBox>& Checkbox, TFunction<void(bool)> Callback, const TCHAR* Label)
-{
-	return SAssignNew(Checkbox, SCheckBox)
-		.OnCheckStateChanged(FOnCheckStateChanged::CreateLambda([Callback](ECheckBoxState State)
-			{
-				Callback(State == ECheckBoxState::Checked);
-			}))
-		.IsFocusable(false)
-		[SNew(STextBlock).Text(FText::FromString(FString(Label)))];
 }
 
 // Returns true if both runs share the same bold, italic, underline, strikethrough flags and font info.
@@ -100,7 +84,7 @@ void SRichTextEditor::OnBackspaceOrDeletePressed(int32 CursorPos)
 }
 
 // Moves the cursor up or down one line, finding the character on the target line closest to the cursor's X pixel position.
-void SRichTextEditor::OnUpOrDownPressed(const TArray<FString>& Lines, FVector2f CursorPos, float Scale, bool bUp)
+void SRichTextEditor::OnUpOrDownPressed(const TArray<FString>& Lines, FVector2f CursorPos, float Scale, float TabSpace, bool bUp)
 {
 	FSlateFontInfo FontInfo;
 	float LineHeight = UFunctionLibrary::GetDocumentLineHeight(Document, Scale, &FontInfo);
@@ -116,21 +100,23 @@ void SRichTextEditor::OnUpOrDownPressed(const TArray<FString>& Lines, FVector2f 
 	if (!((bUp && TargetLine < 0) || (!bUp && TargetLine >= Lines.Num())))
 	{
 		int32 CharInLine = 0;
-		float LeftEdge = 0.f;
+		float XOffset = 0.f;
 
 		for (int32 i = 0; i < Lines[TargetLine].Len(); i++)
 		{
-			float RightEdge = FSlateApplication::Get().GetRenderer()->GetFontMeasureService()
-				->Measure(Lines[TargetLine].Left(i + 1), FontInfo, Scale).X / Scale;
+			TCHAR CurrChar = Lines[TargetLine][i];
+			float CharWidth = (CurrChar == '\t' ? TabSpace :
+												 FSlateApplication::Get().GetRenderer()->GetFontMeasureService()
+												 ->Measure(FString(1, &CurrChar), FontInfo, Scale).X / Scale);
 
-			float Midpoint = (RightEdge + LeftEdge) / 2.f;
+			float Midpoint = XOffset + CharWidth / 2.f;
 
 			if (Midpoint > PreferredX)
 			{
 				break;
 			}
 			CharInLine = i + 1;
-			LeftEdge = RightEdge;
+			XOffset += CharWidth;
 		}
 
 		int32 NewCursorPosition = 0;
@@ -149,15 +135,7 @@ void SRichTextEditor::SyncActiveFormat()
 	int32 RunStart = 0;
 	int32 RunIndex = FindRunAtIndex(CursorPosition, RunStart);
 	ActiveFormat = Document.Runs[RunIndex];
-
-	bIsSyncing = true;
-
-	BoldCheckbox->SetIsChecked(ActiveFormat.bIsBold ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
-	ItalicCheckbox->SetIsChecked(ActiveFormat.bIsItalic ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
-	UnderlineCheckbox->SetIsChecked(ActiveFormat.bIsUnderline ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
-	StrikethroughCheckbox->SetIsChecked(ActiveFormat.bIsStrikethrough ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
-
-	bIsSyncing = false;
+	OnFormatStateChanged.Broadcast(ActiveFormat.bIsBold, ActiveFormat.bIsItalic, ActiveFormat.bIsUnderline, ActiveFormat.bIsStrikethrough);
 }
 
 // Removes all empty runs, merges adjacent runs with identical format, and re-adds a blank default run if none remain.
@@ -277,7 +255,7 @@ void SRichTextEditor::FormatToSelection(TFunction<void(FRichTextRun&)> ApplyForm
 		{
 			ApplyFormat(Document.Runs[i]);
 		}
-		
+
 		PruneRuns();
 	}
 }
@@ -301,14 +279,12 @@ int32 SRichTextEditor::SplitRunAt(int32 RunIndex, int32 LocalOffset)
 	return RunIndex + 1;
 }
 
-// Toggles Flag, applies the format change to the active selection via Apply, syncs Checkbox, and returns FReply::Handled().
-FReply SRichTextEditor::ApplyFormatShortcut(bool& Flag, TSharedPtr<SCheckBox>& Checkbox, TFunction<void(FRichTextRun&)> Apply)
+// Toggles Flag, applies the format change to the active selection via Apply, and broadcasts the new format state. Returns FReply::Handled().
+FReply SRichTextEditor::ApplyFormatShortcut(bool& Flag, TFunction<void(FRichTextRun&)> Apply)
 {
 	Flag = !Flag;
 	FormatToSelection(Apply);
-	bIsSyncing = true;
-	Checkbox->SetIsChecked(Flag ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
-	bIsSyncing = false;
+	OnFormatStateChanged.Broadcast(ActiveFormat.bIsBold, ActiveFormat.bIsItalic, ActiveFormat.bIsUnderline, ActiveFormat.bIsStrikethrough);
 	return FReply::Handled();
 }
 
@@ -364,6 +340,7 @@ FReply SRichTextEditor::OnKeyChar(const FGeometry& MyGeometry, const FCharacterE
 // Handles cursor movement, deletion, and format shortcut keys.
 FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
+	bool bDocumentModified = false;
 	bool bHandled = false;
 	bool bVerticalMove = false;
 	FKey DownKey = InKeyEvent.GetKey();
@@ -376,7 +353,7 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 	FVector2f CursorPos = SRichTextArea::GetCursorPosition(Document, CursorPosition, TabSpace, MyGeometry.Scale);
 
 	TArray<FString> Lines = Document.GetLines();
-	
+
 	if (DownKey == EKeys::BackSpace)
 	{
 		if (SelectionAnchor != -1)
@@ -384,11 +361,13 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 			RangeDelete();
 			SyncActiveFormat();
 			PreferredX = -1.f;
+			OnDocumentChanged.Broadcast();
 			return FReply::Handled();
 		}
 
 		if (CursorPosition != 0)
 		{
+			bDocumentModified = true;
 			OnBackspaceOrDeletePressed(CursorPosition - 1);
 			CursorPosition = FMath::Max(0, CursorPosition - 1);
 			bHandled = true;
@@ -401,11 +380,13 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 			RangeDelete();
 			SyncActiveFormat();
 			PreferredX = -1.f;
+			OnDocumentChanged.Broadcast();
 			return FReply::Handled();
 		}
 
 		if (CursorPosition != Document.GetFullText().Len())
 		{
+			bDocumentModified = true;
 			OnBackspaceOrDeletePressed(CursorPosition);
 			bHandled = true;
 		}
@@ -425,14 +406,14 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 	else if (DownKey == EKeys::Up)
 	{
 		HandleSelectionOnMove(bShiftDown);
-		OnUpOrDownPressed(Lines, CursorPos, MyGeometry.Scale, true);
+		OnUpOrDownPressed(Lines, CursorPos, MyGeometry.Scale, TabSpace, true);
 		bVerticalMove = true;
 		bHandled = true;
 	}
 	else if (DownKey == EKeys::Down)
 	{
 		HandleSelectionOnMove(bShiftDown);
-		OnUpOrDownPressed(Lines, CursorPos, MyGeometry.Scale, false);
+		OnUpOrDownPressed(Lines, CursorPos, MyGeometry.Scale, TabSpace, false);
 		bVerticalMove = true;
 		bHandled = true;
 	}
@@ -444,11 +425,11 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 	else if (DownKey == EKeys::End)
 	{
 		CursorPosition = Document.GetFullText().Len();
-		OnDocumentChanged.Broadcast();
 		bHandled = true;
 	}
 	else if (DownKey == EKeys::Enter)
 	{
+		bDocumentModified = true;
 		if (SelectionAnchor != -1)
 		{
 			RangeDelete();
@@ -458,6 +439,7 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 	}
 	else if (DownKey == EKeys::Tab)
 	{
+		bDocumentModified = true;
 		if (SelectionAnchor != -1)
 		{
 			RangeDelete();
@@ -473,7 +455,7 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 	}
 	else if (bControlDown && DownKey == EKeys::B)
 	{
-		return ApplyFormatShortcut(ActiveFormat.bIsBold, BoldCheckbox,
+		return ApplyFormatShortcut(ActiveFormat.bIsBold,
 								   [this](FRichTextRun& Run) { Run.bIsBold = ActiveFormat.bIsBold; });
 	}
 	else if (bControlDown && DownKey == EKeys::C)
@@ -486,18 +468,19 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 	}
 	else if (bControlDown && DownKey == EKeys::I)
 	{
-		return ApplyFormatShortcut(ActiveFormat.bIsItalic, ItalicCheckbox,
+		return ApplyFormatShortcut(ActiveFormat.bIsItalic,
 								   [this](FRichTextRun& Run) { Run.bIsItalic = ActiveFormat.bIsItalic; });
 	}
 	else if (bControlDown && DownKey == EKeys::U)
 	{
-		return ApplyFormatShortcut(ActiveFormat.bIsUnderline, UnderlineCheckbox,
+		return ApplyFormatShortcut(ActiveFormat.bIsUnderline,
 								   [this](FRichTextRun& Run) { Run.bIsUnderline = ActiveFormat.bIsUnderline; });
 	}
 	else if (bControlDown && DownKey == EKeys::V)
 	{
 		if (!CopiedRuns.IsEmpty())
 		{
+			bDocumentModified = true;
 			if (SelectionAnchor != -1)
 			{
 				RangeDelete();
@@ -525,6 +508,7 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 	{
 		if (SelectionAnchor != -1)
 		{
+			bDocumentModified = true;
 			CopiedRuns = GetSelectedRange();
 			RangeDelete();
 			bHandled = true;
@@ -546,6 +530,10 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 
 	if (bHandled)
 	{
+		if (bDocumentModified)
+		{
+			OnDocumentChanged.Broadcast();
+		}
 		SyncActiveFormat();
 		return FReply::Handled();
 	}
@@ -583,26 +571,14 @@ FReply SRichTextEditor::OnMouseMove(const FGeometry& MyGeometry, const FPointerE
 	return FReply::Unhandled();
 }
 
-// Builds the editor layout: a toolbar row with four format checkboxes above an empty content area for painted text.
+// Builds the editor layout with a text area child and initializes the document and active format font.
 void SRichTextEditor::Construct(const FArguments& InArgs)
 {
 	ChildSlot
 		[
-			SNew(SVerticalBox)
-				+ SVerticalBox::Slot().AutoHeight()
-				[
-					SNew(SHorizontalBox)
-						+ SHorizontalBox::Slot().AutoWidth()[MakeFormatCheckbox(BoldCheckbox, [this](bool b) { ToggleBold(b); }, TEXT("B"))]
-						+ SHorizontalBox::Slot().AutoWidth()[MakeFormatCheckbox(ItalicCheckbox, [this](bool b) { ToggleItalic(b); }, TEXT("I"))]
-						+ SHorizontalBox::Slot().AutoWidth()[MakeFormatCheckbox(UnderlineCheckbox, [this](bool b) { ToggleUnderline(b); }, TEXT("U"))]
-						+ SHorizontalBox::Slot().AutoWidth()[MakeFormatCheckbox(StrikethroughCheckbox, [this](bool b) { ToggleStrikethrough(b); }, TEXT("S"))]
-				]
-			+ SVerticalBox::Slot().FillHeight(1.0f)
-				[
-					SAssignNew(TextAreaRef, SRichTextArea).Document(&Document)
-						.CursorPosition(&CursorPosition)
-						.SelectionAnchor(&SelectionAnchor)
-				]
+			SAssignNew(TextAreaRef, SRichTextArea).Document(&Document)
+				.CursorPosition(&CursorPosition)
+				.SelectionAnchor(&SelectionAnchor)
 		];
 
 	Document.Runs.Add(FRichTextRun(TEXT(""), FCoreStyle::GetDefaultFontStyle("Regular", 12)));
@@ -612,10 +588,6 @@ void SRichTextEditor::Construct(const FArguments& InArgs)
 // Sets the bold flag on ActiveFormat, applying to newly typed text and any current selection.
 void SRichTextEditor::ToggleBold(bool bEnable)
 {
-	if (bIsSyncing)
-	{
-		return;
-	}
 	ActiveFormat.bIsBold = bEnable;
 	FormatToSelection([bEnable](FRichTextRun& Run) { Run.bIsBold = bEnable; });
 }
@@ -623,10 +595,6 @@ void SRichTextEditor::ToggleBold(bool bEnable)
 // Sets the italic flag on ActiveFormat, applying to newly typed text and any current selection.
 void SRichTextEditor::ToggleItalic(bool bEnable)
 {
-	if (bIsSyncing)
-	{
-		return;
-	}
 	ActiveFormat.bIsItalic = bEnable;
 	FormatToSelection([bEnable](FRichTextRun& Run) { Run.bIsItalic = bEnable; });
 }
@@ -634,10 +602,6 @@ void SRichTextEditor::ToggleItalic(bool bEnable)
 // Sets the underline flag on ActiveFormat, applying to newly typed text and any current selection.
 void SRichTextEditor::ToggleUnderline(bool bEnable)
 {
-	if (bIsSyncing)
-	{
-		return;
-	}
 	ActiveFormat.bIsUnderline = bEnable;
 	FormatToSelection([bEnable](FRichTextRun& Run) { Run.bIsUnderline = bEnable; });
 }
@@ -645,10 +609,6 @@ void SRichTextEditor::ToggleUnderline(bool bEnable)
 // Sets the strikethrough flag on ActiveFormat, applying to newly typed text and any current selection.
 void SRichTextEditor::ToggleStrikethrough(bool bEnable)
 {
-	if (bIsSyncing)
-	{
-		return;
-	}
 	ActiveFormat.bIsStrikethrough = bEnable;
 	FormatToSelection([bEnable](FRichTextRun& Run) { Run.bIsStrikethrough = bEnable; });
 }

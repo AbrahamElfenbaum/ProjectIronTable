@@ -75,3 +75,9 @@ FOnDocumentChanged& UEditableRichText::GetOnDocumentChanged()
 {
 	return RichTextEditor->OnDocumentChanged;
 }
+
+// Returns a reference to the Slate editor's OnFormatStateChanged delegate so callers can bind without going through the Slate layer directly.
+FOnFormatStateChanged& UEditableRichText::GetOnFormatStateChanged()
+{
+	return RichTextEditor->OnFormatStateChanged;
+}
