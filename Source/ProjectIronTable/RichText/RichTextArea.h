@@ -2,6 +2,30 @@
 #pragma once
 #include "Widgets/SLeafWidget.h"
 
+/** Represents a single visual line in the rendered document as a range of character indices into the full document text. Not pixel positions — indices only. */
+struct FVisualLine
+{
+	/** Character index of the first character on this visual line, into the full document text. */
+	int32 StartIndex;
+
+	/** Character index one past the last character on this visual line, into the full document text. */
+	int32 EndIndex;
+
+	/** Initializes both indices to zero. */
+	FVisualLine()
+	{
+		StartIndex = 0;
+		EndIndex = 0;
+	}
+
+	/** Initializes with the given start and end character indices. */
+	FVisualLine(const int32 InStartIndex, const int32 InEndIndex)
+	{
+		StartIndex = InStartIndex;
+		EndIndex = InEndIndex;
+	}
+};
+
 struct FRichTextDocument;
 
 /** Slate leaf widget that renders a rich text document as formatted runs. Owned by SRichTextEditor and placed in the text area slot. */
@@ -18,8 +42,20 @@ private:
 	/** Active selection anchor as a character index into the document. Pointer into SRichTextEditor's SelectionAnchor so it stays in sync. -1 when no selection is active. */
 	const int32* SelectionAnchor = nullptr;
 
+	/** Last allotted width used to build the line layout cache. -1 until first paint. Recompute triggered when this differs from the current allotted width. */
+	mutable float CachedWidth = -1.f;
+
+	/** Snapshot of the document's full text at the last layout recompute. Recompute triggered when this differs from the current document text. */
+	mutable FString CachedText;
+
+	/** Pre-computed character index ranges for each visual line, rebuilt whenever the document text or allotted width changes. StartIndex and EndIndex are character indices into the full document text — not pixel positions. Covers both hard newline breaks and soft word-wrap breaks. */
+	mutable TArray<FVisualLine> VisualLines;
+
 	/** Returns the FontInfo of the run that owns the character at CharIndex. Falls back to a default FSlateFontInfo if CharIndex is out of range. */
 	static FSlateFontInfo FindFontAtIndex(const FRichTextDocument& InDocument, int32 CharIndex);
+
+	/** Walks CachedText character by character and populates VisualLines with one FVisualLine per rendered line, handling hard newlines, tab overflow, space-boundary word wrap, and whole-word wrap when no space is available. */
+	void RebuildVisualLines(const FSlateFontInfo& InFontInfo, float InScale, float InTabSpace) const;
 
 public:
 

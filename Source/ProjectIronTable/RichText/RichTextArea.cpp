@@ -30,6 +30,88 @@ FSlateFontInfo SRichTextArea::FindFontAtIndex(const FRichTextDocument& InDocumen
 	return FSlateFontInfo();
 }
 
+// Clears and rebuilds VisualLines by walking CachedText character by character, breaking on hard newlines and soft word-wrap boundaries.
+void SRichTextArea::RebuildVisualLines(const FSlateFontInfo& InFontInfo, float InScale, float InTabSpace) const
+{
+	VisualLines.Empty();
+	int32 CurrentLineStart = 0;
+	float LineWidth = 0.f;
+	int32 LastSpaceIndex = -1;
+
+	for (int32 i = 0; i < CachedText.Len(); i++)
+	{
+		switch (CachedText[i])
+		{
+		case '\n':
+			VisualLines.Add(FVisualLine(CurrentLineStart, i));
+			CurrentLineStart = i + 1;
+			LineWidth = 0.f;
+			LastSpaceIndex = -1;
+			break;
+
+		case '\t':
+			if (LineWidth + InTabSpace >= CachedWidth)
+			{
+				VisualLines.Add(FVisualLine(CurrentLineStart, i));
+				CurrentLineStart = i;
+				LineWidth = InTabSpace;
+				LastSpaceIndex = -1;
+			}
+			else
+			{
+				LineWidth += InTabSpace;
+			}
+			break;
+
+		case ' ':
+		{
+			float CharLength = MeasureText(FString(1, &CachedText[i]), InFontInfo, InScale);
+			if (LineWidth + CharLength >= CachedWidth)
+			{
+				VisualLines.Add(FVisualLine(CurrentLineStart, i));
+				CurrentLineStart = i;
+				LineWidth = CharLength;
+				LastSpaceIndex = -1;
+			}
+			else
+			{
+				LastSpaceIndex = i;
+				LineWidth += CharLength;
+			}
+			break;
+		}
+
+		default:
+		{
+			float CharLength = MeasureText(FString(1, &CachedText[i]), InFontInfo, InScale);
+			if (LineWidth + CharLength >= CachedWidth)
+			{
+				if (LastSpaceIndex == -1)
+				{
+					VisualLines.Add(FVisualLine(CurrentLineStart, i));
+					CurrentLineStart = i;
+					LineWidth = CharLength;
+				}
+				else
+				{
+					VisualLines.Add(FVisualLine(CurrentLineStart, LastSpaceIndex));
+					CurrentLineStart = LastSpaceIndex + 1;
+					LineWidth = MeasureText(CachedText.Mid(LastSpaceIndex + 1, i - LastSpaceIndex), InFontInfo, InScale);
+				}
+				LastSpaceIndex = -1;
+			}
+			else
+			{
+				LineWidth += CharLength;
+			}
+			break;
+		}
+		}
+	}
+
+	VisualLines.Add(FVisualLine(CurrentLineStart, CachedText.Len()));
+}
+
 // Returns zero until document content is measured.
 // Returns zero width (filled by parent) and the total document height based on line count and line height.
 FVector2D SRichTextArea::ComputeDesiredSize(float InLayoutScaleMultiplier) const
@@ -58,6 +140,15 @@ int32 SRichTextArea::OnPaint(const FPaintArgs& InArgs, const FGeometry& InAllott
 				FSlateFontInfo BestFontInfo;
 				float LineHeight = UFunctionLibrary::GetDocumentLineHeight(*Document, Scale, &BestFontInfo);
 				float TabSpace = MeasureText(TEXT("    "), BestFontInfo, Scale);
+
+				if (CachedWidth < 0 ||
+					CachedWidth != InAllottedGeometry.GetLocalSize().X ||
+					CachedText != Document->GetFullText())
+				{
+					CachedWidth = InAllottedGeometry.GetLocalSize().X;
+					CachedText = Document->GetFullText();
+					RebuildVisualLines(BestFontInfo, Scale, TabSpace);
+				}
 
 				if (SelectionAnchor && 
 					*SelectionAnchor != -1 &&

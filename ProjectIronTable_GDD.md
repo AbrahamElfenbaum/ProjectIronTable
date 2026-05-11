@@ -634,7 +634,7 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 
 ---
 
-*Last updated: 2026-05-09* — No new design decisions; bug fixes only (Enter key scroll, consecutive tab cursor snap).
+*Last updated: 2026-05-10* — No new design decisions; implementation session only (word wrap layout cache).
 
 ---
 
