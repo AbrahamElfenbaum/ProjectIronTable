@@ -1,9 +1,58 @@
 ﻿# ProjectIronTable — Technical Design Document
 
 **Engine:** Unreal Engine 5.7 (C++)
-**Project Path:** `D:\Projects\Unreal\ProjectIronTable`
 **Status:** Active Development
 **Primary Game System:** D&D 5e / 2024 (expandable to other TTRPGs)
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Folder Structure](#folder-structure)
+- [Naming Conventions](#naming-conventions)
+- [C++ Classes](#c-classes)
+  - [Dice/](#dice) — ADiceSpawnVolume, ABaseDiceActor, UDiceTray, UDiceSelector, UDiceData
+  - [Chat/](#chat) — UChatBox, UChatChannel, UChatEntry/UChatTab/UChatChannelListEntry
+  - [PlayerList/](#playerlist) — UPlayerList, UPlayerRow
+  - [CampaignManager/](#campaignmanager) — UGameTypeTab, UCampaignCard, UCampaignManagerScreen
+  - [SaveLoad/](#saveload) — USessionSave, UPlayerSave, UCampaignManagerSave, UPanelLayoutSave, UCameraSettingsSave, USessionNotesSave, FNoteRecord
+  - [GameInstances/](#gameinstances) — USessionInstance
+  - [PlayerStates/](#playerstates) — ASessionPlayerState
+  - [GameModes/](#gamemodes) — ASessionGameMode
+  - [GameStates/](#gamestates) — ASessionGameState
+  - [Components/](#components) — UMainScreenUIComponent, USessionUIComponent, USessionChatComponent, USessionNotesComponent
+  - [Settings/](#settings) — UCameraSettingsPanel, USettingsSlider
+  - [UI/](#ui) — UDraggablePanel, UTaskbar, UContextMenuButton, UContextMenu
+  - [PlayerControllers/](#playercontrollers) — ASessionController
+  - [Utility/](#utility) — UBaseChannelTab, UBaseChannelListEntry, UBaseChannelPanel, UFunctionLibrary, MacroLibrary.h
+  - [Screens/](#screens) — UBaseScreen, UHomeScreen
+  - [SessionNotes/](#sessionnotes) — USessionNotesPanel, Notes Rich-Text Design, USessionNotesChannel, USessionNotesTab
+  - [RichText/](#richtext) — FRichTextRun, FRichTextDocument, SRichTextArea, SRichTextEditor, UEditableRichText
+  - [Environment/ *(planned)*](#environment-planned--not-yet-implemented) — AEnvironmentManager, EWeatherType, UEnvironmentControlPanel
+- [Build Workflow](#build-workflow)
+- [Build Configuration Notes](#build-configuration-notes)
+- [Developer Notes / Known Gotchas](#developer-notes--known-gotchas)
+  - [Unreal Build & Editor](#unreal-build--editor)
+  - [Blueprint & UObject](#blueprint--uobject)
+  - [Input](#input)
+  - [Widgets & UI](#widgets--ui)
+  - [Physics & Dice](#physics--dice)
+  - [Networking & RPCs](#networking--rpcs)
+  - [Delegates](#delegates)
+  - [C++ Patterns](#c-patterns)
+- [Bug Log](#bug-log)
+- [Roadmap](#roadmap)
+  - [Phase 1 — Dice System](#phase-1--dice-system-in-progress)
+  - [Phase 2 — Core Game Setup](#phase-2--core-game-setup-in-progress)
+  - [Phase 3 — Campaign Manager](#phase-3--campaign-manager)
+  - [Phase 4 — Map Builder](#phase-4--map-builder)
+  - [Phase 5 — Environment System](#phase-5--environment-system-time-of-day--weather)
+  - [Phase 6 — Miniatures](#phase-6--miniatures)
+  - [Phase 7 — D&D 5e / 2024 Game System](#phase-7--dd-5e--2024-game-system)
+  - [Phase 8 — UI & Polish](#phase-8--ui--polish)
+  - [Phase 9 — Custom Content & Extensibility](#phase-9--custom-content--extensibility)
+  - [Multiplayer Architecture](#multiplayer-architecture)
 
 ---
 
@@ -1558,7 +1607,12 @@ Controls time of day and weather. `USessionUIComponent` finds it during `Init` v
 | `CurrentWeatherType` | `EWeatherType` | —      | OnRep enables/disables weather actors    |
 | `WeatherIntensity`   | `float`        | 0–1    | OnRep adjusts fog density and wind speed |
 
-**Server RPCs:** `Server_SetTimeOfDay(float)`, `Server_SetWeather(EWeatherType, float)`
+**Key Methods:**
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `Server_SetTimeOfDay` *(Server, Reliable)* | `float` | Sets current time of day; OnRep propagates sun angle to all clients |
+| `Server_SetWeather` *(Server, Reliable)* | `EWeatherType, float Intensity` | Sets weather type and intensity; OnRep applies effects on all clients |
 
 **Level Refs (set in BP):** `ADirectionalLight` (sun), `ASkyLight`, `AExponentialHeightFog`, `AWindDirectionalSourceComponent`, `ANiagaraActor` per weather type
 

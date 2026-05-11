@@ -7,6 +7,46 @@
 
 ---
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Core Loop](#core-loop)
+- [Player Roles](#player-roles)
+  - [Server Owner](#server-owner)
+  - [Game Master (GM)](#game-master-gm)
+  - [Player](#player)
+- [Features](#features)
+  - [Dice System](#dice-system)
+  - [Chat](#chat)
+  - [Maps](#maps)
+  - [Sound and Music](#sound-and-music)
+  - [Miniatures](#miniatures)
+  - [Notes](#notes)
+  - [Character Creation](#character-creation)
+  - [Inventory and Loot](#inventory-and-loot)
+  - [Measurement Tools](#measurement-tools)
+  - [Session Save and Load](#session-save-and-load)
+  - [Entity Management Panel](#entity-management-panel)
+  - [Combat](#combat)
+  - [Initiative Tracker](#initiative-tracker)
+  - [Character Sheet](#character-sheet)
+  - [Player Profiles](#player-profiles)
+  - [Custom Content](#custom-content)
+- [Home Screen](#home-screen)
+- [Campaign Manager](#campaign-manager)
+- [Scheduling](#scheduling)
+- [Asset Library](#asset-library)
+- [UI / UX](#ui--ux)
+- [Multiplayer](#multiplayer)
+- [Game Systems](#game-systems)
+  - [D&D 5e / 2024 (Primary)](#dd-5e--2024-primary)
+  - [Additional Systems (Future)](#additional-systems-future)
+  - [System Architecture (High Level)](#system-architecture-high-level)
+- [Out of Scope](#out-of-scope)
+- [Open Questions](#open-questions-master-list)
+
+---
+
 ## Overview
 
 ProjectIronTable is a virtual tabletop (VTT) simulator built in Unreal Engine. It lets a group of players run a tabletop RPG session online — rolling dice, moving miniatures on a shared map, tracking initiative and character stats, and communicating through an in-session chat. The GM runs the session and controls the environment; players control their own characters.
@@ -387,7 +427,7 @@ The game ships with a built-in library of assets across all categories (tiles, p
 
 The home screen is the first scene the player sees when launching the game. It is separate from the gameplay scene and has its own game mode, player controller, and HUD component.
 
-**Options (rough):**
+**Options** *(provisional):*
 - Play — opens the Campaign Manager
 - Library
 - Settings
@@ -482,7 +522,7 @@ Accessible from the home screen via a Library button. A file explorer-style view
 
 **Camera:** Top-down / isometric perspective. Players can pan (middle mouse), zoom (scroll wheel), and sprint-move (shift). Camera pitch is clamped; pan reset returns to default angle.
 
-**HUD layout (rough):**
+**HUD layout** *(provisional):*
 - Bottom center or bottom left: Dice Selector + Roll Button
 - Right side: Chat log (collapsible)
 - Top right or floating panel: Initiative tracker (visible during combat)

@@ -54,7 +54,16 @@
 
 ## 2026-05-05
 
-**Design:** Notes save/sync architecture settled. Private notes (Word doc model): creator-only, saved locally in `USessionNotesSave` (slot `"Notes_{PlayerID}_{SessionID}"`), no server involvement. Shared notes (Google Docs model): all editors are peers — creator has no special runtime authority; creator identity stored as `CreatorPlayerID` for a future "remove editor" feature only. Conflict resolution: `LastEdited` timestamp wins. In-session relay: `USessionNotesComponent` (planned, attached to `ASessionController`) maintains an in-memory cache of shared notes during a session; any editor pushes updates to the relay; relay multicasts to other online editors; cache lost when host drops but all online editors retain up-to-date local copies. Real-time sync deferred; RPC stubs (`Server_PushNote`, `Multicast_ReceiveNote`, `Server_RequestNoteSync`) built now. Default tab changes from one shared tab to one private tab per player on session join. `FNoteRecord` struct planned: `NoteID`, `DisplayName`, `Content (FRichTextDocument)`, `LastEdited`, `CreatorPlayerID`, `EditorPlayerIDs`. `NotesTabNames` and `NotesTabContent` will be removed from `USessionSave`. `UFunctionLibrary::GetNotesSaveSlotName(PlayerID, SessionID)` planned.
+**Design:**
+- Notes save/sync architecture settled: private notes (Word doc model) are creator-only, saved locally in `USessionNotesSave` (slot `"Notes_{PlayerID}_{SessionID}"`), no server involvement
+- Shared notes (Google Docs model): all editors are peers; creator identity stored in `CreatorPlayerID` for a future "remove editor" feature only — creator holds no special runtime authority
+- Conflict resolution: `LastEdited` timestamp wins
+- In-session relay: `USessionNotesComponent` (planned, attached to `ASessionController`) maintains an in-memory cache; any editor pushes updates to the relay; relay multicasts to other online editors; cache lost if host drops but all online editors retain up-to-date local copies
+- Real-time sync deferred; RPC stubs (`Server_PushNote`, `Multicast_ReceiveNote`, `Server_RequestNoteSync`) built as placeholders
+- Default tab changed from one shared tab to one private tab per player on session join
+- `FNoteRecord` struct planned: `NoteID`, `DisplayName`, `Content (FRichTextDocument)`, `LastEdited`, `CreatorPlayerID`, `EditorPlayerIDs`
+- `NotesTabNames` and `NotesTabContent` marked for removal from `USessionSave`
+- `UFunctionLibrary::GetNotesSaveSlotName(PlayerID, SessionID)` planned
 
 ---
 
