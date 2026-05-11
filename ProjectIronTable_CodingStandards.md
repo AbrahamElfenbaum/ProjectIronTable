@@ -329,9 +329,9 @@ if (ChatBoxRef)
 Every log message must include the class name and function name for traceability:
 
 ```cpp
-UE_LOG(LogTemp, Warning, TEXT("UGameplayHUDComponent::BeginPlay — DiceSpawnVolume not found in level"));
-UE_LOG(LogTemp, Error, TEXT("UCampaignManagerScreen::LoadCampaigns — Failed to load save game"));
-UE_LOG(LogTemp, Display, TEXT("UGameplayHUDComponent::BeginPlay — Panel layout loaded successfully"));
+UE_LOG(LogTemp, Warning, TEXT("USessionUIComponent::Init — DiceSpawnVolume not found in level"));
+UE_LOG(LogTemp, Error, TEXT("UCampaignManagerScreen::Init — Failed to load save game"));
+UE_LOG(LogTemp, Display, TEXT("USessionUIComponent::Init — Panel layout loaded successfully"));
 ```
 
 Format: `ClassName::FunctionName — description of what happened`

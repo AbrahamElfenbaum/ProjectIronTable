@@ -176,8 +176,6 @@ Combat maps and world maps are separate saved map files. A world map can have **
 
 **UI:** The GM controls time and weather from a dedicated Environment panel in the gameplay HUD — a draggable, resizable panel registered with the taskbar like all other panels. Visible to all players in the initial implementation; GM-only access will be added when the permission system is built.
 
-**Implementation:** Driven by `AEnvironmentManager` (replicated level actor), `EWeatherType` (enum), and `UEnvironmentControlPanel` (widget). `AEnvironmentManager` controls a `ADirectionalLight` (sun), `ASkyLight`, `AExponentialHeightFog`, `AWindDirectionalSourceComponent`, and `ANiagaraActor` instances per weather type placed in the level.
-
 ### Sound and Music
 
 Audio is GM-controlled during a session. All sound types are supported with no restrictions on content.
@@ -236,7 +234,7 @@ Real-time sync is planned but deferred. The component infrastructure (`USessionN
 Notes are stored in a per-player-per-session save file (`USessionNotesSave`, slot `"Notes_{PlayerID}_{SessionID}"`), separate from the server-owned `USessionSave`. Content is saved on every document change (crash safety) and on tab switch. Tab order is determined by the order of records in `SessionNoteRecords` — no separate ordering array is needed.
 
 **Formatting**
-Rich text: bold, italic, underline, strikethrough. Additional formatting (headers, bullet points) is planned. See Out of Scope for what is not planned.
+Rich text: bold, italic, underline, strikethrough, H1/H2/H3 headers, bullet lists, numbered lists. These are the full in-scope formatting options. See Out of Scope for what is not planned.
 
 **Multiple tabs**
 A player can have multiple notes tabs open at once.
@@ -593,13 +591,12 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 ### Still Open
 
 1. **Voice / video chat** — Undecided between three options: (a) built-in voice/video using a real-time comms SDK or UE plugin, (b) Discord integration (SDK or Rich Presence), (c) out of scope — players use a separate tool. All three are viable; scope and complexity differ significantly. To be decided before the UI/Polish phase at latest.
-2. ~~**Server model** — Leaning listen server; pending technical validation in UE5.~~ — **Resolved:** Listen server confirmed. See Resolved item 26.
-3. **Host disconnect policy** — Certain actions lock when no Host is present. Full policy TBD when session management is built.
-4. **GM/Host permission types** — Fine-grained per-player permissions are enforced in code. Specific permission list TBD when the system is built.
-5. **Host delegation permission types** — Delegation is supported. Specific delegatable actions TBD when built.
-6. **Scheduling extensiveness** — Minimum: meeting days/frequency/session length. Calendar integration, reminders, RSVP tracking possible. Scope TBD.
-7. **Campaign Manager layout** — Two candidates (collapsible grid vs. tab sidebar). TBD during UI design pass.
-8. **Notification style** — Badge count, flash, icon, or other. TBD during UI design pass.
+2. **Host disconnect policy** — Certain actions lock when no Host is present. Full policy TBD when session management is built.
+3. **GM/Host permission types** — Fine-grained per-player permissions are enforced in code. Specific permission list TBD when the system is built.
+4. **Host delegation permission types** — Delegation is supported. Specific delegatable actions TBD when built.
+5. **Scheduling extensiveness** — Minimum: meeting days/frequency/session length. Calendar integration, reminders, RSVP tracking possible. Scope TBD.
+6. **Campaign Manager layout** — Two candidates (collapsible grid vs. tab sidebar). TBD during UI design pass.
+7. **Notification style** — Badge count, flash, icon, or other. TBD during UI design pass.
 
 ### Resolved
 

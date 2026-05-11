@@ -181,7 +181,10 @@
 
 ## 2026-04-19
 
-**Implementation:** Base channel class hierarchy added to `Utility/`: `UBaseChannel`, `UBaseChannelTab`, `UBaseChannelListEntry`, `UBaseChannelPanel`. `UChatChannel` inherits `UBaseChannel`. `UChatTab` and `UChatChannelListEntry` reduced to empty typed subclasses. `USessionNotesTab` added as `UBaseChannelTab` subclass. Gotchas: `BindWidget` in base must be `protected`; delegate param types lock handler signatures; deleting a C++ class orphans Blueprints.
+**Implementation:**
+- Base channel hierarchy added to `Utility/`: `UBaseChannel`, `UBaseChannelTab`, `UBaseChannelListEntry`, `UBaseChannelPanel`
+- `UChatChannel` inherits `UBaseChannel`; `UChatTab` and `UChatChannelListEntry` reduced to empty typed subclasses; `USessionNotesTab` added as `UBaseChannelTab` subclass
+- Gotchas: `BindWidget` in base class must be `protected`; delegate param types lock handler signatures; deleting a C++ class orphans dependent Blueprints
 
 ---
 
@@ -189,7 +192,10 @@
 
 **Implementation (session 2):** `USessionChatComponent` completed — dice-to-chat handlers moved from `#if 0` blocks in `USessionUIComponent` into `USessionChatComponent`. `USessionUIComponent` gains `GetDiceTray()` and `GetPlayerList()` getters. `BeginPlay` stubs removed. **Private Methods** region added to class layout standard.
 
-**Implementation (session 1):** Component rename/split: `USessionHUDComponent` → `USessionUIComponent` + `USessionChatComponent`. `UMainScreenHUDComponent` → `UMainScreenUIComponent`. `UGameTypeButton` → `UGameTypeTab`. `UDiceSelectorManager` → `UDiceTray`. `ASessionController` creates both components. Gotcha: widget `Init` must go in `BeginPlay`, not `OnPossess` — `OnPossess` is server-only.
+**Implementation (session 1):**
+- Component renames: `USessionHUDComponent` → `USessionUIComponent` + `USessionChatComponent`, `UMainScreenHUDComponent` → `UMainScreenUIComponent`, `UGameTypeButton` → `UGameTypeTab`, `UDiceSelectorManager` → `UDiceTray`
+- `ASessionController` updated to create both components
+- Gotcha: widget `Init` must go in `BeginPlay`, not `OnPossess` — `OnPossess` is server-only and remote clients never call it
 
 ---
 

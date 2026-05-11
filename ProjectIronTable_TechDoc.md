@@ -58,7 +58,7 @@ Content/
 │   ├── Session/                — IMC_Session, IA_CameraMove, IA_CameraPan, IA_CameraPanReset, IA_CameraSprint, IA_CameraZoom, IA_FocusChat
 │   └── Chat/                   — IMC_Chat, IA_ExitChat
 ├── UI/
-│   ├── Dice/                   — WE_DiceSelector, W_DiceSelectorManager, W_DiceTray
+│   ├── Dice/                   — WE_DiceSelector, W_DiceTray
 │   ├── Chat/                   — W_ChatBox, WE_ChatChannel, WE_ChatTab, WE_ChatEntry
 │   ├── PlayerList/             — W_PlayerList, WE_PlayerRow
 │   ├── CampaignManager/        — WE_GameTypeTab, WE_CampaignCard
@@ -188,7 +188,7 @@ Tabbed chat container. Inherits tab bar, channel switcher, closed channel list, 
 #### UChatChannel
 **Type:** `UBaseChannel` | **Blueprint:** `WE_ChatChanel`
 
-Represents one channel/tab's message list. Inherits `ScrollBox`, `DisplayName`, `Participants`, `ScrollMultiplier`, and `Scroll()` from `UBaseChannel`.
+Represents one channel/tab's message list. Inherits `ScrollBox`, `DisplayName`, and `Participants` from `UBaseChannel`.
 
 **Config (EditAnywhere, own):** `ChatEntryClass`
 
@@ -419,7 +419,8 @@ Per-session save file. One instance per game session. `UCampaignManagerSave` is 
 | `LastSaved`     | `FDateTime`                     | —          | Used to sort sessions when loading a campaign (most recent first)                                                                                                                                                                 |
 | `ChatLog`       | `TMap<FString, FChatLogRecord>` | —          | Keyed by sorted, pipe-joined participant names (e.g. `"Alice\|Bob"`). Empty string key = Server channel. `FChatLogRecord` wraps `TArray<FChatMessageRecord>`; each record holds `SenderName` and `Message` body.                  |
 | `ChatTabNames`  | `TMap<FString, FString>`        | —          | Keyed by sorted, pipe-joined participant names (same key format as `ChatLog`). Value is the user-assigned display name for that tab. Persisted on rename; restored by `USessionUIComponent::Init` after the chat log is restored. |
-`FChatMessageRecord` and `FChatLogRecord` are declared in `SessionSave.h`.
+
+> **Note:** `FChatMessageRecord` and `FChatLogRecord` are declared in `SessionSave.h`.
 
 ---
 
@@ -1204,7 +1205,7 @@ Leaf widget responsible for rendering document text and the cursor. Owned by `SR
 
 **OnPaint:** Checks cache at top — if width or text changed, updates both and calls `RebuildVisualLines`. Draws selection highlight via `DrawHighlight` if selection is active. Outer loop over runs sets typeface from bold/italic flags; inner loops split on `\n` then `\t`; each segment drawn via `DrawTextSegment`. Underline and strikethrough drawn via `DrawLine` (width trimmed with `TrimEnd()`). Cursor drawn last via `FSlateDrawElement::MakeLines`.
 
-> Note: `VisualLines` is now built on each invalidation, but the rendering loop has not yet been updated to consume it — it still uses the existing run-based approach.
+> **Note:** `VisualLines` is now built on each invalidation, but the rendering loop has not yet been updated to consume it — it still uses the existing run-based approach.
 
 **`RebuildVisualLines(const FSlateFontInfo& InFontInfo, float InScale, float InTabSpace) const`:** Walks `CachedText` char by char, tracking `CurrentLineStart`, `LineWidth`, and `LastSpaceIndex`, to populate `VisualLines`:
 - `\n` — closes line at `i`; next line starts at `i + 1`; resets width and last-space
