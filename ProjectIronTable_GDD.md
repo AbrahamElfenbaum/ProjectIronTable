@@ -312,7 +312,11 @@ Both players and the GM have an inventory. Items can be transferred between them
 
 In scope and universal across all game systems. Many of the same measurement tools appear in different TTRPGs, so these are part of the core layer rather than any specific game system plugin.
 
-Specific tools (ruler, AoE templates — cone, sphere, line, cube, etc.) and their exact behavior to be designed when this system is built.
+**Initial tool set (D&D 5e-based):** ruler, and AoE templates — cone, sphere, line, and cube. A grid-range highlighter (showing all tiles within a given distance) is also planned. The tool set will expand as other game systems are researched and added.
+
+**Placement modes:** All tools support two modes — grid-snap and free-float. Grid-snap locks placement to tile boundaries for clarity in tactical situations; free-float allows precise positioning for cases where exact corner or edge placement matters.
+
+**Z-axis measurement:** Elevation adds complexity to distance calculation (diagonal 3D distance vs. ignoring height). How measurement tools handle the Z axis is an open question — deferred until the elevation system and vision system are far enough along to inform the decision.
 
 ### Session Save and Load
 
@@ -447,11 +451,7 @@ The Campaign Manager is the primary hub between the home screen and an active se
 
 **Campaign sorting:** Campaigns with an active session (host present) are pinned to the top of the list, sorted by most recent among themselves. All other campaigns follow, sorted by most recently played. Deferred until session management is built.
 
-**Layout (TBD — two candidates):**
-- **Grid:** Columns represent game systems (D&D, Pathfinder, Warhammer, etc.); rows are campaigns within each system. Columns are collapsible.
-- **Tab list:** A sidebar (left or right) with one tab per game system, displayed 3 per row (count subject to change). Clicking a tab shows a scrollable list of campaigns for that system.
-
-Final layout to be decided during UI design pass.
+**Layout:** A left sidebar contains a scrollable list of all game systems the player is currently part of. Selecting a system populates the main area with a scrollable grid of campaign cards — 3 per row — showing only campaigns for that system.
 
 **Campaign creation:**
 - Any player can create a campaign at any time and invite whoever they want
@@ -484,11 +484,9 @@ Other game systems will define their own card contents appropriate to their rule
 
 ## Scheduling
 
-Sessions can have a schedule attached to them. Scheduling is in scope; the full feature set is TBD.
+A campaign can record when it meets — days of the week, frequency, and typical session length. This data surfaces on the campaign card in the Campaign Manager and is used as a filter in the public campaign browser, so players browsing public games can see whether a campaign's schedule fits their availability before applying.
 
-At minimum, a campaign can record when it meets (days of the week, frequency, typical session length). This data surfaces on the campaign card in the Campaign Manager and is used as a filter in the public campaign browser.
-
-A more extensive scheduling system (calendar integration, session reminders, RSVP/attendance tracking) may be added — scope to be determined.
+That is the full scope of scheduling for the current arc. Calendar integration, session reminders, and RSVP/attendance tracking are not planned — the problem they solve is not well-defined yet and the minimum serves the core use case.
 
 ---
 
@@ -634,9 +632,7 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 2. **Host disconnect policy** — Certain actions lock when no Host is present. Full policy TBD when session management is built.
 3. **GM/Host permission types** — Fine-grained per-player permissions are enforced in code. Specific permission list TBD when the system is built.
 4. **Host delegation permission types** — Delegation is supported. Specific delegatable actions TBD when built.
-5. **Scheduling extensiveness** — Minimum: meeting days/frequency/session length. Calendar integration, reminders, RSVP tracking possible. Scope TBD.
-6. **Campaign Manager layout** — Two candidates (collapsible grid vs. tab sidebar). TBD during UI design pass.
-7. **Notification style** — Badge count, flash, icon, or other. TBD during UI design pass.
+5. **Notification style** — Badge count, flash, icon, or other. TBD during UI design pass.
 
 ### Resolved
 
@@ -668,10 +664,12 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 26. ~~Listen server or dedicated server?~~ — **Resolved:** Listen server. Server Owner hosts from their own machine. Code is structured for a seamless future switch to dedicated: authoritative state server-side, Server Owner role checked via flag not `IsLocalController()`.
 27. ~~Can there be multiple GMs in one session?~~ — **Resolved:** Yes. Multiple players can hold the GM role simultaneously. GM role is transferable between players at any time. Default GM = campaign creator.
 28. ~~How is session save data organized on disk?~~ — **Resolved:** Sessions stored as `"Session_{SessionID}"` save slots via Unreal's native save system. `UCampaignManagerSave` is the authoritative campaign→session index. No custom file paths or directories.
+29. ~~Campaign Manager layout — Two candidates (collapsible grid vs. tab sidebar). TBD during UI design pass.~~ — **Resolved:** Left sidebar lists game systems the player is part of; main area shows a 3-per-row scrollable grid of campaigns for the selected system.
+30. ~~Scheduling extensiveness — Minimum: meeting days/frequency/session length. Calendar integration, reminders, RSVP tracking possible. Scope TBD.~~ — **Resolved:** Minimum only. Meeting days, frequency, and session length recorded for display on the campaign card and as a public browser filter. No calendar integration, reminders, or RSVP planned.
 
 ---
 
-*Last updated: 2026-05-10* — No new design decisions; implementation session only (word wrap layout cache).
+*Last updated: 2026-05-11* — Filled in three TBD sections: Measurement Tools (D&D 5e tool set, grid-snap vs. free-float modes, Z-axis open question), Scheduling (minimum scope only — browser filter use case), Campaign Manager layout (left sidebar + 3-per-row campaign grid). Both Scheduling and Campaign Manager layout moved to Resolved.
 
 ---
 

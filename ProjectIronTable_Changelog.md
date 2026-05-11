@@ -4,6 +4,16 @@
 
 ---
 
+## 2026-05-11
+
+**Design:**
+- Measurement Tools section filled in: tool set is D&D 5e-based for now (ruler, cone, sphere, line, cube AoE templates, grid-range highlighter candidate); two placement modes (grid-snap and free-float); Z-axis measurement deferred as open question
+- Scheduling scope finalized: minimum only — meeting days, frequency, and session length as a public browser filter; no calendar integration, reminders, or RSVP planned
+- Campaign Manager layout decided: left sidebar lists game systems the player is part of; main area shows a 3-per-row scrollable grid of campaigns for the selected system
+- Open questions #5 (Scheduling) and #6 (Campaign Manager layout) moved to Resolved
+
+---
+
 ## 2026-05-10
 
 **Implementation:**
