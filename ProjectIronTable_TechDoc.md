@@ -108,7 +108,10 @@ Defines the spawn area for dice. `USessionUIComponent` finds it at runtime via `
 **Components:** `SpawnArea` (`UBoxComponent`, root — visible/resizable in viewport)
 
 **Key Methods:**
-- `GetSpawnBox()` — returns world-space `FBox`
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `GetSpawnBox()` | — | Returns world-space `FBox` |
 
 ---
 
@@ -130,10 +133,14 @@ Parent class for all dice. Handles physics, sleep detection, roll result reading
 | `ImpulseVolumeScale`                   | float      | 1000    | Divides impulse magnitude to get volume |
 
 **Key Behavior:**
-- `BeginPlay` — calls `SetNotifyRigidBodyCollision(true)` and binds `OnComponentHit` on both meshes
-- On hit — throttles by `LastHitTime`, picks sound by other actor type, scales volume by impulse
-- On sleep — calls `SetSimulatePhysics(false)` on settled mesh
-- `bWasKept` (`bool`, default `true`) — set `false` on losing die during advantage/disadvantage rolls
+
+| Event | Parameters | Description |
+|-------|------------|-------------|
+| `BeginPlay` | — | Calls `SetNotifyRigidBodyCollision(true)` and binds `OnComponentHit` on both meshes |
+| On hit | — | Throttles by `LastHitTime`, picks sound by other actor type, scales volume by impulse |
+| On sleep | — | Calls `SetSimulatePhysics(false)` on settled mesh |
+
+**State:** `bWasKept` (`bool`, default `true`) — set `false` on the losing die during advantage/disadvantage rolls.
 
 **Delegates:**
 - `OnFailsafeDestroy` (`EDiceType`) — broadcast if mesh hasn't settled within `FailSafeTime`
@@ -168,16 +175,20 @@ Tabbed chat container. Inherits tab bar, channel switcher, closed channel list, 
 *(`ChannelClass`, `TabClass`, `ChannelListEntryClass`, `ContextMenuClass` are inherited from `UBaseChannelPanel`.)*
 
 **Key Methods (own or override):**
-- `CreateChannel(TArray<FString> Participants)` *(override)* — calls `Super::CreateChannel`, casts to `UChatChannel`, sets `ChatEntryClass`, saves participant key → display name to `USessionSave::ChatTabNames`
-- `AddChatMessage(Message, Participants, bIsSender)` — routes to correct channel via `FindOrCreateChannel`; auto-reopens closed channels on incoming message; shows notification if not active; switches to channel if sender
-- `FocusChat()` / `ExitChat()` — manage input mode. `ExitChat` does **not** clear the input field.
-- `AppendToInput(FString)` — appends text to current input value
-- `TrySendPrivateRollMessage()` — if `@Name` tokens in input, sends them as a message and clears input; noop otherwise
-- `SetChatComponent(USessionChatComponent*)` — stores the chat component reference used for server RPCs
-- `CreateTabLabel(TArray<FString> Participants)` *(override, private)* — "Server" / "@Name" / "@Name +N" format
-- `OnChannelRenamed(Tab, NewName, ParticipantsKey)` *(override, private)* — persists new name to `USessionSave::ChatTabNames`
-- `OnChannelSwitched(UBaseChannel*)` *(override, private)* — clears `EditableText` on channel switch
-- `ParseMentions(Message, OutRecipients, OutBody)` *(private)* — splits a message string on spaces; words prefixed with `@` are stripped into `OutRecipients`; the rest join into `OutBody`. Called by both `OnTextCommitted` and `TrySendPrivateRollMessage`.
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `CreateChannel` *(override)* | `TArray<FString> Participants` | Calls `Super::CreateChannel`, casts to `UChatChannel`, sets `ChatEntryClass`, saves participant key → display name to `USessionSave::ChatTabNames` |
+| `AddChatMessage` | `Message, Participants, bIsSender` | Routes to correct channel via `FindOrCreateChannel`; auto-reopens closed channels on incoming message; shows notification if not active; switches to channel if sender |
+| `FocusChat()` | — | Activates chat input mode |
+| `ExitChat()` | — | Deactivates chat input mode. Does **not** clear the input field |
+| `AppendToInput` | `FString` | Appends text to the current input value |
+| `TrySendPrivateRollMessage()` | — | If `@Name` tokens are in the input, sends them as a message and clears input; noop otherwise |
+| `SetChatComponent` | `USessionChatComponent*` | Stores the chat component reference used for server RPCs |
+| `CreateTabLabel` *(override, private)* | `TArray<FString> Participants` | Returns "Server" / "@Name" / "@Name +N" format label |
+| `OnChannelRenamed` *(override, private)* | `Tab, NewName, ParticipantsKey` | Persists new name to `USessionSave::ChatTabNames` |
+| `OnChannelSwitched` *(override, private)* | `UBaseChannel*` | Clears `EditableText` on channel switch |
+| `ParseMentions` *(private)* | `Message, OutRecipients, OutBody` | Splits message on spaces; `@`-prefixed words go into `OutRecipients`; the rest join into `OutBody`. Called by `OnTextCommitted` and `TrySendPrivateRollMessage` |
 
 > **Note:** `ExitChat` must not clear the input — players type `@Names` before clicking Roll.
 >
@@ -193,8 +204,11 @@ Represents one channel/tab's message list. Inherits `ScrollBox`, `DisplayName`, 
 **Config (EditAnywhere, own):** `ChatEntryClass`
 
 **Key Methods:**
-- `AddChatMessage(FString)` — creates and appends a `UChatEntry`; logs warning if `ChatEntryClass` is null
-- `RestoreMessage(SenderName, Message)` — recreates a saved message entry directly in the scroll box, bypassing routing and notification logic. Used by `USessionUIComponent` to restore chat log on session load.
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `AddChatMessage` | `FString` | Creates and appends a `UChatEntry`; logs warning if `ChatEntryClass` is null |
+| `RestoreMessage` | `SenderName, Message` | Recreates a saved message entry directly in the scroll box, bypassing routing and notification logic. Used by `USessionUIComponent` to restore the chat log on session load |
 
 ---
 
@@ -228,7 +242,11 @@ Single row in the player list. Clicking the address button @-mentions that playe
 
 **Bound Widgets:** `NameLabel` (`UTextBlock`), `AddressButton` (`UButton`)
 
-**Key Methods:** `SetPlayerName(FString)`
+**Key Methods:**
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `SetPlayerName` | `FString` | Sets the player name label text |
 
 **Delegate:** `OnAddressClicked` (→`FString PlayerName`)
 
@@ -244,7 +262,10 @@ Collapsible scrollable list of connected players.
 **Config:** `PlayerRowClass` (`TSubclassOf<UPlayerRow>`)
 
 **Key Methods:**
-- `PopulateList()` — clears and rebuilds rows from `GameState->PlayerArray`
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `PopulateList()` | — | Clears and rebuilds rows from `GameState->PlayerArray` |
 
 **Delegate:** `OnAddressClicked` (bubbled up from each row)
 
@@ -285,11 +306,14 @@ Tab button representing a single game type in the Campaign Manager screen. Displ
 - `OnGameTypeSelected` (`FOnGameTypeSelected(const FString& GameType)`, BlueprintAssignable) — broadcast on click, passing the game type key
 
 **Key Methods:**
-- `SetLabel(const FString& Label)` — sets the button label text
-- `SetInteractable(bool bInteractable)` — enables or disables the button
-- `SetTabColors(const FLinearColor& InSelected, const FLinearColor& InUnselected)` — stores the two colors; must be called before `SetSelected`
-- `SetSelected(bool bSelected)` — applies `SelectedTabColor` or `UnselectedTabColor` to the button background
-- `GetLabel() const` → `FString` — returns the current label text
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `SetLabel` | `const FString& Label` | Sets the button label text |
+| `SetInteractable` | `bool bInteractable` | Enables or disables the button |
+| `SetTabColors` | `const FLinearColor& InSelected, const FLinearColor& InUnselected` | Stores the two tab colors; must be called before `SetSelected` |
+| `SetSelected` | `bool bSelected` | Applies `SelectedTabColor` or `UnselectedTabColor` to the button background |
+| `GetLabel() const → FString` | — | Returns the current label text |
 
 ---
 
@@ -306,7 +330,13 @@ Displays one campaign entry. Stores campaign ID and game type as private members
 - `OnCampaignSelected` (`FOnCampaignSelected(const FGuid& CampaignID, const FString& GameType)`, BlueprintAssignable)
 
 **Key Methods:**
-- `SetCampaignTitle(const FString&)`, `SetLastPlayedDate(const FString&)`, `SetNumberOfPlayers(int32)`, `SetCampaignData(const FGuid&, const FString&)`
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `SetCampaignTitle` | `const FString&` | Sets the title label |
+| `SetLastPlayedDate` | `const FString&` | Sets the last played date label |
+| `SetNumberOfPlayers` | `int32` | Sets the player count label |
+| `SetCampaignData` | `const FGuid&, const FString&` | Stores `CampaignID` and `GameType` for use in `OnCampaignSelected` |
 
 ---
 
@@ -323,16 +353,28 @@ Root widget for the Campaign Manager. Inherits back-navigation from `UBaseScreen
 
 **Bound Widgets:** `NewCampaignButton` (`UButton`), `GameTypeTabBar` (`UScrollBox`), `CampaignGrid` (`UWrapBox`), `CampaignScroll` (`UScrollBox`) *(BackButton inherited from UBaseScreen)*
 
-**Private State:** `SelectedGameType` (`FString`), `CampaignData` (`TObjectPtr<UCampaignManagerSave>`, `UPROPERTY()`), `ActiveButtons` (`TArray<UGameTypeTab*>`, `UPROPERTY()`) — only buttons with at least one campaign
+**Private State:**
+
+| Field              | Type                             | Notes                                     |
+|--------------------|----------------------------------|-------------------------------------------|
+| `SelectedGameType` | `FString`                        | Currently selected game type key          |
+| `CampaignData`     | `TObjectPtr<UCampaignManagerSave>` (`UPROPERTY()`) | Loaded or fake save data  |
+| `ActiveButtons`    | `TArray<UGameTypeTab*>` (`UPROPERTY()`) | Only tabs with at least one campaign |
 
 **Key Methods:**
-- `virtual void Init() override` — branches on `bUseFakeData`; either creates a temporary `UCampaignManagerSave` via `NewObject` and populates it with `BuildFakeData()`, or loads from the `"CampaignManager"` save slot. Creates one `UGameTypeTab` per game type, tracks tabs with campaigns in `ActiveButtons`, populates the grid with the first available type, calls `SetSelectedGameButton()` after the loop.
-- `SetSelectedGameButton()` — iterates `ActiveButtons` and calls `SetSelected` based on `SelectedGameType`
-- `BuildFakeData() const` — returns a `TMap<FString, FCampaignList>` with DnD5e (20), Pathfinder2e (4), CallOfCthulhu (2), Starfinder (2), VtM (1), Shadowrun/WFRP/CyberpunkRED/Mothership (0 each)
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `Init()` *(override)* | — | Branches on `bUseFakeData`; creates a temporary `UCampaignManagerSave` via `NewObject` + `BuildFakeData()`, or loads from the `"CampaignManager"` slot. Builds one `UGameTypeTab` per game type, tracks tabs with campaigns in `ActiveButtons`, populates grid with first available type, calls `SetSelectedGameButton()` |
+| `SetSelectedGameButton()` | — | Iterates `ActiveButtons` and calls `SetSelected` based on `SelectedGameType` |
+| `BuildFakeData() const` | — | Returns a `TMap<FString, FCampaignList>` with DnD5e (20), Pathfinder2e (4), CallOfCthulhu (2), Starfinder (2), VtM (1), Shadowrun/WFRP/CyberpunkRED/Mothership (0 each) |
 
 **Handlers:**
-- `OnGameTypeSelected(const FString&)` — updates `SelectedGameType`, refreshes grid, calls `SetSelectedGameButton`
-- `OnCampaignSelected(const FGuid&, const FString&)` — gets `PlayerID` from `USessionInstance`, builds travel URL (`"MapName?PlayerID=<guid>"`), gets owning player controller via `GET_OWNING_PC`, casts to `ASessionController`, calls `Server_TravelToSession(TravelURL)`. "MapName" is a placeholder until the session level path is finalized.
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `OnGameTypeSelected` | `const FString&` | Updates `SelectedGameType`, refreshes grid, calls `SetSelectedGameButton` |
+| `OnCampaignSelected` | `const FGuid&, const FString&` | Gets `PlayerID` from `USessionInstance`, builds travel URL (`"MapName?PlayerID=<guid>"`), casts owning PC to `ASessionController`, calls `Server_TravelToSession`. "MapName" is a placeholder until the session level path is finalized |
 
 > **Note:** The campaign grid (`UWrapBox`) must be inside a `UScrollBox` to support vertical scrolling when cards overflow.
 >
@@ -445,11 +487,16 @@ See `FNoteRecord` in the `SessionNotes/` section below.
 
 Single notes tab entry stored in `USessionNotesSave`.
 
-**Fields:** `NoteID (FGuid)`, `DisplayName (FString)`, `Content (FRichTextDocument)`, `LastEdited (FDateTime)`, `CreatorPlayerID (FGuid)`, `EditorPlayerIDs (TArray<FGuid>)`.
+**Fields:**
 
-- `EditorPlayerIDs` empty → private note (creator-only access, no sync).
-- `EditorPlayerIDs` non-empty → shared note. All editors are equal peers — creator has no special runtime authority (creator identity stored for a future "remove editor" feature only).
-- Conflict resolution: `LastEdited` timestamp wins — most recently modified copy takes precedence when syncing shared notes.
+| Field             | Type                 | Notes                                                                                      |
+|-------------------|----------------------|--------------------------------------------------------------------------------------------|
+| `NoteID`          | `FGuid`              | Unique note identity; used as save key                                                     |
+| `DisplayName`     | `FString`            | Tab label                                                                                  |
+| `Content`         | `FRichTextDocument`  | Full document content                                                                      |
+| `LastEdited`      | `FDateTime`          | Conflict resolution — most recently modified copy wins when syncing                        |
+| `CreatorPlayerID` | `FGuid`              | Stored for future "remove editor" feature; no special runtime authority                    |
+| `EditorPlayerIDs` | `TArray<FGuid>`      | Empty = private note (creator only, no sync). Non-empty = shared note; all editors are peers |
 
 ---
 
@@ -467,7 +514,13 @@ Persistent game instance that survives level transitions. Carries session contex
 | `SessionID`  | `FGuid` | Used to build the save slot name: `"Session_{SessionID}"`                                                      |
 | `PlayerID`   | `FGuid` | Persistent player identity loaded from `UPlayerSave` on startup. Appended to travel URL as `?PlayerID=<guid>`. |
 
-**Public API:** `GetCampaignID`, `SetCampaignID`, `GetSessionID`, `SetSessionID`, `GetPlayerID`, `SetPlayerID`
+**Public API:**
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `GetCampaignID() / SetCampaignID` | `— / FGuid` | Campaign identity getter/setter |
+| `GetSessionID() / SetSessionID` | `— / FGuid` | Session identity getter/setter |
+| `GetPlayerID() / SetPlayerID` | `— / FGuid` | Player identity getter/setter |
 
 ---
 
@@ -507,7 +560,13 @@ Per-player runtime state replicated to all clients. Holds role flags derived fro
 | `bIsGM`           | `bool`  | Yes        | Derived from `ASessionGameState::GMPlayerIDs`                                      |
 | `bIsHost`         | `bool`  | Yes        | Derived from `ASessionGameState::HostPlayerID`                                     |
 
-**Public API:** `GetSessionPlayerID`, `SetSessionPlayerID`, `GetIsGM`, `SetIsGM`, `GetIsHost`, `SetIsHost`
+**Public API:**
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `GetSessionPlayerID() / SetSessionPlayerID` | `— / FGuid` | Persistent player identity getter/setter |
+| `GetIsGM() / SetIsGM` | `— / bool` | GM role flag getter/setter |
+| `GetIsHost() / SetIsHost` | `— / bool` | Host role flag getter/setter |
 
 > Do **not** name the field `PlayerID` — shadows `APlayerState::PlayerID` (`int32`), causing a compiler error. Use `SessionPlayerID`.
 
@@ -522,11 +581,13 @@ Per-player runtime state replicated to all clients. Holds role flags derived fro
 
 Server authority hub for gameplay sessions. Manages session init, player login/logout, and role assignment.
 
-**`InitGame`:** Reads `SessionID` from `USessionInstance`, loads the matching `USessionSave` slot (`"Session_{SessionID}"`), and pushes all fields into `ASessionGameState`. Early returns with warnings on null instance, missing save, or null GameState.
+**Key Methods:**
 
-**`PostLogin`:** Parses `PlayerID` from `OptionsString` via `UGameplayStatics::ParseOption`, calls `FGuid::Parse` to convert to `FGuid`, sets it on `ASessionPlayerState` via `SetSessionPlayerID`. Then sets `bIsHost` and `bIsGM` by comparing against `ASessionGameState` data. Adds the player to `GMPlayerIDs` or `PlayerIDs` in GameState using `AddUnique`. Warns and returns early if options string is empty or GUID parse fails.
-
-**`Logout`:** Casts `AController*` to `APlayerController*`, gets their `SessionPlayerState`, removes their `SessionPlayerID` from `GMPlayerIDs` or `PlayerIDs` based on `bIsGM`.
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `InitGame` | — | Reads `SessionID` from `USessionInstance`, loads `USessionSave` slot, pushes all fields into `ASessionGameState`. Early returns with warnings on null instance, missing save, or null GameState |
+| `PostLogin` | `APlayerController*` | Parses `PlayerID` from `OptionsString`, converts to `FGuid`, sets on `ASessionPlayerState`. Sets `bIsHost` and `bIsGM` from `ASessionGameState`. Adds player to `GMPlayerIDs` or `PlayerIDs` via `AddUnique`. Warns and returns early on parse failure |
+| `Logout` | `AController*` | Casts to `APlayerController*`, gets `SessionPlayerState`, removes `SessionPlayerID` from `GMPlayerIDs` or `PlayerIDs` based on `bIsGM` |
 
 > Uses `AGameModeBase`, not `AGameMode` — avoids match state logic not needed for TTRPG sessions.
 
@@ -552,14 +613,20 @@ Handles screen-level navigation only. Creates the root `S_MainScreen` widget, ge
 - `SettingsScreen` (`USettingsScreen`) — index 4
 
 **Private Helpers:**
-- `SwitchScreen(int32 ScreenIndex)` — sets `ScreenSwitcherRef->SetActiveWidgetIndex(ScreenIndex)`; all navigation handlers delegate to this
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `SwitchScreen` | `int32 ScreenIndex` | Calls `ScreenSwitcherRef->SetActiveWidgetIndex(ScreenIndex)`; all navigation handlers delegate to this |
 
 **Handlers:**
-- `OnCampaignManagerClicked` → `SwitchScreen(1)` — bound to `UHomeScreen::OnCampaignManagerRequested`
-- `OnCampaignBrowserClicked` → `SwitchScreen(2)` — bound to `UHomeScreen::OnCampaignBrowserRequested`
-- `OnAssetLibraryClicked` → `SwitchScreen(3)` — bound to `UHomeScreen::OnAssetLibraryRequested`
-- `OnSettingsClicked` → `SwitchScreen(4)` — bound to `UHomeScreen::OnSettingsRequested`
-- `OnBackClicked` → `SwitchScreen(0)` — bound to `OnBackRequested` on all four non-home screens
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `OnCampaignManagerClicked` | — | Calls `SwitchScreen(1)`; bound to `UHomeScreen::OnCampaignManagerRequested` |
+| `OnCampaignBrowserClicked` | — | Calls `SwitchScreen(2)`; bound to `UHomeScreen::OnCampaignBrowserRequested` |
+| `OnAssetLibraryClicked` | — | Calls `SwitchScreen(3)`; bound to `UHomeScreen::OnAssetLibraryRequested` |
+| `OnSettingsClicked` | — | Calls `SwitchScreen(4)`; bound to `UHomeScreen::OnSettingsRequested` |
+| `OnBackClicked` | — | Calls `SwitchScreen(0)`; bound to `OnBackRequested` on all four non-home screens |
 
 > Does **not** own any button refs, slider refs, or save/load logic — all of that lives in the individual screen classes.
 
@@ -577,13 +644,16 @@ Manages the session HUD lifecycle: widget creation, panel registration, layout s
 **Widget names it searches for (must match):** `DiceTray`, `ChatBox`, `PlayerList`, `SessionNotesPanel`, `Taskbar`, `DicePanel`, `ChatPanel`, `PlayersPanel`, `SessionNotesPanelDraggable`
 
 **Key Methods:**
-- `Init()` — called by `ASessionController::BeginPlay`; creates and adds the session screen widget, caches all widget refs, registers panels with the taskbar, loads panel layout, and binds delegates. Only runs logic for the local player controller.
-- `GetChatBox() const` → `UChatBox*` — returns the cached chat box reference; called by `USessionChatComponent::Init`
-- `GetDiceTray() const` → `UDiceTray*` — returns the cached dice tray reference; called by `USessionChatComponent::Init`
-- `GetPlayerList() const` → `UPlayerList*` — returns the cached player list reference; called by `USessionChatComponent::Init`
-- `FindAndRegisterPanel(WidgetName, Label)` — finds `UDraggablePanel`, registers with taskbar, assigns ID, binds layout save delegates. Populated into `Panels` array during `Init`.
-- `SavePanelLayout()` — iterates `Panels` array and writes each panel's layout to `"PanelLayout"` save slot
-- `LoadPanelLayout()` — loads and applies saved panel layout to each panel in `Panels` array on startup
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `Init()` | — | Called by `ASessionController::BeginPlay`; creates and adds the session screen widget, caches all widget refs, registers panels with the taskbar, loads panel layout, and binds delegates. Local player controller only |
+| `GetChatBox() const → UChatBox*` | — | Returns the cached chat box reference; called by `USessionChatComponent::Init` |
+| `GetDiceTray() const → UDiceTray*` | — | Returns the cached dice tray reference; called by `USessionChatComponent::Init` |
+| `GetPlayerList() const → UPlayerList*` | — | Returns the cached player list reference; called by `USessionChatComponent::Init` |
+| `FindAndRegisterPanel` | `WidgetName, Label` | Finds `UDraggablePanel`, registers with taskbar, assigns ID, binds layout save delegates. Populated into `Panels` during `Init` |
+| `SavePanelLayout()` | — | Iterates `Panels` array and writes each panel's layout to the `"PanelLayout"` save slot |
+| `LoadPanelLayout()` | — | Loads and applies saved panel layout to each panel in `Panels` on startup |
 
 > **Note:** Always place the Blueprint variant (`W_Taskbar`, etc.) in the screen widget — placing the raw C++ class causes null `BindWidget` crashes on first access.
 
@@ -596,20 +666,35 @@ Manages the session HUD lifecycle: widget creation, panel registration, layout s
 Owns all chat networking, dice-to-chat routing, and chat passthrough methods. Gets widget references from `USessionUIComponent` via the owning `ASessionController`.
 
 **Key Methods:**
-- `Init()` — called by `ASessionController::BeginPlay` (after `UIComponent->Init()`); gets `ChatBoxRef`, `DiceTrayRef`, and `PlayerListRef` from `UIComponent` getters; wires `ChatBoxRef->SetChatComponent(this)`; binds dice and player list delegates. Local controller only.
-- `FocusChat()` / `ExitChat()` — delegate to `ChatBoxRef`
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `Init()` | — | Called by `ASessionController::BeginPlay` after `UIComponent->Init()`; gets widget refs from `UIComponent` getters, wires `SetChatComponent(this)`, binds dice and player list delegates. Local controller only |
+| `FocusChat()` | — | Delegates to `ChatBoxRef->FocusChat()` |
+| `ExitChat()` | — | Delegates to `ChatBoxRef->ExitChat()` |
 
 **RPCs:**
-- `SendChatMessageOnServer` (Server, Reliable) — resolves sender name, builds participant list, routes to each player's chat component via `AddChatMessageOnOwningClient`. After routing, persists the message to `USessionSave`: parses sender/body from the formatted message string, builds a sorted pipe-joined participant key, and saves the record via `FindOrAdd` on `ChatLog`.
-- `AddChatMessageOnOwningClient` (Client, Reliable) — delivers message to `ChatBoxRef`
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `SendChatMessageOnServer` *(Server, Reliable)* | — | Resolves sender name, builds participant list, routes to each player's client via `AddChatMessageOnOwningClient`. Persists message to `USessionSave::ChatLog` via `FindOrAdd` |
+| `AddChatMessageOnOwningClient` *(Client, Reliable)* | — | Delivers message to `ChatBoxRef` |
 
 **Event Handlers:**
-- `AddRollResultToChat(TArray<FRollResult>, EDiceRollMode)` — bound to `UDiceTray::OnAllDiceRolled`; formats result string and calls `SendChatMessageOnServer`
-- `OnDiceFailsafeHandler(EDiceType)` — bound to `UDiceTray::OnDiceFailsafeDestroyed`; broadcasts a "lost to the void" message
-- `OnRollInitiated()` — bound to `UDiceTray::OnRollInitiated`; calls `ChatBoxRef->TrySendPrivateRollMessage()` before dice spawn
-- `OnPlayerAddressClicked(FString)` — bound to `UPlayerList::OnAddressClicked`; appends `@Name` to chat input
 
-**Chat log restore:** Handled in `USessionUIComponent::Init` after `ChatBoxRef` is initialized. Loads `USessionSave`, iterates `ChatLog`, splits each key on `|` to recover the participant list, calls `FindOrCreateChannel`, then calls `RestoreMessage` per record.
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `AddRollResultToChat` | `TArray<FRollResult>, EDiceRollMode` | Bound to `UDiceTray::OnAllDiceRolled`; formats result string and calls `SendChatMessageOnServer` |
+| `OnDiceFailsafeHandler` | `EDiceType` | Bound to `UDiceTray::OnDiceFailsafeDestroyed`; broadcasts a "lost to the void" message |
+| `OnRollInitiated()` | — | Bound to `UDiceTray::OnRollInitiated`; calls `ChatBoxRef->TrySendPrivateRollMessage()` before dice spawn |
+| `OnPlayerAddressClicked` | `FString` | Bound to `UPlayerList::OnAddressClicked`; appends `@Name` to chat input |
+
+**Chat Log Restore:** Handled in `USessionUIComponent::Init` after `ChatBoxRef` is initialized.
+- Loads `USessionSave`
+- Iterates `ChatLog` entries
+- Splits each key on `|` to recover the participant list
+- Calls `FindOrCreateChannel` for each participant list
+- Calls `RestoreMessage` for each record in that channel's log
 
 ---
 
@@ -623,12 +708,18 @@ Relays shared notes between players during a session. Holds an in-memory cache o
 - `SharedNoteCache` (`TMap<FGuid, FNoteRecord>`) — in-memory relay cache keyed by `NoteID`. No `UPROPERTY` — not GC-tracked, not replicated, relay only.
 
 **Key Methods:**
-- `Init()` — caches the owning player controller reference.
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `Init()` | — | Caches the owning player controller reference |
 
 **RPCs:**
-- `Server_PushNote(FNoteRecord)` (Server, Reliable) — receives an updated note from a client and stores it in `SharedNoteCache`. Stub — logs "not yet implemented."
-- `Multicast_ReceiveNote(FNoteRecord)` (NetMulticast, Reliable) — broadcasts a note update from the server to all clients. Stub — logs "not yet implemented."
-- `Server_RequestNoteSync()` (Server, Reliable) — called by a reconnecting client to request the current shared note state. Stub — logs "not yet implemented."
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `Server_PushNote` *(Server, Reliable)* | `FNoteRecord` | Receives an updated note from a client; stores in `SharedNoteCache`. Stub — logs "not yet implemented" |
+| `Multicast_ReceiveNote` *(NetMulticast, Reliable)* | `FNoteRecord` | Broadcasts a note update from the server to all clients. Stub — logs "not yet implemented" |
+| `Server_RequestNoteSync()` *(Server, Reliable)* | — | Called by a reconnecting client to request the current shared note state. Stub — logs "not yet implemented" |
 
 ---
 
@@ -642,13 +733,19 @@ Self-contained camera settings panel. Owns all 9 `USettingsSlider` refs, the App
 **Bound Widgets:** `MinCamSpeed`, `MaxCamSpeed`, `CamSpeedMultiplier`, `MinPitch`, `MaxPitch`, `PanMultiplier`, `MinZoom`, `MaxZoom`, `ZoomSpeed` (`USettingsSlider`), `ApplyButton`, `ResetButton` (`UButton`)
 
 **Key Methods:**
-- `Init()` — populates the `SettingsSliders` TArray, binds Apply/Reset button delegates, loads `"CameraSettings"` save slot (or applies defaults on first launch)
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `Init()` | — | Populates `SettingsSliders` TArray, binds Apply/Reset button delegates, loads `"CameraSettings"` save slot (or applies defaults on first launch) |
 
 **Runtime:** `SettingsSliders` (`TArray<USettingsSlider*>`, `UPROPERTY()`) — all 9 refs in order for batch reset.
 
 **Handlers:**
-- `OnApplyClicked` — creates `UCameraSettingsSave`, reads all 9 slider values, calls `SaveGameToSlot("CameraSettings", 0)`
-- `OnResetClicked` — calls `ResetToDefault()` on all sliders, then `OnApplyClicked`
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `OnApplyClicked` | — | Creates `UCameraSettingsSave`, reads all 9 slider values, calls `SaveGameToSlot("CameraSettings", 0)` |
+| `OnResetClicked` | — | Calls `ResetToDefault()` on all sliders, then `OnApplyClicked` |
 
 ---
 
@@ -682,10 +779,14 @@ Makes any content widget draggable and resizable at runtime. **Must be inside a 
 **Config (EditAnywhere):** `TitleBarHeight`, `MinSize` (`FVector2D`), `PanelTitle` (`FText`), `DefaultPosition` (`FVector2D`), `DefaultSize` (`FVector2D`)
 
 **Key Methods:**
-- `SetPanelID(FString)` / `GetPanelID()` — ID used as save key
-- `GetPanelLayoutData()` — returns current position, size, visibility as `FPanelLayoutData`
-- `ApplyPanelLayoutData(const FPanelLayoutData&)` — restores position, size, visibility
-- `ResetToDefaultLayout()` — sets position and size to `DefaultPosition`/`DefaultSize`, broadcasts `OnPanelStateChanged` to trigger save
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `SetPanelID` | `FString` | Sets the ID used as save key |
+| `GetPanelID()` | — | Returns the panel ID |
+| `GetPanelLayoutData()` | — | Returns current position, size, and visibility as `FPanelLayoutData` |
+| `ApplyPanelLayoutData` | `const FPanelLayoutData&` | Restores position, size, and visibility |
+| `ResetToDefaultLayout()` | — | Sets position and size to `DefaultPosition`/`DefaultSize`; broadcasts `OnPanelStateChanged` to trigger save |
 
 **Delegate:** `OnPanelStateChanged` (zero-param) — broadcast on drag/resize/reset stop; triggers `SavePanelLayout`
 
@@ -716,7 +817,16 @@ Manages all dice selectors and initiates rolls. Renamed from `UDiceSelectorManag
 
 **Bound Widgets:** `D4`–`D100` (`UDiceSelector`), `NormalRollButton`, `AdvantageRollButton`, `DisadvantageRollButton`, `RollButton` (`UButton`)
 
-**Config:** `SpawnVolume` (set at runtime by `USessionUIComponent`), `Impulse` (default `3000,3000,0`), `ImpulseRange` (default `100`), `AngularImpulse` (default `500,500,500`), `AngularImpulseRange` (default `200`), `TimeBeforeDestroyingDice` (5s)
+**Config:**
+
+| Property                  | Default          | Notes                                      |
+|---------------------------|------------------|--------------------------------------------|
+| `SpawnVolume`             | —                | Set at runtime by `USessionUIComponent`    |
+| `Impulse`                 | `3000, 3000, 0`  | Linear impulse applied to each die         |
+| `ImpulseRange`            | `100`            | Random variance on linear impulse          |
+| `AngularImpulse`          | `500, 500, 500`  | Spin impulse applied to each die           |
+| `AngularImpulseRange`     | `200`            | Random variance on angular impulse         |
+| `TimeBeforeDestroyingDice`| `5s`             | Delay before settled dice are destroyed    |
 
 **Roll Modes:** Normal / Advantage / Disadvantage — mode buttons enabled only when exactly one selector has `DiceCount == 1`. Advantage/Disadvantage spawn 2 dice and keep only the higher/lower result; losing die gets `bWasKept = false`.
 
@@ -739,8 +849,11 @@ Taskbar at the bottom of the screen. Each button toggles a tracked `UUserWidget`
 **UTaskbar — Bound Widgets:** `ButtonContainer` (`UHorizontalBox`), `ResetButton` (`UButton`)
 
 **UTaskbar — Key Methods:**
-- `RegisterWidget(UUserWidget*, FString Label)` → `UTaskbarButton*` — creates button, adds to container, returns it for delegate binding
-- `ResetLayout()` — iterates `ButtonContainer` children, casts each to `UTaskbarButton`, casts `TrackedWidget` to `UDraggablePanel`, calls `ResetToDefaultLayout()` on each. Bound to `ResetButton` in `NativeConstruct`.
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `RegisterWidget → UTaskbarButton*` | `UUserWidget*, FString Label` | Creates a taskbar button, adds to container, returns it for delegate binding |
+| `ResetLayout()` | — | Iterates `ButtonContainer` children, casts each `TrackedWidget` to `UDraggablePanel`, calls `ResetToDefaultLayout()` on each. Bound to `ResetButton` in `NativeConstruct` |
 
 **UTaskbarButton — Delegate:** `OnToggled` (zero-param) — broadcast after each toggle
 
@@ -768,9 +881,12 @@ Labeled slider paired with an editable text field. Supports optional pairing wit
 | `bIsMin`                  | bool             | false   | If true, this slider is capped below the paired slider |
 
 **Key Methods:**
-- `GetValue()` — returns current slider value
-- `SetValue(float)` — sets slider + text directly, no pair clamping (used for load/reset)
-- `ResetToDefault()` — calls `SetValue(DefaultValue)`
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `GetValue()` | — | Returns the current slider value |
+| `SetValue` | `float` | Sets slider and text directly, no pair clamping. Used for load/reset |
+| `ResetToDefault()` | — | Calls `SetValue(DefaultValue)` |
 
 > **Note:** `OnSliderValueChanged` only calls `SetValue` when the clamped value differs — calling it unconditionally causes infinite recursion.
 
@@ -842,13 +958,19 @@ ChatComponent = CreateDefaultSubobject<USessionChatComponent>(TEXT("ChatComponen
 | `ZoomSpeed`                | 50      |
 
 **Settings Methods:**
-- `ValidateCameraSettings()` — clamps all 9 properties to valid ranges; called by `PostEditChangeProperty` and `ApplyCameraSettings`
-- `ApplyCameraSettings(const UCameraSettingsSave*)` — copies fields from save object, calls Validate
-- `SaveCameraSettings()` — writes all 9 fields to `"CameraSettings"` slot
-- `BeginPlay` — loads and applies `"CameraSettings"` if it exists
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `ValidateCameraSettings()` | — | Clamps all 9 properties to valid ranges; called by `PostEditChangeProperty` and `ApplyCameraSettings` |
+| `ApplyCameraSettings` | `const UCameraSettingsSave*` | Copies fields from save object, then calls `ValidateCameraSettings` |
+| `SaveCameraSettings()` | — | Writes all 9 fields to `"CameraSettings"` slot |
+| `BeginPlay` | — | Loads and applies `"CameraSettings"` if it exists |
 
 **Server RPCs:**
-- `Server_TravelToSession(const FString& TravelURL)` (Server, Reliable) — validates `GetWorld()` and calls `ServerTravel(TravelURL)`. Called by `UCampaignManagerScreen::OnCampaignSelected` to ensure `ServerTravel` always runs on the server regardless of which client initiates travel.
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `Server_TravelToSession` *(Server, Reliable)* | `const FString& TravelURL` | Validates `GetWorld()` and calls `ServerTravel(TravelURL)`. Ensures `ServerTravel` always runs on the server regardless of which client initiates travel |
 
 > **Note:** `bCanCameraMove` is a plain `bool` (no `UPROPERTY`) to avoid Blueprint CDO override.
 >
@@ -877,11 +999,16 @@ Base class for all channel tab widgets. Handles left-click, right-click, notific
 **Bound Widgets (protected):** `TabButton` (`UButton`), `TabLabel` (`UTextBlock`), `EditLabel` (`UEditableText`), `NotificationIndicator` (`UWidget`)
 
 **Key Methods:**
-- `SetChannel(UBaseChannel*)` / `GetChannel()` — stores the associated channel
-- `SetLabel(FString)` — sets `TabLabel` text
-- `SetInteractable(bool)` — enables/disables `TabButton`
-- `ShowNotification()` / `ClearNotification()` — toggles `NotificationIndicator` visibility
-- `EnterRenameMode()` — hides `TabLabel`, shows and focuses `EditLabel` pre-populated with current label. Enter commits; any other commit method cancels silently.
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `SetChannel` | `UBaseChannel*` | Stores the associated channel |
+| `GetChannel()` | — | Returns the associated channel |
+| `SetLabel` | `FString` | Sets `TabLabel` text |
+| `SetInteractable` | `bool` | Enables or disables `TabButton` |
+| `ShowNotification()` | — | Makes `NotificationIndicator` visible |
+| `ClearNotification()` | — | Hides `NotificationIndicator` |
+| `EnterRenameMode()` | — | Hides `TabLabel`, shows and focuses `EditLabel` pre-populated with the current label. Enter commits; any other commit method cancels silently |
 
 **Delegates:**
 - `OnTabClicked` (`FOnTabClicked`, `UBaseChannel*`) — broadcast on left-click
@@ -906,7 +1033,10 @@ Base class for closed-channel list entries. Stores the channel ref, sets the lab
 **Delegate:** `OnEntryClicked` (`FOnEntryClicked`, `UBaseChannel*`)
 
 **Key Methods:**
-- `SetChannel(UBaseChannel*)` — stores ref and sets `EntryLabel` from `Channel->DisplayName`
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `SetChannel` | `UBaseChannel*` | Stores ref and sets `EntryLabel` from `Channel->DisplayName` |
 
 ---
 
@@ -919,27 +1049,43 @@ Base class for all tabbed channel panel widgets (chat box, session notes panel, 
 
 **Bound Widgets (protected):** `TabBar` (`UHorizontalBox`), `ClosedChannelContainer` (`UVerticalBox`), `ChannelContainer` (`UWidgetSwitcher`), `ChannelListButton` (`UButton`)
 
-**State (protected):** `Channels` (`TArray<UBaseChannel*>`), `ChannelTabMap` (`TMap<UBaseChannel*, UBaseChannelTab*>`), `ActiveChannel`, `ClosedChannels` (`TSet<UBaseChannel*>`)
+**State (protected):**
+
+| Field             | Type                                    | Notes                                              |
+|-------------------|-----------------------------------------|----------------------------------------------------|
+| `Channels`        | `TArray<UBaseChannel*>`                 | All channels (open and closed)                     |
+| `ChannelTabMap`   | `TMap<UBaseChannel*, UBaseChannelTab*>` | Channel → tab lookup                               |
+| `ActiveChannel`   | `UBaseChannel*`                         | Currently visible channel                          |
+| `ClosedChannels`  | `TSet<UBaseChannel*>`                   | Channels whose tabs are collapsed and hidden       |
 
 **Key Methods (public):**
-- `CreateChannel(TArray<FString> Participants)` — creates channel + tab widgets, wires all delegates, calls `CreateTabLabel` and `SaveCreatedTab` virtual hooks, adds to `ChannelTabMap`. Returns the new channel. Subclasses call `Super::CreateChannel` then add their own setup (e.g. setting `ChatEntryClass`).
-- `GetActiveChannelParticipants()` — returns active channel's `Participants` or `{}`
-- `FindOrCreateChannel(TArray<FString> Participants)` — searches `Channels` by `MakeParticipantKey`, calls `CreateChannel` if no match. Chat-specific; notes will need GUID-based lookup.
-- `GetTabForChannel(UBaseChannel*)` — looks up in `ChannelTabMap`, returns tab or nullptr
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `CreateChannel` | `TArray<FString> Participants` | Creates channel + tab widgets, wires delegates, calls `CreateTabLabel` and `SaveCreatedTab` hooks, adds to `ChannelTabMap`. Returns the new channel. Subclasses call `Super::CreateChannel` then add their own setup |
+| `GetActiveChannelParticipants()` | — | Returns the active channel's `Participants`, or `{}` if none |
+| `FindOrCreateChannel` | `TArray<FString> Participants` | Searches `Channels` by `MakeParticipantKey`; calls `CreateChannel` if no match. Chat-specific — do not use for notes |
+| `GetTabForChannel` | `UBaseChannel*` | Looks up in `ChannelTabMap`; returns tab or nullptr |
 
 **Event Handlers (protected, UFUNCTION):**
-- `SwitchToChannel(UBaseChannel*)` — restores old tab interactability, sets new active, calls `OnChannelSwitched`
-- `OnChannelListButtonClicked()` — toggles `ClosedChannelContainer` visibility
-- `CloseChannel(UBaseChannel*)` — adds to `ClosedChannels`, collapses tab, falls back to `Channels[0]` if active
-- `ReopenChannel(UBaseChannel*)` — removes from `ClosedChannels`, restores tab, switches to it
-- `OnTabRightClickedHandler(UBaseChannel*)` — spawns `UContextMenu` at cursor with Rename + Close options; skips Server tab
-- `OnTabRenamedHandler(UBaseChannelTab*, FString)` — computes participant key, calls `OnChannelRenamed`
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `SwitchToChannel` | `UBaseChannel*` | Restores old tab interactability, sets new active channel, calls `OnChannelSwitched` |
+| `OnChannelListButtonClicked()` | — | Toggles `ClosedChannelContainer` visibility |
+| `CloseChannel` | `UBaseChannel*` | Adds to `ClosedChannels`, collapses tab, falls back to `Channels[0]` if it was active |
+| `ReopenChannel` | `UBaseChannel*` | Removes from `ClosedChannels`, restores tab, switches to it |
+| `OnTabRightClickedHandler` | `UBaseChannel*` | Spawns `UContextMenu` at cursor with Rename + Close options; skips Server tab |
+| `OnTabRenamedHandler` | `UBaseChannelTab*, FString` | Computes participant key, calls `OnChannelRenamed` |
 
 **Virtual Hooks (protected — override in subclasses):**
-- `CreateTabLabel(TArray<FString> Participants)` — returns display label for a new tab; no-op in base
-- `SaveCreatedTab()` — persists new tab data; no-op in base
-- `OnChannelRenamed(Tab, NewName, ParticipantsKey)` — persists rename; no-op in base
-- `OnChannelSwitched(UBaseChannel*)` — panel-specific side effects on channel switch; no-op in base
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `CreateTabLabel` | `TArray<FString> Participants` | Returns display label for a new tab; no-op in base |
+| `SaveCreatedTab()` | — | Persists new tab data; no-op in base |
+| `OnChannelRenamed` | `Tab, NewName, ParticipantsKey` | Persists rename; no-op in base |
+| `OnChannelSwitched` | `UBaseChannel*` | Panel-specific side effects on channel switch; no-op in base |
 
 > **Note:** `Channels`, `ChannelTabMap`, `ActiveChannel`, and `ClosedChannels` are `protected` — accessible in subclasses that need direct access (e.g. `UChatBox::AddChatMessage`).
 >
@@ -953,15 +1099,18 @@ Base class for all tabbed channel panel widgets (chat box, session notes panel, 
 General-purpose helper functions accessible from C++ and Blueprint.
 
 **Functions:**
-- `GetTypedWidgetFromName<T>(UUserWidget* Widget, FName Name)` → `T*` — template; casts result of `GetWidgetFromName`. Logs a warning if `Widget` is null or the cast fails. **C++-only** (no `UFUNCTION` — templates can't be `UFUNCTION`). Use this everywhere instead of `Cast<T>(Widget->GetWidgetFromName(...))`.
-- `GetEnumDisplayName<T>(T Value)` → `FString` — template; returns the display name for a `UENUM` value via `StaticEnum<T>()`. Requires `DisplayName` metadata on each enum value. **C++-only**. Use instead of `GetValueAsString` + `RightChop` pattern.
-- `GetSessionSaveSlotName(USessionInstance*)` → `FString` — returns `"Session_{SessionID}"` or empty string on null. All session save/load calls go through this; never hardcode the slot name.
-- `GetNotesSaveSlotName(const FGuid& PlayerID, const FGuid& SessionID)` → `FString` — returns `"Notes_{PlayerID}_{SessionID}"`. All notes save/load calls go through this.
-- `LoadSessionSave(UObject* WorldContext)` → `USessionSave*` — gets `USessionInstance` from the world context, resolves the slot name, loads and returns the save object. Returns nullptr (with warning) on any failure. Use this everywhere instead of inline `GetGameInstance` + `LoadGameFromSlot` blocks.
-- `LoadSessionNotesSave(UObject* WorldContext)` → `USessionNotesSave*` — gets `USessionInstance`, builds the notes slot name from `PlayerID` and `SessionID`, loads and returns the notes save object. Returns nullptr (with warning) on any failure.
-- `GetLocalPlayerName(UObject* WorldContext)` → `FString` — returns the local player's name from `PlayerState->GetPlayerName()`, or `"Unknown"` on failure. Use this everywhere instead of inline `GetPlayerController(0)` + null-check chains.
-- `MakeParticipantKey(TArray<FString> Participants)` → `FString` — sorts the participant list and joins with `|` to produce a stable channel identity key. Use everywhere a pipe-joined participant key is needed; never sort+join inline.
-- `GetDocumentLineHeight(const FRichTextDocument& InDocument, float Scale, FSlateFontInfo* OutFontInfo = nullptr)` → `float` — walks `Document.Runs`, calls `GetMaxCharacterHeight` on each run's `FSlateFontInfo` (with typeface name set from bold/italic flags), and returns the maximum height. If `OutFontInfo` is provided, also sets it to the font with the greatest height. Used by `SRichTextArea::OnPaint`, `GetCursorPosition`, `HitTest`, and `SRichTextEditor::OnKeyDown`/`OnUpOrDownPressed` so `LineHeight` and `BestFontInfo` are computed in one pass without duplicating the run-walk. `OutFontInfo` uses pointer-not-reference to allow a `nullptr` default.
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `GetTypedWidgetFromName<T>() → T*` | `UUserWidget* Widget, FName Name` | Template; casts result of `GetWidgetFromName`. Logs warning on null or cast failure. **C++-only**. Use instead of `Cast<T>(Widget->GetWidgetFromName(...))` |
+| `GetEnumDisplayName<T>() → FString` | `T Value` | Template; returns display name for a `UENUM` value via `StaticEnum<T>()`. Requires `DisplayName` metadata on each value. **C++-only** |
+| `GetSessionSaveSlotName() → FString` | `USessionInstance*` | Returns `"Session_{SessionID}"` or empty string on null. All session save/load calls go through this |
+| `GetNotesSaveSlotName() → FString` | `const FGuid& PlayerID, const FGuid& SessionID` | Returns `"Notes_{PlayerID}_{SessionID}"`. All notes save/load calls go through this |
+| `LoadSessionSave() → USessionSave*` | `UObject* WorldContext` | Gets `USessionInstance`, resolves slot name, loads and returns save object. Returns nullptr (with warning) on any failure |
+| `LoadSessionNotesSave() → USessionNotesSave*` | `UObject* WorldContext` | Gets `USessionInstance`, builds notes slot name, loads and returns notes save object. Returns nullptr (with warning) on any failure |
+| `GetLocalPlayerName() → FString` | `UObject* WorldContext` | Returns the local player's name from `PlayerState->GetPlayerName()`, or `"Unknown"` on failure |
+| `MakeParticipantKey() → FString` | `TArray<FString> Participants` | Sorts participant list and joins with `\|` to produce a stable channel identity key |
+| `GetDocumentLineHeight() → float` | `const FRichTextDocument&, float Scale, FSlateFontInfo* OutFontInfo = nullptr` | Walks `Document.Runs`, returns max character height across all runs. If `OutFontInfo` is provided, sets it to the tallest font. Used by `OnPaint`, `GetCursorPosition`, `HitTest`, `OnKeyDown` |
 
 > **Note:** Template definitions must live entirely in the `.h` — no `.cpp` entry needed. Define inside the class body (implicit `inline`) or outside with `inline`.
 
@@ -973,9 +1122,12 @@ General-purpose helper functions accessible from C++ and Blueprint.
 Project-wide utility macros for common null-guard and outer-retrieval patterns. Include wherever needed.
 
 **Macros:**
-- `GET_OUTER(Type, VarName, ReturnVal)` — calls `GetTypedOuter<Type>()`, assigns to `VarName`, and returns `ReturnVal` with a warning log if the result is invalid. Used in `UDragHandle` and `UResizeHandle`.
-- `GET_OWNING_PC(VarName, ReturnVal)` — casts `GetOwningPlayer()` to `APlayerController*`, assigns to `VarName`, and returns `ReturnVal` with a warning log if the cast or validity check fails. Used in `UChatBox`.
-- `CHECK_IF_VALID(VarName, ReturnVal)` — checks `IsValid(VarName)` and returns `ReturnVal` with a warning log if the check fails. The single most common null-guard pattern — use everywhere instead of the three-line `if (!IsValid) { UE_LOG; return; }` block.
+
+| Macro | Parameters | Description |
+|-------|------------|-------------|
+| `GET_OUTER` | `Type, VarName, ReturnVal` | Calls `GetTypedOuter<Type>()`, assigns to `VarName`, returns `ReturnVal` with warning if invalid. Used in `UDragHandle` and `UResizeHandle` |
+| `GET_OWNING_PC` | `VarName, ReturnVal` | Casts `GetOwningPlayer()` to `APlayerController*`, assigns to `VarName`, returns `ReturnVal` with warning on cast/validity failure. Used in `UChatBox` |
+| `CHECK_IF_VALID` | `VarName, ReturnVal` | Checks `IsValid(VarName)`, returns `ReturnVal` with warning if the check fails. The standard null-guard pattern — use instead of the three-line `if (!IsValid) { UE_LOG; return; }` block |
 
 > **Note:** Macros are used here because they require injecting a local variable name and/or causing the caller to `return` — neither is possible with a template function. These are the only cases where a macro is preferred over a template.
 
@@ -1001,7 +1153,13 @@ Data for a single context menu item. Holds a `ButtonName` (`FString`) and `OnCli
 #### UContextMenuButton
 **Type:** `UUserWidget` | **Blueprint:** `WE_ContextMenuButton`
 
-Single button row inside a `UContextMenu`. **Bound Widgets:** `MenuButton` (`UButton`), `ButtonLabel` (`UTextBlock`). `SetOption(FContextMenuOption)` sets the label text and binds the click delegate.
+Single button row inside a `UContextMenu`. **Bound Widgets:** `MenuButton` (`UButton`), `ButtonLabel` (`UTextBlock`).
+
+**Key Methods:**
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `SetOption` | `FContextMenuOption` | Sets the label text and binds the click delegate |
 
 ---
 
@@ -1015,9 +1173,12 @@ Generic floating context menu. Add to viewport via `AddToViewport()`, position w
 **Config (EditAnywhere):** `ContextMenuButtonClass` (`TSubclassOf<UContextMenuButton>`)
 
 **Key Methods:**
-- `SetMenuOptions(TArray<FContextMenuOption>)` — clears existing buttons, spawns one `UContextMenuButton` per option. Wraps each option's `OnClicked` in a lambda that calls `CloseMenu()` before the original callback, so buttons also dismiss the menu.
-- `SetMenuPosition(FVector2D)` — offsets `ContextBox` within the root `Overlay` using `UOverlaySlot::SetPadding`. Call after `AddToViewport()`.
-- `CloseMenu()` — calls `RemoveFromParent()`.
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `SetMenuOptions` | `TArray<FContextMenuOption>` | Clears existing buttons, spawns one `UContextMenuButton` per option. Wraps each `OnClicked` in a lambda that calls `CloseMenu()` first, so buttons auto-dismiss |
+| `SetMenuPosition` | `FVector2D` | Offsets `ContextBox` within the root `Overlay` via `UOverlaySlot::SetPadding`. Call after `AddToViewport()` |
+| `CloseMenu()` | — | Calls `RemoveFromParent()` |
 
 `NativeOnMouseButtonDown` checks whether the click falls within `ContextBox`'s cached geometry bounds. If outside: calls `CloseMenu()` and returns `FReply::Handled()`. If inside: returns `FReply::Unhandled()` so child buttons receive the event.
 
@@ -1038,7 +1199,10 @@ Shared base class for all main screen widgets. Provides a common back button, `O
 - `OnBackRequested` (`FOnBackRequested`, BlueprintAssignable) — broadcast when `BackButton` is clicked; bound by `UMainScreenUIComponent` to navigate back to index 0
 
 **Key Methods:**
-- `virtual void Init()` — empty default; override in subclasses that need setup logic
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `Init()` *(virtual)* | — | Empty default; override in subclasses that need setup logic |
 
 **NativeConstruct:** binds `BackButton` click → broadcasts `OnBackRequested`
 
@@ -1060,10 +1224,11 @@ Home screen widget. Owns all five home screen buttons and exposes delegates for 
 - `OnSettingsRequested` (BlueprintAssignable) — bound by `UMainScreenUIComponent` → switches to Settings screen
 
 **Key Methods:**
-- `Init()` — binds all button delegates
 
-**Direct handlers (no delegate):**
-- Quit → `QuitGame` directly
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `Init()` | — | Binds all button delegates |
+| Quit handler | — | Calls `QuitGame` directly (no delegate) |
 
 ---
 
@@ -1131,15 +1296,35 @@ Notes support rich-text formatting (bold, italic, underline, strikethrough, head
 
 Single notes channel widget. Inherits `UBaseChannel`. Holds a `UEditableRichText Notes` widget and a B/I/U/S formatting toolbar as `BindWidget` UCheckBoxes. Each instance generates a unique `FGuid ChannelID` in `NativeConstruct`.
 
-**Widget bindings:** `Notes (UEditableRichText)`, `BoldCheckBox`, `ItalicCheckBox`, `UnderlineCheckBox`, `StrikethroughCheckBox` — all `BindWidget`.
+**Bound Widgets:** `Notes` (`UEditableRichText`), `BoldCheckBox`, `ItalicCheckBox`, `UnderlineCheckBox`, `StrikethroughCheckBox` (`UCheckBox`) — all `BindWidget`.
 
-**State:** `ChannelID (FGuid)` — save key. `bIsSyncing (bool)` — guards against feedback loops when `OnFormatChanged` programmatically sets checkbox states; the four `OnXxxCheckStateChanged` handlers return early if it is set.
+**State:**
 
-**Event handlers:** `OnBoldCheckStateChanged(bool)`, `OnItalicCheckStateChanged(bool)`, `OnUnderlineCheckStateChanged(bool)`, `OnStrikethroughCheckStateChanged(bool)` — each calls the matching `Notes->Toggle*` method, guarded by `bIsSyncing`. `OnFormatChanged(bool bBold, bool bItalic, bool bUnderline, bool bStrikethrough)` — receives broadcasts from `SRichTextEditor::OnFormatStateChanged`; sets `bIsSyncing = true`, calls `SetIsChecked` on all four checkboxes, sets `bIsSyncing = false`.
+| Field        | Type    | Notes                                                                                                           |
+|--------------|---------|-----------------------------------------------------------------------------------------------------------------|
+| `ChannelID`  | `FGuid` | Save key — generated in `NativeConstruct`                                                                       |
+| `bIsSyncing` | `bool`  | Guards against feedback loops when `OnFormatChanged` programmatically sets checkbox states; handlers return early if set |
 
-**`NativeConstruct`:** Calls `Super`, generates `ChannelID = FGuid::NewGuid()`, binds `Notes->GetOnDocumentChanged()` to `OnNotesChanged`, binds `Notes->GetOnFormatStateChanged()` to `OnFormatChanged`, binds each checkbox's `OnCheckStateChanged` to the matching handler.
+**Event Handlers:**
 
-**Public methods:** `ScrollToEnd()` — calls `ScrollBox->ScrollToEnd()`; logs warning if `ScrollBox` is null. `GetNotes() → UEditableRichText*`.
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `OnBoldCheckStateChanged` / `OnItalicCheckStateChanged` / `OnUnderlineCheckStateChanged` / `OnStrikethroughCheckStateChanged` | `bool` | Each calls the matching `Notes->Toggle*` method, guarded by `bIsSyncing` |
+| `OnFormatChanged` | `bool bBold, bool bItalic, bool bUnderline, bool bStrikethrough` | Bound to `SRichTextEditor::OnFormatStateChanged`; sets `bIsSyncing = true`, updates all four checkboxes via `SetIsChecked`, clears `bIsSyncing` |
+
+**`NativeConstruct`:**
+- Calls `Super::NativeConstruct()`
+- Generates `ChannelID = FGuid::NewGuid()`
+- Binds `Notes->GetOnDocumentChanged()` → `OnNotesChanged`
+- Binds `Notes->GetOnFormatStateChanged()` → `OnFormatChanged`
+- Binds each checkbox's `OnCheckStateChanged` to its matching handler
+
+**Public Methods:**
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `ScrollToEnd()` | — | Calls `ScrollBox->ScrollToEnd()`; logs warning if `ScrollBox` is null |
+| `GetNotes() → UEditableRichText*` | — | Returns the bound `Notes` widget |
 
 > **Note:** `bIsSyncing` lives here (not in `SRichTextEditor`) because the toolbar checkboxes are UMG widgets owned by `USessionNotesChannel`. The Slate layer knows nothing about them.
 
@@ -1159,9 +1344,20 @@ Empty typed subclass of `UBaseChannelTab`. Blueprint parent for the notes tab wi
 
 A single contiguous range of characters sharing the same formatting. The document model is a flat ordered list of these runs.
 
-**Fields:** `Text (FString)`, `FontInfo (FSlateFontInfo)`, `bIsBold`, `bIsItalic`, `bIsUnderline`, `bIsStrikethrough` (all `bool`, default `false`).
+**Fields:**
 
-**Constructors:** Default (required by UE reflection; `FontInfo` left empty); parameterised `(FString, FSlateFontInfo)` — all flags default false.
+| Field             | Type              | Default | Notes                             |
+|-------------------|-------------------|---------|-----------------------------------|
+| `Text`            | `FString`         | —       | Character content of this run     |
+| `FontInfo`        | `FSlateFontInfo`  | —       | Left empty by default constructor |
+| `bIsBold`         | `bool`            | `false` |                                   |
+| `bIsItalic`       | `bool`            | `false` |                                   |
+| `bIsUnderline`    | `bool`            | `false` |                                   |
+| `bIsStrikethrough`| `bool`            | `false` |                                   |
+
+**Constructors:**
+- Default — required by UE reflection; `FontInfo` left empty, all flags `false`
+- Parameterised `(FString, FSlateFontInfo)` — all flags default `false`
 
 ---
 
@@ -1172,9 +1368,12 @@ Full content of a single notes channel — a flat ordered list of `FRichTextRun`
 
 **Fields:** `Runs (TArray<FRichTextRun>)` — default empty.
 
-**Inline methods:**
-- `GetFullText() const → FString` — concatenates `Run.Text` from every run in order. Used everywhere line-parsing or length bounds are needed on the full document; replaces the old `Runs[0].Text` pattern that only covered the first run.
-- `GetLines() const → TArray<FString>` — splits `GetFullText()` on `\n`, returning one entry per line. Used by `SRichTextArea::OnPaint`, `DrawHighlight`, `SRichTextEditor::OnKeyDown`, and `OnUpOrDownPressed` instead of inline `ParseIntoArray` calls.
+**Inline Methods:**
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `GetFullText() const → FString` | — | Concatenates `Run.Text` from every run in order. Used everywhere line-parsing or length bounds are needed; replaces the old `Runs[0].Text` pattern that only covered the first run |
+| `GetLines() const → TArray<FString>` | — | Splits `GetFullText()` on `\n`, returning one entry per line. Used by `SRichTextArea::OnPaint`, `DrawHighlight`, `SRichTextEditor::OnKeyDown`, and `OnUpOrDownPressed` instead of inline `ParseIntoArray` calls |
 
 ---
 
@@ -1203,7 +1402,13 @@ Leaf widget responsible for rendering document text and the cursor. Owned by `SR
 
 **SLATE_ARGUMENTs:** `Document (const FRichTextDocument*)`, `CursorPosition (const int32*)`, `SelectionAnchor (const int32*)`.
 
-**OnPaint:** Checks cache at top — if width or text changed, updates both and calls `RebuildVisualLines`. Draws selection highlight via `DrawHighlight` if selection is active. Outer loop over runs sets typeface from bold/italic flags; inner loops split on `\n` then `\t`; each segment drawn via `DrawTextSegment`. Underline and strikethrough drawn via `DrawLine` (width trimmed with `TrimEnd()`). Cursor drawn last via `FSlateDrawElement::MakeLines`.
+**OnPaint:**
+- Cache check at top — if width or text changed, updates both and calls `RebuildVisualLines`
+- Draws selection highlight via `DrawHighlight` if a selection is active
+- Outer loop over runs: sets typeface from bold/italic flags
+- Inner loops split on `\n` then `\t`; each segment drawn via `DrawTextSegment`
+- Underline and strikethrough drawn via `DrawLine` (width trimmed with `TrimEnd()`)
+- Cursor drawn last via `FSlateDrawElement::MakeLines`
 
 > **Note:** `VisualLines` is now built on each invalidation, but the rendering loop has not yet been updated to consume it — it still uses the existing run-based approach.
 
@@ -1214,21 +1419,23 @@ Leaf widget responsible for rendering document text and the cursor. Owned by `SR
 - default — if overflow with no prior space, whole word starts next line; if overflow with prior space, breaks at `LastSpaceIndex` and measures new line width via `Mid`; else accumulates
 - After loop: closes final line at `CachedText.Len()`
 
-**Private helpers:**
+**Private Helpers:**
 
-| Method            | Purpose                                                              |
-|-------------------|----------------------------------------------------------------------|
-| `DrawTextSegment` | Wraps one `FSlateDrawElement::MakeText` call at a given X/Y offset  |
-| `DrawLine`        | Draws a horizontal line; used for underline and strikethrough        |
-| `DrawHighlight`   | Draws per-line selection rects between `StartPos` and `EndPos`       |
-| `MeasureText`     | Returns layout-space text width (DPI scale divided out) — static     |
-| `FindFontAtIndex` | Returns `FSlateFontInfo` for a given character index — static        |
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `DrawTextSegment` | — | Wraps one `FSlateDrawElement::MakeText` call at a given X/Y offset |
+| `DrawLine` | — | Draws a horizontal line; used for underline and strikethrough |
+| `DrawHighlight` | — | Draws per-line selection rects between `StartPos` and `EndPos` |
+| `MeasureText` *(static)* | — | Returns layout-space text width (DPI scale divided out) |
+| `FindFontAtIndex` *(static)* | — | Returns `FSlateFontInfo` for a given character index |
 
-**`GetCursorPosition(const FRichTextDocument&, int32, float TabSpace, float Scale) → FVector2f` (static):** Converts a character index to a pixel position. Walks lines then segments; tabs use `TabSpace` directly. **Critical:** `SegmentOffset` must be updated before `SegCharCount` is incremented — inverting the order uses the next segment's font for the current segment's measurement.
+**Public Methods:**
 
-**`HitTest(FVector2f LocalMousePos, const FRichTextDocument&, float InScale) → int32` (static):** Inverse of `GetCursorPosition`. Clamps to nearest line, walks characters using midpoint comparison `(LeftEdge + RightEdge) / 2 > X`. Returns a document character index.
-
-**`ComputeDesiredSize`:** Returns `FVector2f(0, LineHeight * LineCount)`. Width is 0 — the parent scroll box drives width.
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `GetCursorPosition(…) → FVector2f` *(static)* | `const FRichTextDocument&, int32, float TabSpace, float Scale` | Converts a character index to a pixel position. Walks lines then segments; tabs use `TabSpace` directly. **Critical:** `SegmentOffset` must be updated before `SegCharCount` is incremented — inverting the order uses the next segment's font for the current segment's measurement |
+| `HitTest(…) → int32` *(static)* | `FVector2f LocalMousePos, const FRichTextDocument&, float InScale` | Inverse of `GetCursorPosition`. Clamps to nearest line, walks characters using midpoint comparison `(LeftEdge + RightEdge) / 2 > X`. Returns a document character index |
+| `ComputeDesiredSize` | — | Returns `FVector2f(0, LineHeight * LineCount)`. Width is 0 — the parent scroll box drives width |
 
 > **Gotcha:** `FSlateFontMeasure::Measure` returns pixel values scaled by the geometry scale. Divide by `InScale` before using as a layout coordinate — otherwise cursor drifts right as more text is typed. Include `"Fonts/FontMeasure.h"` (not `"Framework/Text/SlateFontMeasure.h"`).
 
@@ -1251,37 +1458,54 @@ Custom Slate rich-text editor widget. Owns the document model, cursor, selection
 | `CopiedRuns`      | `TArray<FRichTextRun>`      | Runs from the last Ctrl+C or Ctrl+X                                  |
 | `TextAreaRef`     | `TSharedPtr<SRichTextArea>` | Cached pointer for mouse hit-testing relative to the text area       |
 
-**Inline helpers (in `.h`):** `GetSelectionMin()` / `GetSelectionMax()` — `FMath::Min/Max(SelectionAnchor, CursorPosition)`. Selection is active when `SelectionAnchor != -1`.
+**Inline Helpers (in `.h`):**
 
-**Private helpers:**
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `GetSelectionMin()` / `GetSelectionMax()` | — | `FMath::Min/Max(SelectionAnchor, CursorPosition)`. Selection is active when `SelectionAnchor != -1` |
 
-| Method                    | Purpose                                                                              |
-|---------------------------|--------------------------------------------------------------------------------------|
-| `FormatsMatch`            | Compares bold/italic/underline/strikethrough/FontInfo on two runs                    |
-| `FindRunAtIndex`          | Returns the run index and run-start offset for a given character index; uses `<=` so boundaries map to the earlier run |
-| `DrawSpecialCharacter`    | Inserts `\n` or `\t` at cursor via `FindRunAtIndex`; advances cursor; calls `SyncActiveFormat` |
-| `OnBackspaceOrDeletePressed` | Deletes one character; redirects to next run when `LocalOffset >= Run.Text.Len()`; calls `PruneRuns` |
-| `PruneRuns`               | Removes empty runs; merges adjacent same-format runs; restores default run if document is empty |
-| `SyncActiveFormat`        | Copies the run under the cursor into `ActiveFormat`; updates toolbar checkboxes (guarded by `bIsSyncing`) |
-| `OnUpOrDownPressed`       | Moves cursor to target line at `PreferredX`; tab-stop-aware (uses `TabSpace` for `\t`, `MeasureText` for others) |
-| `RangeDelete`             | Deletes the selection; resets anchor; called by backspace, delete, typing, and paste when selection is active |
-| `SplitRunAt`              | Splits a run at an offset into Left/Right pieces; returns Right index; used by `FormatToSelection` and Ctrl+V |
-| `ApplyFormatShortcut`     | Toggle/apply/sync/return pattern shared by Ctrl+B/I/U/S                              |
-| `FormatToSelection`       | Splits runs at selection boundaries; applies a format lambda to covered runs; calls `PruneRuns` |
-| `GetAreaCursorPosition`   | Converts mouse position to character index via `TextAreaRef->GetTickSpaceGeometry()` — avoids toolbar-height Y offset |
-| `GetSelectedRange`        | Returns runs clipped to `[SelectionMin, SelectionMax]` with correct text substrings  |
-| `HandleSelectionOnMove`   | Captures anchor before cursor moves (Shift+Arrow); clears anchor on bare arrow key   |
+**Private Helpers:**
 
-**Public API:** `ToggleBold/Italic/Underline/Strikethrough(bool)` — sets the matching flag on `ActiveFormat` and calls `FormatToSelection`. `GetDocument() const`, `SetDocument(const FRichTextDocument&)` — resets cursor to 0 on set.
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `FormatsMatch` | — | Compares bold/italic/underline/strikethrough/FontInfo on two runs |
+| `FindRunAtIndex` | — | Returns the run index and run-start offset for a given character index; uses `<=` so boundaries map to the earlier run |
+| `DrawSpecialCharacter` | — | Inserts `\n` or `\t` at cursor via `FindRunAtIndex`; advances cursor; calls `SyncActiveFormat` |
+| `OnBackspaceOrDeletePressed` | — | Deletes one character; redirects to next run when `LocalOffset >= Run.Text.Len()`; calls `PruneRuns` |
+| `PruneRuns` | — | Removes empty runs; merges adjacent same-format runs; restores default run if document is empty |
+| `SyncActiveFormat` | — | Copies the run under the cursor into `ActiveFormat`; updates toolbar checkboxes (guarded by `bIsSyncing`) |
+| `OnUpOrDownPressed` | — | Moves cursor to target line at `PreferredX`; tab-stop-aware (uses `TabSpace` for `\t`, `MeasureText` for others) |
+| `RangeDelete` | — | Deletes the selection; resets anchor; called by backspace, delete, typing, and paste when selection is active |
+| `SplitRunAt` | — | Splits a run at an offset into Left/Right pieces; returns Right index; used by `FormatToSelection` and Ctrl+V |
+| `ApplyFormatShortcut` | — | Toggle/apply/sync/return pattern shared by Ctrl+B/I/U/S |
+| `FormatToSelection` | — | Splits runs at selection boundaries; applies a format lambda to covered runs; calls `PruneRuns` |
+| `GetAreaCursorPosition` | — | Converts mouse position to character index via `TextAreaRef->GetTickSpaceGeometry()`; avoids toolbar-height Y offset |
+| `GetSelectedRange` | — | Returns runs clipped to `[SelectionMin, SelectionMax]` with correct text substrings |
+| `HandleSelectionOnMove` | — | Captures anchor before cursor moves (Shift+Arrow); clears anchor on bare arrow key |
 
-**Protected overrides:**
-- `OnKeyChar` — if selection active, `RangeDelete()` first; inserts character directly into run if formats match, otherwise splits run into Left/Middle/Right; advances cursor; calls `SyncActiveFormat`; broadcasts `OnDocumentChanged`. Guards `Character < 32`.
-- `OnKeyDown` — handles: Backspace/Delete (range-delete if selection, else `OnBackspaceOrDeletePressed`), arrow keys (Left/Right via `HandleSelectionOnMove` + step; Up/Down via `OnUpOrDownPressed` with `TabSpace`), Home/End, Enter/Tab (`DrawSpecialCharacter`), Ctrl+A (select all), Ctrl+C/X (`GetSelectedRange` into `CopiedRuns`; X also `RangeDelete`), Ctrl+V (insert `CopiedRuns` at cursor), Ctrl+B/I/U/S (`ApplyFormatShortcut`, bypasses `SyncActiveFormat`). Only broadcasts `OnDocumentChanged` when text actually changed. Non-vertical keys reset `PreferredX`.
-- `OnMouseButtonDown` — sets focus; resets anchor and `PreferredX`; sets cursor via `GetAreaCursorPosition`.
-- `OnMouseMove` — if left button held, extends selection from anchor to cursor; guard prevents anchor being set on sub-character-boundary wobble.
+**Public API:**
 
-> **Pending — Word Wrapping:** Text currently renders in a single continuous line per hard `\n` break — long lines overflow the widget bounds rather than wrapping. Implementing word wrap requires: (1) A **visual line** model — `OnPaint` splits each logical line (hard `\n`) into wrapped visual lines at word boundaries based on allotted width; character-level fallback for words longer than the full width. (2) **`ComputeDesiredSize` chicken-and-egg** — height depends on visual line count, but visual line count depends on available width, which is unknown at desired-size time. Fix: cache last allotted width from `OnPaint` in a mutable member and use it in `ComputeDesiredSize`; call `Invalidate(EInvalidateWidget::Layout)` when width changes. (3) **Cursor system rewrite** — `GetCursorPosition`, `HitTest`, and `OnUpOrDownPressed` all work on document lines (split by `\n`). All three must be updated to work on visual lines instead. This is a significant rendering pipeline change — schedule as a dedicated task after current feature work.
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `ToggleBold/Italic/Underline/Strikethrough` | `bool` | Sets the matching flag on `ActiveFormat` and calls `FormatToSelection` |
+| `GetDocument() const` | — | Returns `Document` directly |
+| `SetDocument` | `const FRichTextDocument&` | Assigns document; resets cursor to 0 |
 
+**Protected Overrides:**
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `OnKeyChar` | — | If selection active, `RangeDelete()` first; inserts character directly into run if formats match, otherwise splits run into Left/Middle/Right; advances cursor; calls `SyncActiveFormat`; broadcasts `OnDocumentChanged`. Guards `Character < 32` |
+| `OnKeyDown` | — | Handles: Backspace/Delete (range-delete if selection, else `OnBackspaceOrDeletePressed`), arrow keys (Left/Right via `HandleSelectionOnMove`; Up/Down via `OnUpOrDownPressed`), Home/End, Enter/Tab (`DrawSpecialCharacter`), Ctrl+A/C/X/V/B/I/U/S. Broadcasts `OnDocumentChanged` only when text changed. Non-vertical keys reset `PreferredX` |
+| `OnMouseButtonDown` | — | Sets focus; resets anchor and `PreferredX`; sets cursor via `GetAreaCursorPosition` |
+| `OnMouseMove` | — | If left button held, extends selection from anchor to cursor; guard prevents anchor being set on sub-character-boundary wobble |
+
+> **Pending — Word Wrapping:** Text currently renders in a single continuous line per hard `\n` break — long lines overflow rather than wrap. Three changes required:
+> 1. **Visual line model** — `OnPaint` splits each logical line (hard `\n`) into wrapped visual lines at word boundaries; character-level fallback for words longer than the full width.
+> 2. **`ComputeDesiredSize` chicken-and-egg** — height depends on visual line count, but visual line count depends on available width (unknown at desired-size time). Fix: cache last allotted width from `OnPaint` in a mutable member; call `Invalidate(EInvalidateWidget::Layout)` when width changes.
+> 3. **Cursor system rewrite** — `GetCursorPosition`, `HitTest`, and `OnUpOrDownPressed` all work on document lines (split by `\n`); all three must be updated to work on visual lines instead.
+>
+> This is a significant rendering pipeline change — schedule as a dedicated task.
 
 **Layout:** `ChildSlot` holds `SRichTextArea` directly (no `SVerticalBox` wrapper). The toolbar lives in `W_SessionNotesChannel` above the scroll box. Scrolling is owned by the parent panel. `ActiveFormat.FontInfo` initialized to `FCoreStyle::GetDefaultFontStyle("Regular", 12)` in `Construct`.
 
@@ -1298,9 +1522,22 @@ Custom Slate rich-text editor widget. Owns the document model, cursor, selection
 
 Thin UMG wrapper around `SRichTextEditor`. Bridges the Slate widget into the UMG widget system so it can be used inside `USessionNotesChannel`.
 
-**Public methods:** `GetDocument() const`, `SetDocument(const FRichTextDocument&)` (`BlueprintCallable`), `ToggleBold/Italic/Underline/Strikethrough(bool)` — each checks `RichTextEditor.IsValid()` before calling through; `GetDocument` returns a default-constructed `FRichTextDocument` if the editor is not yet built. `GetOnDocumentChanged() → FOnDocumentChanged&` — returns the Slate editor's `OnDocumentChanged` delegate for external binding. `GetOnFormatStateChanged() → FOnFormatStateChanged&` — returns the Slate editor's `OnFormatStateChanged` delegate; bound by `USessionNotesChannel::NativeConstruct` to drive the toolbar checkboxes.
+**Public Methods:**
 
-**Protected overrides:** `RebuildWidget()` — creates `SRichTextEditor` via `SNew`, returns it as `TSharedRef<SWidget>`; `ReleaseSlateResources(bool)` — calls Super, resets the shared pointer.
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `GetDocument() const` | — | Returns `Document`; returns a default-constructed `FRichTextDocument` if the editor is not yet built |
+| `SetDocument` *(BlueprintCallable)* | `const FRichTextDocument&` | Passes through to `SRichTextEditor::SetDocument`; checks `IsValid` first |
+| `ToggleBold/Italic/Underline/Strikethrough` | `bool` | Each checks `RichTextEditor.IsValid()` before calling through |
+| `GetOnDocumentChanged() → FOnDocumentChanged&` | — | Returns the Slate editor's `OnDocumentChanged` delegate for external binding |
+| `GetOnFormatStateChanged() → FOnFormatStateChanged&` | — | Returns the Slate editor's `OnFormatStateChanged` delegate; bound by `USessionNotesChannel::NativeConstruct` to drive the toolbar checkboxes |
+
+**Protected Overrides:**
+
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `RebuildWidget()` | — | Creates `SRichTextEditor` via `SNew`, returns it as `TSharedRef<SWidget>` |
+| `ReleaseSlateResources` | `bool` | Calls Super, resets the shared pointer |
 
 **Private:** `RichTextEditor (TSharedPtr<SRichTextEditor>)`.
 
@@ -1313,11 +1550,17 @@ Thin UMG wrapper around `SRichTextEditor`. Bridges the Slate widget into the UMG
 
 Controls time of day and weather. `USessionUIComponent` finds it during `Init` via `GetActorOfClass`.
 
-**Replicated properties:** `CurrentTimeOfDay` (float, 0–24), `CurrentWeatherType` (`EWeatherType`), `WeatherIntensity` (float, 0–1) — each has an OnRep function that applies the change locally.
+**Replicated Properties:**
+
+| Property             | Type           | Range  | Notes                                    |
+|----------------------|----------------|--------|------------------------------------------|
+| `CurrentTimeOfDay`   | `float`        | 0–24   | OnRep applies sun angle locally          |
+| `CurrentWeatherType` | `EWeatherType` | —      | OnRep enables/disables weather actors    |
+| `WeatherIntensity`   | `float`        | 0–1    | OnRep adjusts fog density and wind speed |
 
 **Server RPCs:** `Server_SetTimeOfDay(float)`, `Server_SetWeather(EWeatherType, float)`
 
-**Level refs (set in BP):** `ADirectionalLight` (sun), `ASkyLight`, `AExponentialHeightFog`, `AWindDirectionalSourceComponent`, `ANiagaraActor` per weather type
+**Level Refs (set in BP):** `ADirectionalLight` (sun), `ASkyLight`, `AExponentialHeightFog`, `AWindDirectionalSourceComponent`, `ANiagaraActor` per weather type
 
 **Time of day:** Maps 0–24 to sun pitch/yaw on the `ADirectionalLight`. `USkyAtmosphereComponent` responds automatically.
 
