@@ -4,6 +4,18 @@
 
 ---
 
+## 2026-05-12
+
+**Implementation:**
+- `SRichTextArea::OnPaint` rendering loop replaced: outer loop now iterates `VisualLines`; inner run-clip walk accumulates `RunStart`/`RunEnd`, skips non-overlapping runs, clips overlapping runs with `Run.Text.Mid(ClipStart, ClipEnd - ClipStart)`, applies typeface swap, splits clip on `\t`, draws each tab segment via `DrawTextSegment`
+- `GetCursorPosition` converted from `static` to `const` member; now walks `VisualLines` instead of `Document->GetLines()`; `CursorY` accumulates per visual line; tab segment walk uses `CachedText.Mid` and `VisualLine.StartIndex`; uses `<= EndIndex` (not `<`) so cursor-at-end-of-line stays on that line
+- `HitTest` converted from `static` to `const` member; `TargetLine` now indexes into `VisualLines`; character walk uses `CachedText` with document indices from `StartIndex` to `EndIndex`; return value is `VisualLines[TargetLine].StartIndex + CharInLine`
+- `OnUpOrDownPressed` updated: `Lines` parameter removed; uses `TextAreaRef->GetVisualLines()` and `TextAreaRef->GetCachedText()` directly; bounds check and character walk both use visual line data; result is `VisualLines[TargetLine].StartIndex + CharInLine`
+- `GetVisualLines()` and `GetCachedText()` public const getters added to `SRichTextArea` for use by `SRichTextEditor`
+- Unused `TArray<FString> Lines` variable removed from `SRichTextEditor::OnKeyDown`
+
+---
+
 ## 2026-05-11
 
 **Design:**

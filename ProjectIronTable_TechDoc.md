@@ -1454,12 +1454,11 @@ Leaf widget responsible for rendering document text and the cursor. Owned by `SR
 **OnPaint:**
 - Cache check at top — if width or text changed, updates both and calls `RebuildVisualLines`
 - Draws selection highlight via `DrawHighlight` if a selection is active
-- Outer loop over runs: sets typeface from bold/italic flags
-- Inner loops split on `\n` then `\t`; each segment drawn via `DrawTextSegment`
+- Outer loop over `VisualLines`: resets `XOffset` per line, advances `YOffset` by `LineHeight` at end
+- Inner run-clip walk: for each visual line, walks `Document->Runs` accumulating `RunStart`/`RunEnd`; skips runs ending before line start; breaks on runs starting after line end; clips overlapping runs with `Run.Text.Mid(ClipStart, ClipEnd - ClipStart)`; applies typeface swap from bold/italic flags
+- Clipped text split on `\t`; each tab segment drawn via `DrawTextSegment`; `XOffset` advances by `TabSpace` between segments
 - Underline and strikethrough drawn via `DrawLine` (width trimmed with `TrimEnd()`)
 - Cursor drawn last via `FSlateDrawElement::MakeLines`
-
-> **Note:** `VisualLines` is now built on each invalidation, but the rendering loop has not yet been updated to consume it — it still uses the existing run-based approach.
 
 **`RebuildVisualLines(const FSlateFontInfo& InFontInfo, float InScale, float InTabSpace) const`:** Walks `CachedText` char by char, tracking `CurrentLineStart`, `LineWidth`, and `LastSpaceIndex`, to populate `VisualLines`:
 - `\n` — closes line at `i`; next line starts at `i + 1`; resets width and last-space
@@ -1482,8 +1481,10 @@ Leaf widget responsible for rendering document text and the cursor. Owned by `SR
 
 | Method | Parameters | Description |
 |--------|------------|-------------|
-| `GetCursorPosition(…) → FVector2f` *(static)* | `const FRichTextDocument&, int32, float TabSpace, float Scale` | Converts a character index to a pixel position. Walks lines then segments; tabs use `TabSpace` directly. **Critical:** `SegmentOffset` must be updated before `SegCharCount` is incremented — inverting the order uses the next segment's font for the current segment's measurement |
-| `HitTest(…) → int32` *(static)* | `FVector2f LocalMousePos, const FRichTextDocument&, float InScale` | Inverse of `GetCursorPosition`. Clamps to nearest line, walks characters using midpoint comparison `(LeftEdge + RightEdge) / 2 > X`. Returns a document character index |
+| `GetCursorPosition(…) → FVector2f` *(const)* | `const FRichTextDocument&, int32, float TabSpace, float Scale` | Converts a character index to a pixel position. Walks `VisualLines` — `CursorY` accumulates per line; tab segment walk uses `CachedText.Mid` and `VisualLine.StartIndex` offsets. Uses `<=` for `EndIndex` check so cursor-at-end-of-line stays on that line. **Critical:** `SegmentOffset` must be updated before `SegCharCount` is incremented |
+| `HitTest(…) → int32` *(const)* | `FVector2f LocalMousePos, const FRichTextDocument&, float InScale` | Inverse of `GetCursorPosition`. Clamps target line to `VisualLines`, walks `CachedText` chars by document index from `StartIndex` to `EndIndex`, midpoint comparison. Returns `VisualLines[TargetLine].StartIndex + CharInLine` |
+| `GetVisualLines() → const TArray<FVisualLine>&` | — | Returns the current visual line layout cache. Used by `SRichTextEditor` for Up/Down navigation |
+| `GetCachedText() → const FString&` | — | Returns the document text snapshot used to build the current visual line cache. Used by `SRichTextEditor` to index into visual line character ranges |
 | `ComputeDesiredSize` | — | Returns `FVector2f(0, LineHeight * LineCount)`. Width is 0 — the parent scroll box drives width |
 
 > **Gotcha:** `FSlateFontMeasure::Measure` returns pixel values scaled by the geometry scale. Divide by `InScale` before using as a layout coordinate — otherwise cursor drifts right as more text is typed. Include `"Fonts/FontMeasure.h"` (not `"Framework/Text/SlateFontMeasure.h"`).
@@ -1523,7 +1524,7 @@ Custom Slate rich-text editor widget. Owns the document model, cursor, selection
 | `OnBackspaceOrDeletePressed` | — | Deletes one character; redirects to next run when `LocalOffset >= Run.Text.Len()`; calls `PruneRuns` |
 | `PruneRuns` | — | Removes empty runs; merges adjacent same-format runs; restores default run if document is empty |
 | `SyncActiveFormat` | — | Copies the run under the cursor into `ActiveFormat`; updates toolbar checkboxes (guarded by `bIsSyncing`) |
-| `OnUpOrDownPressed` | — | Moves cursor to target line at `PreferredX`; tab-stop-aware (uses `TabSpace` for `\t`, `MeasureText` for others) |
+| `OnUpOrDownPressed` | — | Moves cursor to target line at `PreferredX`; uses `TextAreaRef->GetVisualLines()` and `GetCachedText()` to walk the target visual line; tab-stop-aware (`TabSpace` for `\t`, `MeasureText` for others); result is `VisualLines[TargetLine].StartIndex + CharInLine` |
 | `RangeDelete` | — | Deletes the selection; resets anchor; called by backspace, delete, typing, and paste when selection is active |
 | `SplitRunAt` | — | Splits a run at an offset into Left/Right pieces; returns Right index; used by `FormatToSelection` and Ctrl+V |
 | `ApplyFormatShortcut` | — | Toggle/apply/sync/return pattern shared by Ctrl+B/I/U/S |
@@ -1808,7 +1809,7 @@ Bug codes: `Phase.Sequence` — phase is the feature area the bug lives in, sequ
 - [ ] Session player cap (default 8, removable)
 - [x] Tab renaming (client-local) — right-click opens `UContextMenu` with Rename and Close options; rename persisted to `USessionSave::ChatTabNames`; close button removed from tab in favour of context menu
 - [x] Chat log persistence
-- [~] Shared notes — `SRichTextEditor` + `SRichTextArea` functional: multi-run document model, format-aware insertion, cursor sync, Ctrl+B/I/U/S, multi-run backspace/delete, run merging, visual per-run rendering, and selection rendering all working. Selection, drag-select, copy/cut/paste, per-run font, and `ComputeDesiredSize` fix all complete. `FNoteRecord` + `USessionNotesSave` implemented; `UFunctionLibrary::GetNotesSaveSlotName` + `LoadSessionNotesSave` added; `USessionNotesComponent` with RPC stubs implemented; `USessionUIComponent::Init` loads save and calls `RestoreChannels`; default tab (one private tab per player on first join) working; `IMC_Notes` wired. Known bug 2.6 (consecutive tabs). Still pending: rich text toolbar fix (toolbar scrolls with content), word wrapping, Enter key scroll bug — see `project_rich_text_backlog.md`.
+- [~] Shared notes — `SRichTextEditor` + `SRichTextArea` functional: multi-run document model, format-aware insertion, cursor sync, Ctrl+B/I/U/S, multi-run backspace/delete, run merging, visual per-run rendering, selection rendering, per-run font, word wrapping all complete. `FNoteRecord` + `USessionNotesSave` implemented; `UFunctionLibrary::GetNotesSaveSlotName` + `LoadSessionNotesSave` added; `USessionNotesComponent` with RPC stubs implemented; `USessionUIComponent::Init` loads save and calls `RestoreChannels`; default tab (one private tab per player on first join) working; `IMC_Notes` wired. Still pending: `ComputeDesiredSize` and `DrawHighlight` update for visual lines, rich text toolbar fix (toolbar scrolls with content).
 > **Testing blocked:** Chat log persistence and session notes save/restore have not been tested end-to-end. Both require a fully initialized session context (`USessionInstance` with valid `PlayerID` and `SessionID`, live `USessionSave`/`USessionNotesSave`). Testing is blocked until session start/join flow is functional.
 
 - [ ] Pre-session lobby (waiting room; pre-game chat; character sheet accessible while waiting; Host sees connection status and launches when ready)
@@ -2040,7 +2041,7 @@ This approach keeps all save I/O within UE's native save game system and makes a
 
 ---
 
-*Last updated: 2026-05-10* — Word wrap layout cache added to `SRichTextArea`: `FVisualLine` struct, `CachedWidth`/`CachedText`/`VisualLines` mutable fields, `RebuildVisualLines` method; cache invalidation check at top of `OnPaint`; rendering loop not yet updated to consume `VisualLines`.
+*Last updated: 2026-05-12* — Word wrap complete: `SRichTextArea::OnPaint` rendering loop updated to use `VisualLines` (outer visual-line loop, inner run-clip walk with `ClipStart`/`ClipEnd` math); `GetCursorPosition` and `HitTest` converted from static to `const` instance methods and updated to walk `VisualLines`; `OnUpOrDownPressed` updated to use `TextAreaRef->GetVisualLines()`/`GetCachedText()`; `GetVisualLines()` and `GetCachedText()` public getters added to `SRichTextArea`.
 
 ---
 

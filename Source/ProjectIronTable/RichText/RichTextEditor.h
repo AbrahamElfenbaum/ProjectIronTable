@@ -68,7 +68,7 @@ private:
 	void OnBackspaceOrDeletePressed(int32 CursorPos);
 
 	/** Moves the cursor up or down one line, landing on the character closest to the current X pixel position. */
-	void OnUpOrDownPressed(const TArray<FString>& Lines, FVector2f CursorPos, float Scale, float TabSpace, bool bUp);
+	void OnUpOrDownPressed(FVector2f CursorPos, float Scale, float TabSpace, bool bUp);
 
 	/** Updates ActiveFormat to match the format flags of the run currently under the cursor. Called after any operation that moves CursorPosition. */
 	void SyncActiveFormat();

@@ -93,12 +93,18 @@ public:
 					   FVector2f StartPos, FVector2f EndPos, float LineHeight, float InScale) const;
 
 	/** Returns the pixel X and Y position of the cursor within the document, accounting for tab stops and newlines. TabSpace is the pre-measured width of a single tab gap in layout coordinates. Used by SRichTextEditor for Up/Down navigation. */
-	static FVector2f GetCursorPosition(const FRichTextDocument& InDocument, int32 InCursorPosition, float TabSpace, float InScale);
+	FVector2f GetCursorPosition(const FRichTextDocument& InDocument, int32 InCursorPosition, float TabSpace, float InScale) const;
 
 	/** Returns the layout-space pixel width of the given text string using the given font and scale. Scale division is applied internally — result is in unscaled layout coordinates. */
 	static float MeasureText(const FString& Text, const FSlateFontInfo& FontInfo, float InScale);
 
 	/** Converts a local-space mouse position to the nearest document character index by finding the target line via Y, then walking characters by X. */
-	static int32 HitTest(FVector2f LocalMousePos, const FRichTextDocument& InDocument, float InScale);
+	int32 HitTest(FVector2f LocalMousePos, const FRichTextDocument& InDocument, float InScale) const;
+
+	/** Returns the current visual line layout cache. Used by SRichTextEditor for Up/Down navigation and cursor positioning. */
+	const TArray<FVisualLine>& GetVisualLines() { return VisualLines; }
+
+	/** Returns the document text snapshot used to build the current visual line cache. Used by SRichTextEditor to index into visual line character ranges. */
+	const FString& GetCachedText() { return CachedText; }
 };
 

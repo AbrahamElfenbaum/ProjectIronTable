@@ -172,48 +172,63 @@ int32 SRichTextArea::OnPaint(const FPaintArgs& InArgs, const FGeometry& InAllott
 				float YOffset = 0;
 				float XOffset = 0;
 
-				for (int32 i = 0; i < Document->Runs.Num(); i++)
+				for (const FVisualLine& VisualLine : VisualLines)
 				{
-					const FRichTextRun& Run = Document->Runs[i];
-					FSlateFontInfo FontInfo = Run.FontInfo;
+					XOffset = 0;
+					int32 RunStart = 0;
+					int32 RunEnd = 0;
 
-					if (!Run.bIsBold && !Run.bIsItalic)
+					for (FRichTextRun Run : Document->Runs)
 					{
-						FontInfo.TypefaceFontName = FName(TEXT("Regular"));
-					}
-					else if (Run.bIsBold && !Run.bIsItalic)
-					{
-						FontInfo.TypefaceFontName = FName(TEXT("Bold"));
-					}
-					else if (!Run.bIsBold && Run.bIsItalic)
-					{
-						FontInfo.TypefaceFontName = FName(TEXT("Italic"));
-					}
-					else
-					{
-						FontInfo.TypefaceFontName = FName(TEXT("BoldItalic"));
-					}
-
-					TArray<FString> RunLines;
-					Run.Text.ParseIntoArray(RunLines, TEXT("\n"), false);
-
-					for (int32 j = 0; j < RunLines.Num(); j++)
-					{
-						const FString& RunLine = RunLines[j];
-
-						TArray<FString> LineSegments;
-						RunLine.ParseIntoArray(LineSegments, TEXT("\t"), false);
-
-						for (int32 k = 0; k < LineSegments.Num(); k++)
+						RunEnd = RunStart + Run.Text.Len();
+						if (RunStart >= VisualLine.EndIndex)
 						{
-							const FString& LineSegment = LineSegments[k];
+							break;
+						}
+
+						if (RunEnd <= VisualLine.StartIndex)
+						{
+							continue;
+						}
+
+						int32 ClipStart = FMath::Max(VisualLine.StartIndex, RunStart) - RunStart;
+						int32 ClipEnd = FMath::Min(VisualLine.EndIndex, RunEnd) - RunStart;
+						
+
+						FSlateFontInfo FontInfo = Run.FontInfo;
+
+						if (!Run.bIsBold && !Run.bIsItalic)
+						{
+							FontInfo.TypefaceFontName = FName(TEXT("Regular"));
+						}
+						else if (Run.bIsBold && !Run.bIsItalic)
+						{
+							FontInfo.TypefaceFontName = FName(TEXT("Bold"));
+						}
+						else if (!Run.bIsBold && Run.bIsItalic)
+						{
+							FontInfo.TypefaceFontName = FName(TEXT("Italic"));
+						}
+						else
+						{
+							FontInfo.TypefaceFontName = FName(TEXT("BoldItalic"));
+						}
+
+						FString RunClip = Run.Text.Mid(ClipStart, ClipEnd - ClipStart);
+
+						TArray<FString> TabSegments;
+						RunClip.ParseIntoArray(TabSegments, TEXT("\t"), false);
+
+						for (int32 k = 0; k < TabSegments.Num(); k++)
+						{
+							const FString& TabSegment = TabSegments[k];
 
 							DrawTextSegment(InOutDrawElements, InLayerId,
-								InAllottedGeometry, LineSegment,
+								InAllottedGeometry, TabSegment,
 								FontInfo, XOffset,
 								YOffset, InInWidgetStyle.GetColorAndOpacityTint());
 
-							float UnderlineStrikethroughWidth = MeasureText(LineSegment.TrimEnd(), FontInfo, Scale);
+							float UnderlineStrikethroughWidth = MeasureText(TabSegment.TrimEnd(), FontInfo, Scale);
 
 							if (Run.bIsUnderline)
 							{
@@ -229,19 +244,18 @@ int32 SRichTextArea::OnPaint(const FPaintArgs& InArgs, const FGeometry& InAllott
 									XOffset, YOffset + LineHeight * 0.5f, UnderlineStrikethroughWidth);
 							}
 
-							XOffset += MeasureText(LineSegment, FontInfo, InAllottedGeometry.Scale);
-							if (k < LineSegments.Num() - 1)
+							XOffset += MeasureText(TabSegment, FontInfo, InAllottedGeometry.Scale);
+							if (k < TabSegments.Num() - 1)
 							{
 								XOffset += TabSpace;
 							}
 						}
 
-						if (j < RunLines.Num() - 1)
-						{
-							XOffset = 0;
-							YOffset += LineHeight;
-						}
+
+						RunStart = RunEnd;
 					}
+
+					YOffset += LineHeight;
 				}
 
 				FVector2f CursorPos = GetCursorPosition(*Document, *CursorPosition, TabSpace, Scale);
@@ -299,40 +313,35 @@ void SRichTextArea::DrawHighlight(FSlateWindowElementList& ElementList, uint32 I
 }
 
 // Returns the pixel X and Y position of the cursor within the document, based on font measurement and line splitting.
-FVector2f SRichTextArea::GetCursorPosition(const FRichTextDocument& InDocument, int32 InCursorPosition, float TabSpace, float InScale)
+FVector2f SRichTextArea::GetCursorPosition(const FRichTextDocument& InDocument, int32 InCursorPosition, float TabSpace, float InScale) const
 {
-	TArray<FString> Lines = InDocument.GetLines();
 	float LineHeight = UFunctionLibrary::GetDocumentLineHeight(InDocument, InScale);
-
 	float CursorX = 0;
 	float CursorY = 0;
 
-	int32 CharCount = 0;
-
-	for (const FString& Line : Lines)
+	for (const FVisualLine& VisualLine : VisualLines)
 	{
-		if (CharCount + Line.Len() >= InCursorPosition)
+		if (InCursorPosition >= VisualLine.StartIndex && 
+			InCursorPosition <= VisualLine.EndIndex)
 		{
 			TArray<FString> LineSegments;
-			Line.ParseIntoArray(LineSegments, TEXT("\t"), false);
+			CachedText.Mid(VisualLine.StartIndex, VisualLine.EndIndex - VisualLine.StartIndex).ParseIntoArray(LineSegments, TEXT("\t"), false);
 			float SegmentOffset = 0;
 			int32 SegCharCount = 0;
 			for (const FString& LineSegment : LineSegments)
 			{
-				if (SegCharCount + LineSegment.Len() >= InCursorPosition - CharCount)
+				if (SegCharCount + LineSegment.Len() >= InCursorPosition - VisualLine.StartIndex)
 				{
-					CursorX = SegmentOffset + MeasureText(LineSegment.Left(InCursorPosition - CharCount - SegCharCount), 
-														  FindFontAtIndex(InDocument, CharCount + SegCharCount), InScale) + 1;
+					CursorX = SegmentOffset + MeasureText(LineSegment.Left(InCursorPosition - VisualLine.StartIndex - SegCharCount),
+						FindFontAtIndex(InDocument, VisualLine.StartIndex + SegCharCount), InScale) + 1;
 					break;
 				}
-				SegmentOffset += MeasureText(LineSegment, FindFontAtIndex(InDocument, CharCount + SegCharCount), InScale) + TabSpace;
+				SegmentOffset += MeasureText(LineSegment, FindFontAtIndex(InDocument, VisualLine.StartIndex + SegCharCount), InScale) + TabSpace;
 				SegCharCount += LineSegment.Len() + 1;
 			}
 			break;
 		}
 		CursorY += LineHeight;
-		CharCount += Line.Len();
-		CharCount++;
 	}
 
 	return FVector2f(CursorX, CursorY);
@@ -346,24 +355,18 @@ float SRichTextArea::MeasureText(const FString& Text, const FSlateFontInfo& Font
 }
 
 // Converts a local-space mouse position to the nearest document character index by finding the target line via Y, then walking characters by X.
-int32 SRichTextArea::HitTest(FVector2f LocalMousePos, const FRichTextDocument& InDocument, float InScale)
+int32 SRichTextArea::HitTest(FVector2f LocalMousePos, const FRichTextDocument& InDocument, float InScale) const
 {
-	TArray<FString> Lines = InDocument.GetLines();
 	float LineHeight = UFunctionLibrary::GetDocumentLineHeight(InDocument, InScale);
-	int32 TargetLine = FMath::Clamp((int32)(LocalMousePos.Y / LineHeight), 0, Lines.Num() - 1);
-
-	int32 CursorPosition = 0;
-	for (int32 i = 0; i < TargetLine; i++)
-	{
-		CursorPosition += Lines[i].Len() + 1;
-	}
-
+	int32 TargetLine = FMath::Clamp((int32)(LocalMousePos.Y / LineHeight), 0, VisualLines.Num() - 1);
 	int32 CharInLine = 0;
 	float LeftEdge = 0.f;
-	for (int32 i = 0; i < Lines[TargetLine].Len(); i++)
+
+	for (int32 i = VisualLines[TargetLine].StartIndex; i < VisualLines[TargetLine].EndIndex; i++)
 	{
 		float RightEdge = FSlateApplication::Get().GetRenderer()->GetFontMeasureService()
-			->Measure(Lines[TargetLine].Left(i + 1), FindFontAtIndex(InDocument, CursorPosition + i), InScale).X / InScale;
+			->Measure(CachedText.Mid(VisualLines[TargetLine].StartIndex, i - VisualLines[TargetLine].StartIndex + 1), 
+					  FindFontAtIndex(InDocument, i), InScale).X / InScale;
 
 		float Midpoint = (RightEdge + LeftEdge) / 2.f;
 
@@ -371,11 +374,9 @@ int32 SRichTextArea::HitTest(FVector2f LocalMousePos, const FRichTextDocument& I
 		{
 			break;
 		}
-		CharInLine = i + 1;
+		CharInLine = i - VisualLines[TargetLine].StartIndex + 1;
 		LeftEdge = RightEdge;
 	}
-	
-	CursorPosition += CharInLine;
 
-	return CursorPosition;
+	return VisualLines[TargetLine].StartIndex + CharInLine;
 }

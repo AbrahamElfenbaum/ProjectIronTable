@@ -84,7 +84,7 @@ void SRichTextEditor::OnBackspaceOrDeletePressed(int32 CursorPos)
 }
 
 // Moves the cursor up or down one line, finding the character on the target line closest to the cursor's X pixel position.
-void SRichTextEditor::OnUpOrDownPressed(const TArray<FString>& Lines, FVector2f CursorPos, float Scale, float TabSpace, bool bUp)
+void SRichTextEditor::OnUpOrDownPressed(FVector2f CursorPos, float Scale, float TabSpace, bool bUp)
 {
 	FSlateFontInfo FontInfo;
 	float LineHeight = UFunctionLibrary::GetDocumentLineHeight(Document, Scale, &FontInfo);
@@ -97,14 +97,16 @@ void SRichTextEditor::OnUpOrDownPressed(const TArray<FString>& Lines, FVector2f 
 		PreferredX = CursorPos.X;
 	}
 
-	if (!((bUp && TargetLine < 0) || (!bUp && TargetLine >= Lines.Num())))
+	if (!((bUp && TargetLine < 0) || (!bUp && TargetLine >= TextAreaRef->GetVisualLines().Num())))
 	{
 		int32 CharInLine = 0;
 		float XOffset = 0.f;
 
-		for (int32 i = 0; i < Lines[TargetLine].Len(); i++)
+		int32 EndIndex = TextAreaRef->GetVisualLines()[TargetLine].EndIndex - TextAreaRef->GetVisualLines()[TargetLine].StartIndex;
+
+		for (int32 i = 0; i < EndIndex; i++)
 		{
-			TCHAR CurrChar = Lines[TargetLine][i];
+			TCHAR CurrChar = TextAreaRef->GetCachedText()[TextAreaRef->GetVisualLines()[TargetLine].StartIndex + i];
 			float CharWidth = (CurrChar == '\t' ? TabSpace :
 												 FSlateApplication::Get().GetRenderer()->GetFontMeasureService()
 												 ->Measure(FString(1, &CurrChar), FontInfo, Scale).X / Scale);
@@ -119,13 +121,7 @@ void SRichTextEditor::OnUpOrDownPressed(const TArray<FString>& Lines, FVector2f 
 			XOffset += CharWidth;
 		}
 
-		int32 NewCursorPosition = 0;
-		for (int32 i = 0; i < TargetLine; i++)
-		{
-			NewCursorPosition += Lines[i].Len() + 1;
-		}
-		NewCursorPosition += CharInLine;
-		CursorPosition = NewCursorPosition;
+		CursorPosition = TextAreaRef->GetVisualLines()[TargetLine].StartIndex + CharInLine;
 	}
 }
 
@@ -174,7 +170,7 @@ void SRichTextEditor::PruneRuns()
 int32 SRichTextEditor::GetAreaCursorPosition(const FPointerEvent& MouseEvent)
 {
 	FVector2f LocalMousePos = FVector2f(TextAreaRef->GetTickSpaceGeometry().AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()));
-	return SRichTextArea::HitTest(LocalMousePos, Document, TextAreaRef->GetTickSpaceGeometry().Scale);
+	return TextAreaRef->HitTest(LocalMousePos, Document, TextAreaRef->GetTickSpaceGeometry().Scale);
 }
 
 // Walks Document.Runs from the run containing SelectionMin to the run containing SelectionMax, clipping each run's text to the selection boundaries and copying all format flags.
@@ -350,9 +346,7 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 	float LineHeight = UFunctionLibrary::GetDocumentLineHeight(Document, MyGeometry.Scale, &FontInfo);
 
 	float TabSpace = SRichTextArea::MeasureText(TEXT("    "), FontInfo, MyGeometry.Scale);
-	FVector2f CursorPos = SRichTextArea::GetCursorPosition(Document, CursorPosition, TabSpace, MyGeometry.Scale);
-
-	TArray<FString> Lines = Document.GetLines();
+	FVector2f CursorPos = TextAreaRef->GetCursorPosition(Document, CursorPosition, TabSpace, MyGeometry.Scale);
 
 	if (DownKey == EKeys::BackSpace)
 	{
@@ -406,14 +400,14 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 	else if (DownKey == EKeys::Up)
 	{
 		HandleSelectionOnMove(bShiftDown);
-		OnUpOrDownPressed(Lines, CursorPos, MyGeometry.Scale, TabSpace, true);
+		OnUpOrDownPressed(CursorPos, MyGeometry.Scale, TabSpace, true);
 		bVerticalMove = true;
 		bHandled = true;
 	}
 	else if (DownKey == EKeys::Down)
 	{
 		HandleSelectionOnMove(bShiftDown);
-		OnUpOrDownPressed(Lines, CursorPos, MyGeometry.Scale, TabSpace, false);
+		OnUpOrDownPressed(CursorPos, MyGeometry.Scale, TabSpace, false);
 		bVerticalMove = true;
 		bHandled = true;
 	}
