@@ -4,6 +4,19 @@
 
 ---
 
+## 2026-05-18
+
+**Implementation:**
+- `SRichTextEditor::SetFontStyle(UFont*)` and `SetFontSize(int32)` added; `SetFontStyle` constructs a new `FSlateFontInfo` preserving current size/typeface, then calls `FormatToSelection` to apply to any active selection; `SetFontSize` updates `ActiveFormat.FontInfo.Size` and calls `FormatToSelection`
+- `UEditableRichText` gains `SetFontStyle` and `SetFontSize` passthrough methods; include order fixed (`EditableRichText.h` first, then `Engine/Font.h`)
+- `USessionNotesChannel` gains font toolbar: `FontStyleDropdown (UComboBoxString)`, `FontSizeText (UTextBlock)`, `FontSizeUpButton`/`FontSizeDownButton (UButton)` BindWidgets; `AvailableFonts (TArray<TObjectPtr<UFont>>)` config field; `OnFontStyleChanged`, `OnFontSizeUpClicked`, `OnFontSizeDownClicked` event handlers; `NativeConstruct` populates dropdown, initializes size display, binds all three
+- Three composite UFont assets imported (`Content/Fonts/`): JetBrains Mono, Source Code Pro, DM Mono — each with Regular/Bold/Italic/Bold Italic typefaces
+- Bug 2.10 fixed: `SRichTextArea::OnPaint` inner run-clip walk now updates `RunStart = RunEnd` before `continue` — previously, subsequent runs computed their end offset from the wrong base and never rendered
+- Bug 2.11 fixed: Enter and Tab in `SRichTextEditor::OnKeyDown` now `return FReply::Handled()` early, bypassing the `bHandled` block that called `SyncActiveFormat()` and silently re-enabled toggled-off format flags
+- `SRichTextArea::ComputeDesiredSize` now falls back to `Document->GetLines().Num()` before `VisualLines` is populated (cold start); previously returned incorrect height until first paint
+
+---
+
 ## 2026-05-12
 
 **Implementation:**

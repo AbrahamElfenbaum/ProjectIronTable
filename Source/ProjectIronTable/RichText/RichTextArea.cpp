@@ -112,8 +112,7 @@ void SRichTextArea::RebuildVisualLines(const FSlateFontInfo& InFontInfo, float I
 	VisualLines.Add(FVisualLine(CurrentLineStart, CachedText.Len()));
 }
 
-// Returns zero until document content is measured.
-// Returns zero width (filled by parent) and the total document height based on line count and line height.
+// Returns zero width and a height based on visual line count; falls back to hard newline count before the first paint populates VisualLines.
 FVector2D SRichTextArea::ComputeDesiredSize(float InLayoutScaleMultiplier) const
 {
 	if (!Document)
@@ -121,9 +120,15 @@ FVector2D SRichTextArea::ComputeDesiredSize(float InLayoutScaleMultiplier) const
 		return FVector2D::ZeroVector;
 	}
 
-	TArray<FString> Lines = Document->GetLines();
+	if (VisualLines.IsEmpty())
+	{
+		TArray<FString> Lines = Document->GetLines();
+		float LineHeight = UFunctionLibrary::GetDocumentLineHeight(*Document, InLayoutScaleMultiplier);
+		return FVector2D(0.f, FMath::Max(1, Lines.Num()) * LineHeight);
+	}
+
 	float LineHeight = UFunctionLibrary::GetDocumentLineHeight(*Document, InLayoutScaleMultiplier);
-	return FVector2D(0.f, FMath::Max(1, Lines.Num()) * LineHeight);
+	return FVector2D(0.f, FMath::Max(1, VisualLines.Num()) * LineHeight);
 }
 
 // Iterates document runs and draws each as text within the allotted geometry.
@@ -160,12 +165,9 @@ int32 SRichTextArea::OnPaint(const FPaintArgs& InArgs, const FGeometry& InAllott
 					FVector2f HighlightEndPos = GetCursorPosition(*Document, FMath::Max(*SelectionAnchor, *CursorPosition),
 						TabSpace, Scale);
 
-					TArray<FString> Lines = Document->GetLines();
-
 					DrawHighlight(InOutDrawElements, InLayerId, InAllottedGeometry,
-						FLinearColor(0.2f, 0.5f, 1.0f, 0.5f), Lines,
-						BestFontInfo, HighlightStartPos, HighlightEndPos, 
-						LineHeight, Scale);
+						FLinearColor(0.2f, 0.5f, 1.0f, 0.5f), BestFontInfo, 
+						HighlightStartPos, HighlightEndPos, LineHeight, Scale);
 				}
 				
 
@@ -188,6 +190,7 @@ int32 SRichTextArea::OnPaint(const FPaintArgs& InArgs, const FGeometry& InAllott
 
 						if (RunEnd <= VisualLine.StartIndex)
 						{
+							RunStart = RunEnd;
 							continue;
 						}
 
@@ -293,8 +296,8 @@ void SRichTextArea::DrawLine(FSlateWindowElementList& ElementList, uint32 InLaye
 // Draws a highlight rect for each line segment within the selection range, using StartPos for the first line's left edge and EndPos for the last line's right edge.
 void SRichTextArea::DrawHighlight(FSlateWindowElementList& ElementList, uint32 InLayer,
 								  const FGeometry& Geometry, const FLinearColor& Color,
-								  const TArray<FString>& InLines, const FSlateFontInfo& InFontInfo,
-								  FVector2f StartPos, FVector2f EndPos, float LineHeight, float InScale) const
+								  const FSlateFontInfo& InFontInfo, FVector2f StartPos, 
+								  FVector2f EndPos, float LineHeight, float InScale) const
 {
 
 	int32 StartLine = StartPos.Y / LineHeight;
@@ -304,7 +307,8 @@ void SRichTextArea::DrawHighlight(FSlateWindowElementList& ElementList, uint32 I
 	{
 		float TopY = LineHeight * i;
 		float LeftX = (i == StartLine ? StartPos.X : 0);
-		float RightX = (i == EndLine ? EndPos.X : MeasureText(InLines[i], InFontInfo, InScale));
+		float RightX = (i == EndLine ? EndPos.X : MeasureText(CachedText.Mid(VisualLines[i].StartIndex, VisualLines[i].EndIndex - VisualLines[i].StartIndex), 
+															  InFontInfo, InScale));
 
 		FSlateDrawElement::MakeBox(ElementList, InLayer, 
 								   Geometry.ToPaintGeometry(FVector2D(RightX - LeftX, LineHeight), FSlateLayoutTransform(FVector2D(LeftX, TopY))),

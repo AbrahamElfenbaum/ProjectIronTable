@@ -1,5 +1,6 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "RichTextEditor.h"
+#include "Engine/Font.h"
 
 #include "Fonts/FontMeasure.h"
 
@@ -423,23 +424,27 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 	}
 	else if (DownKey == EKeys::Enter)
 	{
-		bDocumentModified = true;
+		//bDocumentModified = true;
 		if (SelectionAnchor != -1)
 		{
 			RangeDelete();
 		}
 		DrawSpecialCharacter('\n');
-		bHandled = true;
+		OnDocumentChanged.Broadcast();
+		return FReply::Handled();
+		//bHandled = true;
 	}
 	else if (DownKey == EKeys::Tab)
 	{
-		bDocumentModified = true;
+		//bDocumentModified = true;
 		if (SelectionAnchor != -1)
 		{
 			RangeDelete();
 		}
 		DrawSpecialCharacter('\t');
-		bHandled = true;
+		OnDocumentChanged.Broadcast();
+		return FReply::Handled();
+		//bHandled = true;
 	}
 	else if (bControlDown && DownKey == EKeys::A)
 	{
@@ -605,6 +610,21 @@ void SRichTextEditor::ToggleStrikethrough(bool bEnable)
 {
 	ActiveFormat.bIsStrikethrough = bEnable;
 	FormatToSelection([bEnable](FRichTextRun& Run) { Run.bIsStrikethrough = bEnable; });
+}
+
+// Builds a new FSlateFontInfo from InFont preserving the current size and typeface variant, then applies to ActiveFormat and any current selection.
+void SRichTextEditor::SetFontStyle(UFont* InFont)
+{
+	FSlateFontInfo NewFontInfo(InFont, ActiveFormat.FontInfo.Size, ActiveFormat.FontInfo.TypefaceFontName);
+	ActiveFormat.FontInfo = NewFontInfo;
+	FormatToSelection([NewFontInfo](FRichTextRun& Run) { Run.FontInfo = NewFontInfo; });
+}
+
+// Updates ActiveFormat font size and applies to any current selection.
+void SRichTextEditor::SetFontSize(int32 InFontSize)
+{
+	ActiveFormat.FontInfo.Size = InFontSize;
+	FormatToSelection([InFontSize](FRichTextRun& Run) { Run.FontInfo.Size = InFontSize; });
 }
 
 // Returns the current document.

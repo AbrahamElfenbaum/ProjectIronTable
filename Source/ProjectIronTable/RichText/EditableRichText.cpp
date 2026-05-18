@@ -1,6 +1,8 @@
 // Copyright 2026 Abraham Elfenbaum. All Rights Reserved.
 #include "EditableRichText.h"
 
+#include "Engine/Font.h"
+
 // Creates the SRichTextEditor Slate widget and returns it for UMG to display.
 TSharedRef<SWidget> UEditableRichText::RebuildWidget()
 {
@@ -48,6 +50,24 @@ void UEditableRichText::ToggleStrikethrough(bool bEnable)
 	if (RichTextEditor)
 	{
 		RichTextEditor->ToggleStrikethrough(bEnable);
+	}
+}
+
+// Passes the font style change to the Slate editor if it is valid.
+void UEditableRichText::SetFontStyle(UFont* InFont)
+{
+	if (RichTextEditor)
+	{
+		RichTextEditor->SetFontStyle(InFont);
+	}
+}
+
+// Passes the font size change to the Slate editor if it is valid.
+void UEditableRichText::SetFontSize(int32 InFontSize)
+{
+	if (RichTextEditor)
+	{
+		RichTextEditor->SetFontSize(InFontSize);
 	}
 }
 

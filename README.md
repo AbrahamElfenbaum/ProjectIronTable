@@ -87,6 +87,7 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - `Blueprints/Dice/DiceActors/` — Individual die blueprints
 - `Blueprints/Utility/` — Utility blueprints
 - `Data/DataAssets/Dice/` — Dice data assets
+- `Fonts/` — Three composite UFont assets (JetBrains Mono, Source Code Pro, DM Mono); each holds Regular/Bold/Italic/Bold Italic typefaces
 - `Levels/Dev/` — Development/test levels (`Dev_` prefix)
 - `Levels/HomeScreen/` — Home screen level (`L_HomeScreen`)
 - `Levels/Session/` — Session levels (`L_Session`)

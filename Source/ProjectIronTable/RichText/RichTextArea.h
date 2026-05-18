@@ -68,7 +68,7 @@ public:
 	/** Stores the document reference passed in via SLATE_ARGUMENT. */
 	void Construct(const FArguments& InArgs);
 
-	/** Returns the desired size of the text area. */
+	/** Returns zero width (filled by parent) and a height based on visual line count and line height. Falls back to hard newline count before the first paint populates VisualLines. */
 	FVector2D ComputeDesiredSize(float InLayoutScaleMultiplier) const override;
 
 	/** Draws each document run as text within the allotted geometry. */
@@ -86,11 +86,11 @@ public:
 				  const FPaintGeometry& PaintGeometry, const FLinearColor& Color,
 				  float XOffset, float YOffset, float Width) const;
 
-	/** Draws a highlight rect behind each line segment that falls within the selection, from StartPos on the first line to EndPos on the last. */
+	/** Draws a highlight rect behind each visual line segment within the selection. Uses VisualLines and CachedText to measure non-terminal line widths. StartPos is the left edge of the first line; EndPos is the right edge of the last. */
 	void DrawHighlight(FSlateWindowElementList& ElementList, uint32 InLayer,
 					   const FGeometry& Geometry, const FLinearColor& Color,
-					   const TArray<FString>& InLines, const FSlateFontInfo& InFontInfo,
-					   FVector2f StartPos, FVector2f EndPos, float LineHeight, float InScale) const;
+					   const FSlateFontInfo& InFontInfo, FVector2f StartPos,
+					   FVector2f EndPos, float LineHeight, float InScale) const;
 
 	/** Returns the pixel X and Y position of the cursor within the document, accounting for tab stops and newlines. TabSpace is the pre-measured width of a single tab gap in layout coordinates. Used by SRichTextEditor for Up/Down navigation. */
 	FVector2f GetCursorPosition(const FRichTextDocument& InDocument, int32 InCursorPosition, float TabSpace, float InScale) const;

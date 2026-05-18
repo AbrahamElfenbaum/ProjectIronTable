@@ -6,6 +6,10 @@
 
 class UEditableRichText;
 class UCheckBox;
+class UComboBoxString;
+class UTextBlock;
+class UButton;
+class UFont;
 
 /** A single notes channel widget. Holds a rich text editor and a unique ChannelID used as the save key in USessionSave. */
 UCLASS()
@@ -35,6 +39,23 @@ private:
 	/** Toolbar checkbox for toggling strikethrough formatting on the active selection or newly typed text. */
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UCheckBox> StrikethroughCheckBox;
+
+	/** Dropdown for selecting the active font style applied to new text or the current selection. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UComboBoxString> FontStyleDropdown;
+
+	/** Displays the current font size as a number. Updated whenever the size changes. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> FontSizeText;
+
+	/** Increments the font size by one step when clicked. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> FontSizeUpButton;
+
+	/** Decrements the font size by one step when clicked. */
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> FontSizeDownButton;
+
 #pragma endregion
 
 public:
@@ -45,6 +66,13 @@ public:
 
 	/** Guards against feedback loops when OnFormatChanged programmatically sets checkbox states — prevents the resulting OnCheckStateChanged callbacks from calling Toggle* on the editor. */
 	bool bIsSyncing = false;
+
+	/** Current font size applied to newly typed text and used as the base for size up/down increments. */
+	int32 CurrentFontSize = 12;
+
+	/***/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<TObjectPtr<UFont>> AvailableFonts;
 #pragma endregion
 
 private:
@@ -71,6 +99,18 @@ private:
 	/** Forwards the strikethrough checkbox state to the rich text editor when the user toggles it. */
 	UFUNCTION()
 	void OnStrikethroughCheckStateChanged(bool bIsChecked);
+
+	/** Forwards the selected font style name to the rich text editor when the user changes the dropdown selection. */
+	UFUNCTION()
+	void OnFontStyleChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
+
+	/** Increments CurrentFontSize by one step, clamps to the maximum, updates FontSizeText, and forwards to the rich text editor. */
+	UFUNCTION()
+	void OnFontSizeUpClicked();
+
+	/** Decrements CurrentFontSize by one step, clamps to the minimum, updates FontSizeText, and forwards to the rich text editor. */
+	UFUNCTION()
+	void OnFontSizeDownClicked();
 
 	/** Receives format state broadcasts from the rich text editor and updates the toolbar checkboxes, guarded by bIsSyncing to prevent feedback loops. */
 	UFUNCTION()

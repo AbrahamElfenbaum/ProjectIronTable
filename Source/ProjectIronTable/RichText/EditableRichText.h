@@ -5,6 +5,8 @@
 #include "RichTextEditor.h"
 #include "EditableRichText.generated.h"
 
+class UFont;
+
 /** UMG wrapper around SRichTextEditor. Bridges the Slate rich-text editor widget into the UMG widget system. */
 UCLASS()
 class PROJECTIRONTABLE_API UEditableRichText : public UWidget
@@ -40,6 +42,12 @@ public:
 
 	/** Sets whether newly typed text and any selected text will be rendered with a strikethrough. */
 	void ToggleStrikethrough(bool bEnable);
+
+	/** Sets the font used for newly typed text and any current selection, preserving the current size and typeface variant (Bold/Italic). */
+	void SetFontStyle(UFont* InFont);
+
+	/** Sets the font size for newly typed text and any current selection. */
+	void SetFontSize(int32 InFontSize);
 
 	/** Returns the current document for serialization. */
 	FRichTextDocument GetDocument() const;

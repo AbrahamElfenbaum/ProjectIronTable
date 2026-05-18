@@ -669,7 +669,7 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 
 ---
 
-*Last updated: 2026-05-11* — Filled in three TBD sections: Measurement Tools (D&D 5e tool set, grid-snap vs. free-float modes, Z-axis open question), Scheduling (minimum scope only — browser filter use case), Campaign Manager layout (left sidebar + 3-per-row campaign grid). Both Scheduling and Campaign Manager layout moved to Resolved.
+*Last updated: 2026-05-18* — No design changes this session; implementation work only (font size/style editor, bug fixes).
 
 ---
 

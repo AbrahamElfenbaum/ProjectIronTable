@@ -5,6 +5,7 @@
 #include "RichTextDocument.h"
 
 class SRichTextArea;
+class UFont;
 
 DECLARE_MULTICAST_DELEGATE(FOnDocumentChanged)
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnFormatStateChanged, bool, bool, bool, bool)
@@ -133,6 +134,12 @@ public:
 
 	/** Sets whether newly typed text and any selected text will be rendered with a strikethrough. */
 	void ToggleStrikethrough(bool bEnable);
+
+	/** Sets the font used for newly typed text and any current selection, preserving the current size and typeface variant (Bold/Italic). */
+	void SetFontStyle(UFont* InFont);
+
+	/** Sets the font size for newly typed text and any current selection. */
+	void SetFontSize(int32 InFontSize);
 
 	/** Returns the current document for serialization. */
 	FRichTextDocument GetDocument() const;

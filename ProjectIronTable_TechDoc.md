@@ -103,6 +103,7 @@ Content/
 │   └── Pawns/
 │       └── P_Session      — Camera pawn Blueprint
 ├── Data/DataAssets/Dice/       — DA_ prefixed dice data assets
+├── Fonts/                      — Three composite UFont assets (JetBrains Mono, Source Code Pro, DM Mono); each holds Regular/Bold/Italic/Bold Italic typefaces
 ├── Input/
 │   ├── Session/                — IMC_Session, IA_CameraMove, IA_CameraPan, IA_CameraPanReset, IA_CameraSprint, IA_CameraZoom, IA_FocusChat
 │   └── Chat/                   — IMC_Chat, IA_ExitChat
@@ -1345,14 +1346,21 @@ Notes support rich-text formatting (bold, italic, underline, strikethrough, head
 
 Single notes channel widget. Inherits `UBaseChannel`. Holds a `UEditableRichText Notes` widget and a B/I/U/S formatting toolbar as `BindWidget` UCheckBoxes. Each instance generates a unique `FGuid ChannelID` in `NativeConstruct`.
 
-**Bound Widgets:** `Notes` (`UEditableRichText`), `BoldCheckBox`, `ItalicCheckBox`, `UnderlineCheckBox`, `StrikethroughCheckBox` (`UCheckBox`) — all `BindWidget`.
+**Bound Widgets:** `Notes` (`UEditableRichText`), `BoldCheckBox`, `ItalicCheckBox`, `UnderlineCheckBox`, `StrikethroughCheckBox` (`UCheckBox`), `FontStyleDropdown` (`UComboBoxString`), `FontSizeText` (`UTextBlock`), `FontSizeUpButton`, `FontSizeDownButton` (`UButton`) — all `BindWidget`.
 
 **State:**
 
-| Field        | Type    | Notes                                                                                                           |
-|--------------|---------|-----------------------------------------------------------------------------------------------------------------|
-| `ChannelID`  | `FGuid` | Save key — generated in `NativeConstruct`                                                                       |
-| `bIsSyncing` | `bool`  | Guards against feedback loops when `OnFormatChanged` programmatically sets checkbox states; handlers return early if set |
+| Field             | Type                 | Notes                                                                                                                    |
+|-------------------|----------------------|--------------------------------------------------------------------------------------------------------------------------|
+| `ChannelID`       | `FGuid`              | Save key — generated in `NativeConstruct`                                                                                |
+| `bIsSyncing`      | `bool`               | Guards against feedback loops when `OnFormatChanged` programmatically sets checkbox states; handlers return early if set |
+| `CurrentFontSize` | `int32` (default 12) | Tracks active font size for spinner state and min/max enforcement (min 6, max 72)                                        |
+
+**Config:**
+
+| Field            | Type                        | Notes                                                                                                                      |
+|------------------|-----------------------------|---------------------------------------------------------------------------------------------------------------------------|
+| `AvailableFonts` | `TArray<TObjectPtr<UFont>>` | Populated in Blueprint defaults; entries drive `FontStyleDropdown`; matched by `Font->GetName()` in `OnFontStyleChanged` |
 
 **Event Handlers:**
 
@@ -1360,6 +1368,9 @@ Single notes channel widget. Inherits `UBaseChannel`. Holds a `UEditableRichText
 |--------|------------|-------------|
 | `OnBoldCheckStateChanged` / `OnItalicCheckStateChanged` / `OnUnderlineCheckStateChanged` / `OnStrikethroughCheckStateChanged` | `bool` | Each calls the matching `Notes->Toggle*` method, guarded by `bIsSyncing` |
 | `OnFormatChanged` | `bool bBold, bool bItalic, bool bUnderline, bool bStrikethrough` | Bound to `SRichTextEditor::OnFormatStateChanged`; sets `bIsSyncing = true`, updates all four checkboxes via `SetIsChecked`, clears `bIsSyncing` |
+| `OnFontStyleChanged` | `FString SelectedItem, ESelectInfo::Type` | Iterates `AvailableFonts`, matches by `Font->GetName() == SelectedItem`, calls `Notes->SetFontStyle(Font)` |
+| `OnFontSizeUpClicked` | — | Increments `CurrentFontSize` (max 72); updates `FontSizeText`; disables up button at 72, re-enables down button; calls `Notes->SetFontSize` |
+| `OnFontSizeDownClicked` | — | Decrements `CurrentFontSize` (min 6); updates `FontSizeText`; disables down button at 6, re-enables up button; calls `Notes->SetFontSize` |
 
 **`NativeConstruct`:**
 - Calls `Super::NativeConstruct()`
@@ -1367,6 +1378,8 @@ Single notes channel widget. Inherits `UBaseChannel`. Holds a `UEditableRichText
 - Binds `Notes->GetOnDocumentChanged()` → `OnNotesChanged`
 - Binds `Notes->GetOnFormatStateChanged()` → `OnFormatChanged`
 - Binds each checkbox's `OnCheckStateChanged` to its matching handler
+- Populates `FontStyleDropdown` from `AvailableFonts` via `Font->GetName()`; binds `OnSelectionChanged` → `OnFontStyleChanged`
+- Initializes `FontSizeText` to `"12"`; binds `FontSizeUpButton` → `OnFontSizeUpClicked`; binds `FontSizeDownButton` → `OnFontSizeDownClicked`
 
 **Public Methods:**
 
@@ -1485,7 +1498,7 @@ Leaf widget responsible for rendering document text and the cursor. Owned by `SR
 | `HitTest(…) → int32` *(const)* | `FVector2f LocalMousePos, const FRichTextDocument&, float InScale` | Inverse of `GetCursorPosition`. Clamps target line to `VisualLines`, walks `CachedText` chars by document index from `StartIndex` to `EndIndex`, midpoint comparison. Returns `VisualLines[TargetLine].StartIndex + CharInLine` |
 | `GetVisualLines() → const TArray<FVisualLine>&` | — | Returns the current visual line layout cache. Used by `SRichTextEditor` for Up/Down navigation |
 | `GetCachedText() → const FString&` | — | Returns the document text snapshot used to build the current visual line cache. Used by `SRichTextEditor` to index into visual line character ranges |
-| `ComputeDesiredSize` | — | Returns `FVector2f(0, LineHeight * LineCount)`. Width is 0 — the parent scroll box drives width |
+| `ComputeDesiredSize` | — | Returns zero width and height based on visual line count. Falls back to `Document->GetLines().Num()` before the first paint populates `VisualLines` |
 
 > **Gotcha:** `FSlateFontMeasure::Measure` returns pixel values scaled by the geometry scale. Divide by `InScale` before using as a layout coordinate — otherwise cursor drifts right as more text is typed. Include `"Fonts/FontMeasure.h"` (not `"Framework/Text/SlateFontMeasure.h"`).
 
@@ -1538,6 +1551,8 @@ Custom Slate rich-text editor widget. Owns the document model, cursor, selection
 | Method | Parameters | Description |
 |--------|------------|-------------|
 | `ToggleBold/Italic/Underline/Strikethrough` | `bool` | Sets the matching flag on `ActiveFormat` and calls `FormatToSelection` |
+| `SetFontStyle` | `UFont*` | Constructs a new `FSlateFontInfo` preserving current size and typeface, assigns to `ActiveFormat.FontInfo`, calls `FormatToSelection` to apply to any active selection |
+| `SetFontSize` | `int32` | Sets `ActiveFormat.FontInfo.Size`; calls `FormatToSelection` to apply to any active selection |
 | `GetDocument() const` | — | Returns `Document` directly |
 | `SetDocument` | `const FRichTextDocument&` | Assigns document; resets cursor to 0 |
 
@@ -1549,13 +1564,6 @@ Custom Slate rich-text editor widget. Owns the document model, cursor, selection
 | `OnKeyDown` | — | Handles: Backspace/Delete (range-delete if selection, else `OnBackspaceOrDeletePressed`), arrow keys (Left/Right via `HandleSelectionOnMove`; Up/Down via `OnUpOrDownPressed`), Home/End, Enter/Tab (`DrawSpecialCharacter`), Ctrl+A/C/X/V/B/I/U/S. Broadcasts `OnDocumentChanged` only when text changed. Non-vertical keys reset `PreferredX` |
 | `OnMouseButtonDown` | — | Sets focus; resets anchor and `PreferredX`; sets cursor via `GetAreaCursorPosition` |
 | `OnMouseMove` | — | If left button held, extends selection from anchor to cursor; guard prevents anchor being set on sub-character-boundary wobble |
-
-> **Pending — Word Wrapping:** Text currently renders in a single continuous line per hard `\n` break — long lines overflow rather than wrap. Three changes required:
-> 1. **Visual line model** — `OnPaint` splits each logical line (hard `\n`) into wrapped visual lines at word boundaries; character-level fallback for words longer than the full width.
-> 2. **`ComputeDesiredSize` chicken-and-egg** — height depends on visual line count, but visual line count depends on available width (unknown at desired-size time). Fix: cache last allotted width from `OnPaint` in a mutable member; call `Invalidate(EInvalidateWidget::Layout)` when width changes.
-> 3. **Cursor system rewrite** — `GetCursorPosition`, `HitTest`, and `OnUpOrDownPressed` all work on document lines (split by `\n`); all three must be updated to work on visual lines instead.
->
-> This is a significant rendering pipeline change — schedule as a dedicated task.
 
 **Layout:** `ChildSlot` holds `SRichTextArea` directly (no `SVerticalBox` wrapper). The toolbar lives in `W_SessionNotesChannel` above the scroll box. Scrolling is owned by the parent panel. `ActiveFormat.FontInfo` initialized to `FCoreStyle::GetDefaultFontStyle("Regular", 12)` in `Construct`.
 
@@ -1579,6 +1587,8 @@ Thin UMG wrapper around `SRichTextEditor`. Bridges the Slate widget into the UMG
 | `GetDocument() const` | — | Returns `Document`; returns a default-constructed `FRichTextDocument` if the editor is not yet built |
 | `SetDocument` *(BlueprintCallable)* | `const FRichTextDocument&` | Passes through to `SRichTextEditor::SetDocument`; checks `IsValid` first |
 | `ToggleBold/Italic/Underline/Strikethrough` | `bool` | Each checks `RichTextEditor.IsValid()` before calling through |
+| `SetFontStyle` | `UFont*` | Passes through to `SRichTextEditor::SetFontStyle`; guards `RichTextEditor.IsValid()` |
+| `SetFontSize` | `int32` | Passes through to `SRichTextEditor::SetFontSize`; guards `RichTextEditor.IsValid()` |
 | `GetOnDocumentChanged() → FOnDocumentChanged&` | — | Returns the Slate editor's `OnDocumentChanged` delegate for external binding |
 | `GetOnFormatStateChanged() → FOnFormatStateChanged&` | — | Returns the Slate editor's `OnFormatStateChanged` delegate; bound by `USessionNotesChannel::NativeConstruct` to drive the toolbar checkboxes |
 
@@ -1732,6 +1742,10 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - **C++ template functions cannot be `UFUNCTION()`** — templated methods are not compatible with Unreal's reflection system. Blueprint-accessible utilities need a non-template wrapper with a `UClass*` + manual cast, or just remain C++-only
 - **`SCheckBox::SetIsChecked` fires `OnCheckStateChanged` with the previous state** — calling `SetIsChecked(Unchecked)` on a checkbox that was Checked fires the callback with `ECheckBoxState::Checked` (the old value), not `Unchecked`. If the callback writes to shared state (e.g. `ActiveFormat`), it overwrites whatever was just set. Fix: guard all toggle callbacks with a `bIsSyncing` flag set around the `SetIsChecked` calls.
 - **Format toolbar checkboxes must be `.IsFocusable(false)`** — without this, clicking a checkbox gives it keyboard focus. Subsequent Space or Enter keystrokes toggle the checkbox instead of reaching the text editor. Set `.IsFocusable(false)` in `MakeFormatCheckbox` so checkboxes respond only to mouse clicks.
+- **`SRichTextArea::OnPaint` run-clip loop — update `RunStart` before any `continue`** — the inner walk accumulates `RunStart`/`RunEnd` across runs. A bare `continue` without `RunStart = RunEnd` causes the next iteration to start from the wrong base, making subsequent runs compute an `EndIndex` that falls before the visual line start and skip rendering entirely.
+- **Enter/Tab in `OnKeyDown` must `return` before reaching `SyncActiveFormat()`** — the shared `bHandled` block at the bottom calls `SyncActiveFormat()`, which overwrites `ActiveFormat` with the run currently under the cursor. If Enter or Tab fall through to that block, any format flag the user just toggled off is silently re-enabled on the next character typed after the newline.
+- **`FSlateFontInfo(UFont*, float, FName)` requires `#include "Engine/Font.h"`** — without the include, `UFont` is an incomplete type and the constructor fails with a static assertion. Include `Engine/Font.h` in any `.cpp` that constructs `FSlateFontInfo` from a `UFont*`.
+- **Composite UFont typeface name for Bold Italic must include a space: `"Bold Italic"`** — `"BoldItalic"` (no space) does not match the engine's lookup convention and causes all typeface variants to fall back to Bold Italic. Use `TEXT("Bold Italic")` to match Roboto and standard engine assets.
 
 ---
 
@@ -1751,6 +1765,8 @@ Bug codes: `Phase.Sequence` — phase is the feature area the bug lives in, sequ
 | 2.7   | `SCheckBox::SetIsChecked` fires `OnCheckStateChanged` with the previous state — toggling `ActiveFormat` flags off was immediately overwritten after each keystroke because `SyncActiveFormat`'s `SetIsChecked` call re-triggered the callback with the old (Checked) value | `RichTextEditor.cpp`   | Fixed |
 | 2.8   | Clicking a format checkbox gave it keyboard focus — Space and Enter keystrokes then toggled the checkbox instead of inserting into the editor | `RichTextEditor.cpp`   | Fixed |
 | 2.9   | Column drift on repeated Up/Down — each press recomputes `CursorPos.X` from the current `CursorPosition`; landing on a slightly different X shifts the target for the next press and compounds over multiple presses | `RichTextEditor.cpp`   | Fixed — `PreferredX` field; captured on first vertical move, reused across consecutive Up/Down presses, reset to -1 on any non-vertical key or mouse click |
+| 2.10  | In `SRichTextArea::OnPaint`, the inner run-clip walk used `continue` without updating `RunStart = RunEnd` — subsequent runs computed their `RunEnd` from the wrong base, causing them to appear to end before the visual line start and skip rendering entirely | `RichTextArea.cpp`     | Fixed — added `RunStart = RunEnd;` before `continue` |
+| 2.11  | Pressing Enter after disabling a format flag re-enabled it — the `bHandled` block in `OnKeyDown` called `SyncActiveFormat()` after `DrawSpecialCharacter('\n')`, overwriting the user-set `ActiveFormat` with the run under the cursor | `RichTextEditor.cpp`   | Fixed — Enter and Tab paths now `return FReply::Handled()` before reaching the `bHandled` block |
 
 ---
 
@@ -1809,7 +1825,7 @@ Bug codes: `Phase.Sequence` — phase is the feature area the bug lives in, sequ
 - [ ] Session player cap (default 8, removable)
 - [x] Tab renaming (client-local) — right-click opens `UContextMenu` with Rename and Close options; rename persisted to `USessionSave::ChatTabNames`; close button removed from tab in favour of context menu
 - [x] Chat log persistence
-- [~] Shared notes — `SRichTextEditor` + `SRichTextArea` functional: multi-run document model, format-aware insertion, cursor sync, Ctrl+B/I/U/S, multi-run backspace/delete, run merging, visual per-run rendering, selection rendering, per-run font, word wrapping all complete. `FNoteRecord` + `USessionNotesSave` implemented; `UFunctionLibrary::GetNotesSaveSlotName` + `LoadSessionNotesSave` added; `USessionNotesComponent` with RPC stubs implemented; `USessionUIComponent::Init` loads save and calls `RestoreChannels`; default tab (one private tab per player on first join) working; `IMC_Notes` wired. Still pending: `ComputeDesiredSize` and `DrawHighlight` update for visual lines, rich text toolbar fix (toolbar scrolls with content).
+- [~] Shared notes — `SRichTextEditor` + `SRichTextArea` functional: multi-run document model, format-aware insertion, cursor sync, Ctrl+B/I/U/S, multi-run backspace/delete, run merging, visual per-run rendering, selection rendering, per-run font, word wrapping, font size/style UI (spinner + dropdown) all complete. `FNoteRecord` + `USessionNotesSave` implemented; `UFunctionLibrary::GetNotesSaveSlotName` + `LoadSessionNotesSave` added; `USessionNotesComponent` with RPC stubs implemented; `USessionUIComponent::Init` loads save and calls `RestoreChannels`; default tab (one private tab per player on first join) working; `IMC_Notes` wired. Still pending: font size/style defaults on new channel; restore font size/style from last run on load; Bold Italic typeface rendering bug (all variants appear as Bold Italic — likely composite font asset typeface name mismatch).
 > **Testing blocked:** Chat log persistence and session notes save/restore have not been tested end-to-end. Both require a fully initialized session context (`USessionInstance` with valid `PlayerID` and `SessionID`, live `USessionSave`/`USessionNotesSave`). Testing is blocked until session start/join flow is functional.
 
 - [ ] Pre-session lobby (waiting room; pre-game chat; character sheet accessible while waiting; Host sees connection status and launches when ready)
@@ -2041,7 +2057,7 @@ This approach keeps all save I/O within UE's native save game system and makes a
 
 ---
 
-*Last updated: 2026-05-12* — Word wrap complete: `SRichTextArea::OnPaint` rendering loop updated to use `VisualLines` (outer visual-line loop, inner run-clip walk with `ClipStart`/`ClipEnd` math); `GetCursorPosition` and `HitTest` converted from static to `const` instance methods and updated to walk `VisualLines`; `OnUpOrDownPressed` updated to use `TextAreaRef->GetVisualLines()`/`GetCachedText()`; `GetVisualLines()` and `GetCachedText()` public getters added to `SRichTextArea`.
+*Last updated: 2026-05-18* — Font size/style support added: `SRichTextEditor::SetFontStyle`/`SetFontSize` implemented; `UEditableRichText` passthrough added; `USessionNotesChannel` gains `FontStyleDropdown`, `FontSizeText`, `FontSizeUpButton`/`FontSizeDownButton` BindWidgets with `AvailableFonts` config and three event handlers; three composite UFont assets imported (JetBrains Mono, Source Code Pro, DM Mono). Bug fixes: `SRichTextArea::OnPaint` run-clip `RunStart` tracking (bug 2.10); Enter key re-enabling disabled format flags (bug 2.11); `ComputeDesiredSize` cold-start fallback to hard newline count.
 
 ---
 
