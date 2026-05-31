@@ -669,7 +669,7 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 
 ---
 
-*Last updated: 2026-05-18* — No design changes this session; implementation work only (font size/style editor, bug fixes).
+*Last updated: 2026-05-31* — No design changes this session; implementation work only (variable line height, cursor/highlight bug fixes).
 
 ---
 

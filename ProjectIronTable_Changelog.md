@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-05-31
+
+**Implementation:**
+- `SRichTextArea::GetLineHeightForVisualLine(int32 VisualLineIndex, float InScale) const` — new private helper. Walks `Document->Runs` with `RunStart`/`RunEnd` overlap check; returns max `GetMaxCharacterHeight` across overlapping runs; falls back to default 12pt if no runs overlap.
+- `SRichTextArea::RebuildVisualLines` — removed `InFontInfo` parameter; every character measurement now uses `FindFontAtIndex(*Document, i)` so wrap points reflect each character's actual font size rather than the document-wide max.
+- `SRichTextArea::ComputeDesiredSize` — now sums `GetLineHeightForVisualLine` across all visual lines instead of `VisualLines.Num() * uniform LineHeight`.
+- `SRichTextArea::OnPaint` — rendering loop converted to index-based; `CurrentLineHeight = GetLineHeightForVisualLine(LineIndex, Scale)` per line; `RunTabSpace` computed per run after typeface swap; `YOffset += CurrentLineHeight`; underline and strikethrough Y use `CurrentLineHeight`; cursor height uses `GetLineHeightForVisualLine` for the cursor's specific visual line.
+- `SRichTextArea::GetCursorPosition` — `TabSpace` parameter removed (each run now computes its own tab space internally); inner segment loop replaced with full run-clip walk so each run's text is measured with its own `FSlateFontInfo` — fixes cursor X being wrong when the cursor is in a large-font run but the line starts with small-font text.
+- `SRichTextArea::DrawHighlight` — removed `InFontInfo` and `LineHeight` parameters; start/end line indices now found via Y-accumulation walk (`StartPos.Y < AccumY + H`); `TopY` precomputed as sum of heights before `StartLineIndex`; non-terminal line widths measured via run-clip walk with per-run fonts.
+- `SRichTextArea::HitTest` — target line now found via Y-accumulation walk instead of `LocalMousePos.Y / LineHeight` division.
+- Bug fix: Y-walk condition was `AccumY >= Y` (fires one iteration too late — off-by-one). Corrected to `Y < AccumY + H` across `DrawHighlight` and `HitTest`.
+- Bug fix: `GetCursorPosition` used `FindFontAtIndex` at segment start for the entire line, returning wrong X when cursor was in a later large-font run. Fixed by the run-clip walk above.
+- Dead code removed: all `#if 0` blocks (`OnPaint` old tab-segment loop, old range-based render loop, old `GetCursorPosition` loop); unused `LineHeight` variable in `OnPaint`.
+
+---
+
 ## 2026-05-18
 
 **Implementation:**

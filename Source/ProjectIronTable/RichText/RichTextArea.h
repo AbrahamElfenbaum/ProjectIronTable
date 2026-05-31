@@ -55,7 +55,10 @@ private:
 	static FSlateFontInfo FindFontAtIndex(const FRichTextDocument& InDocument, int32 CharIndex);
 
 	/** Walks CachedText character by character and populates VisualLines with one FVisualLine per rendered line, handling hard newlines, tab overflow, space-boundary word wrap, and whole-word wrap when no space is available. */
-	void RebuildVisualLines(const FSlateFontInfo& InFontInfo, float InScale, float InTabSpace) const;
+	void RebuildVisualLines(float InScale, float InTabSpace) const;
+
+	/** Returns the max character height across all runs that overlap the given visual line. Falls back to the default font height if no runs overlap. */
+	float GetLineHeightForVisualLine(int32 VisualLineIndex, float InScale) const;
 
 public:
 
@@ -89,11 +92,10 @@ public:
 	/** Draws a highlight rect behind each visual line segment within the selection. Uses VisualLines and CachedText to measure non-terminal line widths. StartPos is the left edge of the first line; EndPos is the right edge of the last. */
 	void DrawHighlight(FSlateWindowElementList& ElementList, uint32 InLayer,
 					   const FGeometry& Geometry, const FLinearColor& Color,
-					   const FSlateFontInfo& InFontInfo, FVector2f StartPos,
-					   FVector2f EndPos, float LineHeight, float InScale) const;
+					   FVector2f StartPos, FVector2f EndPos, float InScale) const;
 
-	/** Returns the pixel X and Y position of the cursor within the document, accounting for tab stops and newlines. TabSpace is the pre-measured width of a single tab gap in layout coordinates. Used by SRichTextEditor for Up/Down navigation. */
-	FVector2f GetCursorPosition(const FRichTextDocument& InDocument, int32 InCursorPosition, float TabSpace, float InScale) const;
+	/** Returns the pixel X and Y position of the cursor within the document. Walks runs per-line so each font size is measured correctly. Used by SRichTextEditor for Up/Down navigation and cursor rendering. */
+	FVector2f GetCursorPosition(const FRichTextDocument& InDocument, int32 InCursorPosition, float InScale) const;
 
 	/** Returns the layout-space pixel width of the given text string using the given font and scale. Scale division is applied internally — result is in unscaled layout coordinates. */
 	static float MeasureText(const FString& Text, const FSlateFontInfo& FontInfo, float InScale);

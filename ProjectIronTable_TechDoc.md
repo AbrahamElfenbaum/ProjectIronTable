@@ -1467,26 +1467,27 @@ Leaf widget responsible for rendering document text and the cursor. Owned by `SR
 **OnPaint:**
 - Cache check at top — if width or text changed, updates both and calls `RebuildVisualLines`
 - Draws selection highlight via `DrawHighlight` if a selection is active
-- Outer loop over `VisualLines`: resets `XOffset` per line, advances `YOffset` by `LineHeight` at end
-- Inner run-clip walk: for each visual line, walks `Document->Runs` accumulating `RunStart`/`RunEnd`; skips runs ending before line start; breaks on runs starting after line end; clips overlapping runs with `Run.Text.Mid(ClipStart, ClipEnd - ClipStart)`; applies typeface swap from bold/italic flags
-- Clipped text split on `\t`; each tab segment drawn via `DrawTextSegment`; `XOffset` advances by `TabSpace` between segments
-- Underline and strikethrough drawn via `DrawLine` (width trimmed with `TrimEnd()`)
-- Cursor drawn last via `FSlateDrawElement::MakeLines`
+- Outer loop over `VisualLines` (index-based): `CurrentLineHeight = GetLineHeightForVisualLine(LineIndex, Scale)` per line; resets `XOffset` per line; advances `YOffset += CurrentLineHeight` at end
+- Inner run-clip walk: for each visual line, walks `Document->Runs` accumulating `RunStart`/`RunEnd`; skips runs ending before line start; breaks on runs starting after line end; clips overlapping runs; applies typeface swap from bold/italic flags; computes `RunTabSpace` per run after typeface swap
+- Clipped text split on `\t`; each tab segment drawn via `DrawTextSegment`; `XOffset` advances by `RunTabSpace` between segments
+- Underline and strikethrough drawn via `DrawLine` using `CurrentLineHeight`; width trimmed with `TrimEnd()`
+- Cursor line index found by character-index walk; cursor height = `GetLineHeightForVisualLine(CursorLineIndex, Scale)`
 
-**`RebuildVisualLines(const FSlateFontInfo& InFontInfo, float InScale, float InTabSpace) const`:** Walks `CachedText` char by char, tracking `CurrentLineStart`, `LineWidth`, and `LastSpaceIndex`, to populate `VisualLines`:
+**`RebuildVisualLines(float InScale, float InTabSpace) const`:** Walks `CachedText` char by char using `FindFontAtIndex(*Document, i)` per character for width measurement (no global font). Tracks `CurrentLineStart`, `LineWidth`, and `LastSpaceIndex`:
 - `\n` — closes line at `i`; next line starts at `i + 1`; resets width and last-space
-- `\t` — if `LineWidth + TabSpace >= CachedWidth`, closes line and tab starts next line with `LineWidth = TabSpace`; else accumulates
+- `\t` — if `LineWidth + TabSpace >= CachedWidth`, closes line and tab starts next line; else accumulates
 - `' '` — if overflow, closes and space starts next line; else records `LastSpaceIndex`
-- default — if overflow with no prior space, whole word starts next line; if overflow with prior space, breaks at `LastSpaceIndex` and measures new line width via `Mid`; else accumulates
+- default — if overflow with no prior space, whole word starts next line; if overflow with prior space, breaks at `LastSpaceIndex`; else accumulates
 - After loop: closes final line at `CachedText.Len()`
 
 **Private Helpers:**
 
 | Method | Parameters | Description |
 |--------|------------|-------------|
+| `GetLineHeightForVisualLine` | `int32 VisualLineIndex, float InScale` | Returns max `GetMaxCharacterHeight` across all runs overlapping the given visual line. Falls back to default 12pt if no runs overlap |
 | `DrawTextSegment` | — | Wraps one `FSlateDrawElement::MakeText` call at a given X/Y offset |
 | `DrawLine` | — | Draws a horizontal line; used for underline and strikethrough |
-| `DrawHighlight` | — | Draws per-line selection rects between `StartPos` and `EndPos` |
+| `DrawHighlight` | `FVector2f StartPos, FVector2f EndPos, float InScale` | Finds start/end line via Y-accumulation walk (`Y < AccumY + H`); precomputes `TopY`; draws per-line rects; non-terminal widths measured via run-clip walk |
 | `MeasureText` *(static)* | — | Returns layout-space text width (DPI scale divided out) |
 | `FindFontAtIndex` *(static)* | — | Returns `FSlateFontInfo` for a given character index |
 
@@ -1494,11 +1495,11 @@ Leaf widget responsible for rendering document text and the cursor. Owned by `SR
 
 | Method | Parameters | Description |
 |--------|------------|-------------|
-| `GetCursorPosition(…) → FVector2f` *(const)* | `const FRichTextDocument&, int32, float TabSpace, float Scale` | Converts a character index to a pixel position. Walks `VisualLines` — `CursorY` accumulates per line; tab segment walk uses `CachedText.Mid` and `VisualLine.StartIndex` offsets. Uses `<=` for `EndIndex` check so cursor-at-end-of-line stays on that line. **Critical:** `SegmentOffset` must be updated before `SegCharCount` is incremented |
-| `HitTest(…) → int32` *(const)* | `FVector2f LocalMousePos, const FRichTextDocument&, float InScale` | Inverse of `GetCursorPosition`. Clamps target line to `VisualLines`, walks `CachedText` chars by document index from `StartIndex` to `EndIndex`, midpoint comparison. Returns `VisualLines[TargetLine].StartIndex + CharInLine` |
+| `GetCursorPosition(…) → FVector2f` *(const)* | `const FRichTextDocument&, int32 InCursorPosition, float InScale` | Converts a character index to a pixel position. Walks `VisualLines` — `CursorY` accumulates per line via `GetLineHeightForVisualLine`; X computed via run-clip walk so each run's text is measured with its own font. Uses `<=` for `EndIndex` check so cursor-at-end-of-line stays on that line |
+| `HitTest(…) → int32` *(const)* | `FVector2f LocalMousePos, const FRichTextDocument&, float InScale` | Target line found via Y-accumulation walk (`Y < AccumY + H`); walks `CachedText` chars by document index, midpoint comparison. Returns `VisualLines[TargetLine].StartIndex + CharInLine` |
 | `GetVisualLines() → const TArray<FVisualLine>&` | — | Returns the current visual line layout cache. Used by `SRichTextEditor` for Up/Down navigation |
-| `GetCachedText() → const FString&` | — | Returns the document text snapshot used to build the current visual line cache. Used by `SRichTextEditor` to index into visual line character ranges |
-| `ComputeDesiredSize` | — | Returns zero width and height based on visual line count. Falls back to `Document->GetLines().Num()` before the first paint populates `VisualLines` |
+| `GetCachedText() → const FString&` | — | Returns the document text snapshot used to build the current visual line cache |
+| `ComputeDesiredSize` | — | Returns zero width and sum of per-line heights via `GetLineHeightForVisualLine`. Falls back to `Document->GetLines().Num() * uniform height` before the first paint populates `VisualLines` |
 
 > **Gotcha:** `FSlateFontMeasure::Measure` returns pixel values scaled by the geometry scale. Divide by `InScale` before using as a layout coordinate — otherwise cursor drifts right as more text is typed. Include `"Fonts/FontMeasure.h"` (not `"Framework/Text/SlateFontMeasure.h"`).
 
@@ -1746,6 +1747,8 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - **Enter/Tab in `OnKeyDown` must `return` before reaching `SyncActiveFormat()`** — the shared `bHandled` block at the bottom calls `SyncActiveFormat()`, which overwrites `ActiveFormat` with the run currently under the cursor. If Enter or Tab fall through to that block, any format flag the user just toggled off is silently re-enabled on the next character typed after the newline.
 - **`FSlateFontInfo(UFont*, float, FName)` requires `#include "Engine/Font.h"`** — without the include, `UFont` is an incomplete type and the constructor fails with a static assertion. Include `Engine/Font.h` in any `.cpp` that constructs `FSlateFontInfo` from a `UFont*`.
 - **Composite UFont typeface name for Bold Italic must include a space: `"Bold Italic"`** — `"BoldItalic"` (no space) does not match the engine's lookup convention and causes all typeface variants to fall back to Bold Italic. Use `TEXT("Bold Italic")` to match Roboto and standard engine assets.
+- **`SRichTextArea` layout cache invalidates on text change only — font size changes are not detected** — `RebuildVisualLines` is triggered when `CachedText != Document->GetFullText()` or width changes. Changing font size modifies run `FontInfo` but not text, so `VisualLines` is not rebuilt. Cursor X and Y remain correct because they re-measure from current runs each frame, but wrap points will be stale until the next text edit. If wrap accuracy after a mid-session font size change matters, call `InvalidateLayout()` from the font setter.
+- **Y-walk in `DrawHighlight` and `HitTest` must use `Y < AccumY + H` — not `AccumY >= Y`** — the off-by-one form fires one iteration late: when `AccumY` already exceeds `Y`, the current line was the correct one but was already skipped. Always test `Y < AccumY + H` before adding `H` to the accumulator.
 
 ---
 
@@ -2057,7 +2060,7 @@ This approach keeps all save I/O within UE's native save game system and makes a
 
 ---
 
-*Last updated: 2026-05-18* — Font size/style support added: `SRichTextEditor::SetFontStyle`/`SetFontSize` implemented; `UEditableRichText` passthrough added; `USessionNotesChannel` gains `FontStyleDropdown`, `FontSizeText`, `FontSizeUpButton`/`FontSizeDownButton` BindWidgets with `AvailableFonts` config and three event handlers; three composite UFont assets imported (JetBrains Mono, Source Code Pro, DM Mono). Bug fixes: `SRichTextArea::OnPaint` run-clip `RunStart` tracking (bug 2.10); Enter key re-enabling disabled format flags (bug 2.11); `ComputeDesiredSize` cold-start fallback to hard newline count.
+*Last updated: 2026-05-31* — Variable line height implemented across `SRichTextArea`: `GetLineHeightForVisualLine` helper; `RebuildVisualLines` now uses per-character font via `FindFontAtIndex`; `ComputeDesiredSize`, `OnPaint`, `GetCursorPosition`, `DrawHighlight`, and `HitTest` all updated to use per-line heights. `GetCursorPosition` now walks runs per-line for correct cursor X with mixed font sizes. Two bugs fixed: Y-walk off-by-one in `DrawHighlight`/`HitTest`; cursor X wrong for mixed-font lines.
 
 ---
 

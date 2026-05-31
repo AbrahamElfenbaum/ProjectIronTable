@@ -347,7 +347,7 @@ FReply SRichTextEditor::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& 
 	float LineHeight = UFunctionLibrary::GetDocumentLineHeight(Document, MyGeometry.Scale, &FontInfo);
 
 	float TabSpace = SRichTextArea::MeasureText(TEXT("    "), FontInfo, MyGeometry.Scale);
-	FVector2f CursorPos = TextAreaRef->GetCursorPosition(Document, CursorPosition, TabSpace, MyGeometry.Scale);
+	FVector2f CursorPos = TextAreaRef->GetCursorPosition(Document, CursorPosition, MyGeometry.Scale);
 
 	if (DownKey == EKeys::BackSpace)
 	{
