@@ -10,26 +10,27 @@ public class ProjectIronTable : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PublicIncludePaths.AddRange(new string[] {
-			Path.Combine(ModuleDirectory, "Dice"),
-			Path.Combine(ModuleDirectory, "UI"),
-			Path.Combine(ModuleDirectory, "Chat"),
-            Path.Combine(ModuleDirectory, "Utility"),
+            Path.Combine(ModuleDirectory, "AssetLibrary"),
+            Path.Combine(ModuleDirectory, "CampaignBrowser"),
+            Path.Combine(ModuleDirectory, "CampaignManager"),
+            Path.Combine(ModuleDirectory, "Chat"),
+            Path.Combine(ModuleDirectory, "Components"),
+            Path.Combine(ModuleDirectory, "Dice"),
+            Path.Combine(ModuleDirectory, "GameInstances"),
+            Path.Combine(ModuleDirectory, "GameModes"),
+            Path.Combine(ModuleDirectory, "GameStates"),
+            Path.Combine(ModuleDirectory, "MapBuilder"),
             Path.Combine(ModuleDirectory, "Pawns"),
             Path.Combine(ModuleDirectory, "PlayerControllers"),
             Path.Combine(ModuleDirectory, "PlayerList"),
-            Path.Combine(ModuleDirectory, "SaveLoad"),
-            Path.Combine(ModuleDirectory, "Components"),
-            Path.Combine(ModuleDirectory, "Settings"),
-            Path.Combine(ModuleDirectory, "CampaignManager"),
-            Path.Combine(ModuleDirectory, "CampaignBrowser"),
-            Path.Combine(ModuleDirectory, "AssetLibrary"),
-            Path.Combine(ModuleDirectory, "GameStates"),
             Path.Combine(ModuleDirectory, "PlayerStates"),
-            Path.Combine(ModuleDirectory, "GameModes"),
-            Path.Combine(ModuleDirectory, "GameInstances"),
-            Path.Combine(ModuleDirectory, "SessionNotes"),
+            Path.Combine(ModuleDirectory, "RichText"),
+            Path.Combine(ModuleDirectory, "SaveLoad"),
             Path.Combine(ModuleDirectory, "Screens"),
-            Path.Combine(ModuleDirectory, "RichText")
+            Path.Combine(ModuleDirectory, "SessionNotes"),
+            Path.Combine(ModuleDirectory, "Settings"),
+            Path.Combine(ModuleDirectory, "UI"),
+            Path.Combine(ModuleDirectory, "Utility")
 
         });
 

@@ -944,14 +944,14 @@ Labeled slider paired with an editable text field. Supports optional pairing wit
 
 ### Pawns/
 
-#### ASessionPawn
+#### ACameraPawn
 **Type:** `APawn` | **Blueprint:** `P_Session`
 
-Top-down camera rig.
+Free-look camera rig shared by all camera-driven controllers. Renamed from `ASessionPawn` — it has no session-specific logic. A `[CoreRedirects]` entry in `Config/DefaultEngine.ini` maps the old name so existing Blueprint/level references resolve.
 
 **Component hierarchy:** `Root (USceneComponent) → Sphere (UStaticMeshComponent) → SpringArm → Camera`
 
-All components are public so `ASessionController` can access `SpringArm->TargetArmLength`.
+All components are public so the controller can access `SpringArm->TargetArmLength`.
 
 ---
 
@@ -968,18 +968,14 @@ UI-only controller for the main screen. No camera pawn, no Enhanced Input.
 
 ---
 
-#### ASessionController
-**Type:** `APlayerController` | **Blueprint:** `PC_Session`
+#### ABaseCameraController
+**Type:** `APlayerController`
 
-Central hub for all player input and HUD management.
+Shared base providing free-look camera control. Subclassed by `ASessionController` and `AMapBuilderController` so any camera-driven mode inherits movement/pan/zoom/sprint and camera-settings persistence without duplication. Possesses an `ACameraPawn`.
 
-**Constructor:**
-```cpp
-UIComponent = CreateDefaultSubobject<USessionUIComponent>(TEXT("UIComponent"));
-ChatComponent = CreateDefaultSubobject<USessionChatComponent>(TEXT("ChatComponent"));
-```
+**BeginPlay:** `bShowMouseCursor = true`, `FInputModeGameAndUI()`, then loads and applies the `"CameraSettings"` save if it exists.
 
-**BeginPlay:** Sets `bShowMouseCursor = true`, `FInputModeGameAndUI()`, then calls `UIComponent->Init()` followed by `ChatComponent->Init()` (order matters — chat component needs `UChatBox` from UI component).
+**OnPossess:** caches the `ACameraPawn`, adds `IMC_Camera` (priority 0), binds the five camera actions.
 
 **Input (bound in `OnPossess`):**
 
@@ -990,8 +986,6 @@ ChatComponent = CreateDefaultSubobject<USessionChatComponent>(TEXT("ChatComponen
 | `IA_CameraPanReset` | —        | Reset pitch to -15, preserve yaw                                    |
 | `IA_CameraSprint`   | bool     | Hold: apply `CameraSpeedMultiplier`; release: restore 1x            |
 | `IA_CameraZoom`     | float    | Adjust `SpringArm->TargetArmLength` by `Sign * ZoomSpeed` (clamped) |
-| `IA_FocusChat`      | —        | Swap in `IMC_Chat` (priority 1), delegate to `ChatComponent`        |
-| `IA_ExitChat`       | —        | Swap out `IMC_Chat`, delegate to `ChatComponent`                    |
 
 **Camera Properties (defaults):**
 
@@ -1014,7 +1008,34 @@ ChatComponent = CreateDefaultSubobject<USessionChatComponent>(TEXT("ChatComponen
 | `ValidateCameraSettings()` | — | Clamps all 9 properties to valid ranges; called by `PostEditChangeProperty` and `ApplyCameraSettings` |
 | `ApplyCameraSettings` | `const UCameraSettingsSave*` | Copies fields from save object, then calls `ValidateCameraSettings` |
 | `SaveCameraSettings()` | — | Writes all 9 fields to `"CameraSettings"` slot |
-| `BeginPlay` | — | Loads and applies `"CameraSettings"` if it exists |
+
+> **Note:** `bCanCameraMove` / `CurrentCameraSpeedMultiplier` are plain (no `UPROPERTY`) to avoid Blueprint CDO override; `CameraPawnRef` and `InputSubsystemRef` are `protected` so subclasses can reuse them.
+>
+> **Note:** `PostEditChangeProperty` is wrapped in `#if WITH_EDITOR` (declaration **and** definition) — defining it unguarded breaks packaged builds. For runtime validation use `ValidateCameraSettings()` directly.
+
+---
+
+#### ASessionController
+**Type:** `ABaseCameraController` | **Blueprint:** `PC_Session`
+
+Session-specific controller. Inherits all camera behavior from `ABaseCameraController`; adds the HUD/chat components and chat input.
+
+**Constructor:**
+```cpp
+UIComponent = CreateDefaultSubobject<USessionUIComponent>(TEXT("UIComponent"));
+ChatComponent = CreateDefaultSubobject<USessionChatComponent>(TEXT("ChatComponent"));
+```
+
+**BeginPlay:** `Super::BeginPlay()` (base camera setup), then `UIComponent->Init()` followed by `ChatComponent->Init()` (order matters — chat component needs `UChatBox` from UI component).
+
+**OnPossess:** `Super::OnPossess()` (base camera binding), then adds `IMC_Session` (priority 0) and binds chat input.
+
+**Chat Input (bound in `OnPossess`):**
+
+| Action         | Type | Behavior                                                     |
+|----------------|------|--------------------------------------------------------------|
+| `IA_FocusChat` | —    | Add `IMC_Chat` (priority 1), delegate to `ChatComponent`     |
+| `IA_ExitChat`  | —    | Remove `IMC_Chat`, delegate to `ChatComponent`               |
 
 **Server RPCs:**
 
@@ -1022,9 +1043,29 @@ ChatComponent = CreateDefaultSubobject<USessionChatComponent>(TEXT("ChatComponen
 |--------|------------|-------------|
 | `Server_TravelToSession` *(Server, Reliable)* | `const FString& TravelURL` | Validates `GetWorld()` and calls `ServerTravel(TravelURL)`. Ensures `ServerTravel` always runs on the server regardless of which client initiates travel |
 
-> **Note:** `bCanCameraMove` is a plain `bool` (no `UPROPERTY`) to avoid Blueprint CDO override.
->
-> **Note:** `PostEditChangeProperty` is wrapped in `#if WITH_EDITOR` — for runtime validation use `ValidateCameraSettings()` directly.
+---
+
+#### AMapBuilderController
+**Type:** `ABaseCameraController` | **Blueprint:** `PC_MapBuilder` *(planned)*
+
+Map builder controller. Inherits free-look camera from `ABaseCameraController`; adds grid-snapped tile placement with a ghost preview.
+
+**OnPossess:** `Super::OnPossess()`, then adds `IMC_Build` (priority 0) and binds `IA_PlaceTile`.
+
+**BeginPlay:** `Super::BeginPlay()`, then caches the level's `AMapGrid` via `GetActorOfClass` (warns if none found); spawns the ghost preview tile *(in progress)*.
+
+**PlayerTick:** moves the ghost tile to the grid cell under the cursor each frame *(in progress)*.
+
+| Member | Type | Description |
+|--------|------|-------------|
+| `TileClass` | `TSubclassOf<ATileActor>` | Tile to spawn (assign `BP_Tile` in the controller BP). *Currently declared `TObjectPtr<ATileActor> TileActor` — pending change to `TSubclassOf` so it can be spawned* |
+| `IMC_Build` / `IA_PlaceTile` | Input | Build-mode mapping context + place-tile action |
+| `MapGridRef` | `AMapGrid*` | Cached grid for coordinate conversion |
+| `GhostTileRef` | `ATileActor*` | Preview tile following the cursor |
+| `GetGridCellUnderCursor(FIntPoint&)` | bool | Deprojects the mouse and intersects the grid plane; false if the ray misses *(stub)* |
+| `Input_PlaceTile` | — | Spawns a tile at the cell under the cursor *(stub)* |
+
+> **Status:** Part A complete (class, inheritance, input binding, grid caching). Ghost preview + placement bodies are stubs pending Part B.
 
 ---
 
@@ -1804,14 +1845,15 @@ Bug codes: `Phase.Sequence` — phase is the feature area the bug lives in, sequ
 ### Phase 2 — Core Game Setup (In Progress)
 
 - [x] Test and production game modes / player controllers
-- [x] `ASessionController` — all input, HUD component, camera movement
-- [x] `ASessionPawn` — top-down camera rig
+- [x] `ABaseCameraController` — shared free-look camera base (move, pan, zoom, sprint, pan reset, settings persistence); subclassed by session + map builder controllers
+- [x] `ASessionController` — inherits `ABaseCameraController`; owns HUD + chat components and chat input
+- [x] `ACameraPawn` — free-look camera rig (renamed from `ASessionPawn`; CoreRedirect added)
 - [x] Camera movement — pan, zoom, sprint, pan reset, editor property validation
 - [x] `AMainScreenController` + `UMainScreenUIComponent` — main screen flow
 - [x] `S_MainScreen` — `WidgetSwitcher` root; `S_HomeScreen` index 0, `S_SettingsScreen` index 1
 - [x] **Runtime camera settings menu** (`USaveGame`-based)
   - [x] `UCameraSettingsSave` — save class with all 9 camera fields
-  - [x] `ASessionController` save/load/validate — `ValidateCameraSettings`, `ApplyCameraSettings`, `SaveCameraSettings`; loads on `BeginPlay`
+  - [x] `ABaseCameraController` save/load/validate — `ValidateCameraSettings`, `ApplyCameraSettings`, `SaveCameraSettings`; loads on `BeginPlay`
   - [x] `USettingsSlider` — reusable slider+text widget with paired min/max clamping
   - [x] `WE_SettingsSlider` — Blueprint widget layout
   - [x] `S_SettingsScreen` — 9 sliders wired and grouped; Apply, Reset, Back buttons added
@@ -1882,10 +1924,10 @@ The Campaign Manager is the primary hub between the home screen and an active se
 4. Session/Host integration — bring map into live session, Host-only gate
 
 **Checklist:**
-- [ ] `ATileActor` + `UTileData` — tile placement, grid snapping, variable sizes
+- [~] `ATileActor` + `UTileData` — `ATileActor` implemented (static-mesh actor, Movable root, GC-safe mesh); `UTileData` deferred until multiple tile types exist
 - [ ] `APropActor` + `UPropData` — free-floating prop placement, surface snapping
-- [ ] `AMapGrid` — grid definition, coordinate conversion, ghost preview
-- [ ] `AMapBuilderController` — build mode / play mode, placement input
+- [~] `AMapGrid` — `GridToWorld`/`WorldToGrid` conversions done and verified (hold on non-square grids); debug grid lines + per-tile center spheres; real rendered grid + ghost preview pending
+- [~] `AMapBuilderController` — Part A done (subclasses `ABaseCameraController`, binds `IMC_Build`/`IA_PlaceTile`, caches `AMapGrid`); ghost preview (deproject → grid-plane → snap) + placement pending
 - [ ] `UMapSave` — map serialization and load
 - [ ] `UTileBrowser` — tile/prop browser UI
 - [ ] `UMapBuilderHUDComponent` — builder HUD lifecycle
@@ -2060,7 +2102,7 @@ This approach keeps all save I/O within UE's native save game system and makes a
 
 ---
 
-*Last updated: 2026-05-31* — Variable line height implemented across `SRichTextArea`: `GetLineHeightForVisualLine` helper; `RebuildVisualLines` now uses per-character font via `FindFontAtIndex`; `ComputeDesiredSize`, `OnPaint`, `GetCursorPosition`, `DrawHighlight`, and `HitTest` all updated to use per-line heights. `GetCursorPosition` now walks runs per-line for correct cursor X with mixed font sizes. Two bugs fixed: Y-walk off-by-one in `DrawHighlight`/`HitTest`; cursor X wrong for mixed-font lines.
+*Last updated: 2026-06-15* — Map builder foundation + camera-controller refactor. New `AMapGrid` (grid↔world conversions, debug visualization) and `ATileActor` in `MapBuilder/`. Camera logic extracted from `ASessionController` into a shared `ABaseCameraController` base (`PlayerControllers/`); `ASessionController` reparented to it and slimmed to session-only surface. `ASessionPawn` renamed `ACameraPawn` (CoreRedirect added). New `AMapBuilderController` skeleton (Part A). Coding standard added: constructor goes first in the class body. `PostEditChangeProperty` definition now correctly wrapped in `#if WITH_EDITOR`.
 
 ---
 

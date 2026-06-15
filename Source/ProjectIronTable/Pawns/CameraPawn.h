@@ -2,14 +2,14 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
-#include "SessionPawn.generated.h"
+#include "CameraPawn.generated.h"
 
 class USpringArmComponent;
 class UCameraComponent;
 
 /** Top-down camera pawn. Owns the spring arm and camera used for the gameplay view. */
 UCLASS()
-class PROJECTIRONTABLE_API ASessionPawn : public APawn
+class PROJECTIRONTABLE_API ACameraPawn : public APawn
 {
 	GENERATED_BODY()
 
@@ -30,5 +30,5 @@ public:
 #pragma endregion
 
 	/** Sets up component hierarchy with root, sphere, spring arm, and camera. */
-	ASessionPawn();
+	ACameraPawn();
 };

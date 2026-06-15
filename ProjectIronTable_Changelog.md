@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-06-15
+
+**Implementation:**
+- **Map builder foundation started** (`Source/ProjectIronTable/MapBuilder/`):
+  - `AMapGrid` (`AActor`) — scene-root grid actor. `GridToWorld(FIntPoint)` returns a tile's world-space center; `WorldToGrid(FVector)` is its verified inverse (inverse-transform → divide by `TileSize` → `FloorToInt`; holds for non-square grids and any actor transform). Config: `TileSize` (100), `GridDimensions`. `BeginPlay` draws a debug grid (lines + per-tile center spheres, persistent, drawn once) — temporary scaffolding to be replaced by a rendered grid.
+  - `ATileActor` (`AActor`) — static-mesh tile; mesh root forced `Movable`; GC-safe `UPROPERTY` on `TileMesh`; ticking disabled. Mesh to be assigned via a `BP_Tile` subclass.
+- **Camera controller base-class extraction** — new `ABaseCameraController` (`PlayerControllers/`) owns all camera state, config (9 properties), input (`IMC_Camera` + move/pan/zoom/sprint/pan-reset), `OnPossess` camera binding, `BeginPlay` input-mode + settings load, and `Validate/Apply/SaveCameraSettings`. `CameraPawnRef`/`InputSubsystemRef` are `protected` for subclass reuse.
+- **`ASessionController` reparented** to `ABaseCameraController` — reduced to session-only surface (`UIComponent`, `ChatComponent`, `IMC_Session`, `IA_FocusChat`, `IMC_Chat`, `IA_ExitChat`, chat handlers, `Server_TravelToSession`). Removed the duplicate `InputSubsystemRef` (now inherited); `OnPossess`/`BeginPlay` call `Super` then do session-only work; dead includes/forward-declares removed.
+- **`AMapBuilderController`** (`PlayerControllers/`) — skeleton (Part A): subclasses `ABaseCameraController`, adds `IMC_Build` + `IA_PlaceTile` in `OnPossess`, caches `AMapGrid` in `BeginPlay`. `GetGridCellUnderCursor`, `Input_PlaceTile`, ghost-follow `PlayerTick` are stubs pending Part B.
+- **`ASessionPawn` → `ACameraPawn`** — renamed (no session-specific code); `[CoreRedirects]` entry added to `Config/DefaultEngine.ini` so Blueprint/level/GameMode references resolve.
+- Bug fix: `ABaseCameraController::PostEditChangeProperty` definition now wrapped in `#if WITH_EDITOR` (was guarded only in the header — would break a packaged build).
+
+**Design:**
+- Coding standard: a class's constructor now goes **first**, above all field regions — the one exception to "fields before functions" (updated in `CLAUDE.md`, `feedback_coding_standards.md`, and `ProjectIronTable_CodingStandards.md`).
+- Map builder reuses the existing free-fly camera (via the shared base) rather than a fixed top-down view — required for inspecting 3D/multi-floor maps from any angle.
+- Tiles spawn from a Blueprint subclass (`TSubclassOf<ATileActor>`), not a hardcoded C++ mesh; `UTileData` deferred until multiple tile types exist.
+
+---
+
 ## 2026-05-31
 
 **Implementation:**

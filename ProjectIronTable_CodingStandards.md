@@ -73,6 +73,8 @@ Within a UCLASS, members are grouped using `#pragma region` / `#pragma endregion
 
 Fields precede functions in the file. Within each group, access specifiers follow **private → protected → public**. Never collapse `protected:` to `private:`; `protected` is intentional and grants subclass access. Lifecycle overrides (`NativeConstruct`, `BeginPlay`, `OnPossess`, etc.) belong under `protected:` in the functions group.
 
+**Constructor placement:** If the class declares a constructor, it goes first — at the very top of the class body, above all field regions. This is the one exception to "fields before functions." All other functions (including lifecycle overrides) follow the normal field→function grouping. Because `.cpp` definition order matches `.h` declaration order, this also places the constructor first in the `.cpp`.
+
 ---
 
 ## 5. UPROPERTY Specifiers
