@@ -10,6 +10,7 @@
 #include "ChatBox.h"
 #include "ChatChannel.h"
 #include "ChatTab.h"
+#include "DiceRollComponent.h"
 #include "DiceTray.h"
 #include "DiceSpawnVolume.h"
 #include "DraggablePanel.h"
@@ -17,6 +18,7 @@
 #include "MacroLibrary.h"
 #include "PanelLayoutSave.h"
 #include "PlayerList.h"
+#include "SessionController.h"
 #include "SessionInstance.h"
 #include "SessionNotesPanel.h"
 #include "SessionSave.h"
@@ -143,12 +145,13 @@ void USessionUIComponent::Init()
 		SessionNotesPanelRef = UFunctionLibrary::GetTypedWidgetFromName<USessionNotesPanel>(SessionScreenRef, TEXT("SessionNotes"));
 		TaskbarRef = UFunctionLibrary::GetTypedWidgetFromName<UTaskbar>(SessionScreenRef, TEXT("Taskbar"));
 
-		if (IsValid(DiceTrayRef))
+		ASessionController* SessionControllerRef = Cast<ASessionController>(PlayerControllerRef);
+		if (SessionControllerRef && IsValid(SessionControllerRef->DiceRollComponent))
 		{
 			ADiceSpawnVolume* SpawnVolume = Cast<ADiceSpawnVolume>(UGameplayStatics::GetActorOfClass(GetWorld(), ADiceSpawnVolume::StaticClass()));
 			if (IsValid(SpawnVolume))
 			{
-				DiceTrayRef->SpawnVolume = SpawnVolume;
+				SessionControllerRef->DiceRollComponent->SpawnVolume = SpawnVolume;
 			}
 			else
 			{
@@ -157,7 +160,7 @@ void USessionUIComponent::Init()
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("USessionUIComponent::Init — DiceTray not found"));
+			UE_LOG(LogTemp, Warning, TEXT("USessionUIComponent::Init — DiceRollComponent not found on controller"));
 		}
 
 		if (IsValid(ChatBoxRef))

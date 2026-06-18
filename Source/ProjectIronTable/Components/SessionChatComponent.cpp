@@ -7,7 +7,7 @@
 
 #include "BaseDiceActor.h"
 #include "ChatBox.h"
-#include "DiceTray.h"
+#include "DiceRollComponent.h"
 #include "FunctionLibrary.h"
 #include "MacroLibrary.h"
 #include "PlayerList.h"
@@ -86,7 +86,6 @@ void USessionChatComponent::Init()
 	if (SessionControllerRef->IsLocalController())
 	{
 		ChatBoxRef = SessionControllerRef->UIComponent->GetChatBox();
-
 		if (IsValid(ChatBoxRef))
 		{
 			ChatBoxRef->SetChatComponent(this);
@@ -96,16 +95,16 @@ void USessionChatComponent::Init()
 			UE_LOG(LogTemp, Warning, TEXT("USessionChatComponent::Init — ChatBox not found on UIComponent"));
 		}
 
-		DiceTrayRef = SessionControllerRef->UIComponent->GetDiceTray();
-		if (IsValid(DiceTrayRef))
+		DiceRollComponentRef = SessionControllerRef->DiceRollComponent;
+		if (IsValid(DiceRollComponentRef))
 		{
-			DiceTrayRef->OnAllDiceRolled.AddDynamic(this, &USessionChatComponent::AddRollResultToChat);
-			DiceTrayRef->OnDiceFailsafeDestroyed.AddDynamic(this, &USessionChatComponent::OnDiceFailsafeHandler);
-			DiceTrayRef->OnRollInitiated.AddDynamic(this, &USessionChatComponent::OnRollInitiated);
+			DiceRollComponentRef->OnRollComplete.AddDynamic(this, &USessionChatComponent::AddRollResultToChat);
+			DiceRollComponentRef->OnDiceFailsafeDestroyed.AddDynamic(this, &USessionChatComponent::OnDiceFailsafeHandler);
+			DiceRollComponentRef->OnRollInitiated.AddDynamic(this, &USessionChatComponent::OnRollInitiated);
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("USessionChatComponent::Init — DiceTray not found on UIComponent"));
+			UE_LOG(LogTemp, Warning, TEXT("USessionChatComponent::Init — DiceRollComponent not found on controller"));
 		}
 
 		PlayerListRef = SessionControllerRef->UIComponent->GetPlayerList();

@@ -6,6 +6,7 @@
 #include "InputAction.h"
 #include "InputMappingContext.h"
 
+#include "DiceRollComponent.h"
 #include "SessionChatComponent.h"
 #include "SessionUIComponent.h"
 
@@ -64,9 +65,10 @@ void ASessionController::Server_TravelToSession_Implementation(const FString& Tr
 	World->ServerTravel(TravelURL);
 }
 
-// Creates and attaches the UI and chat component subobjects.
+// Creates and attaches the UI, chat, and dice roll component subobjects.
 ASessionController::ASessionController()
 {
-	UIComponent = CreateDefaultSubobject<USessionUIComponent>(TEXT("UIComponent"));
 	ChatComponent = CreateDefaultSubobject<USessionChatComponent>(TEXT("ChatComponent"));
+	DiceRollComponent = CreateDefaultSubobject<UDiceRollComponent>(TEXT("DiceRollComponent"));
+	UIComponent = CreateDefaultSubobject<USessionUIComponent>(TEXT("UIComponent"));
 }

@@ -3,31 +3,14 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "BaseDiceActor.h"
+#include "DiceRollComponent.h"
 #include "DiceTray.generated.h"
 
-/** Controls whether a single-die roll uses normal, advantage, or disadvantage rules. */
-UENUM(BlueprintType)
-enum class EDiceRollMode : uint8
-{
-	Normal,
-	Advantage,
-	Disadvantage
-};
-
 class UButton;
-class ADiceSpawnVolume;
 class UDiceSelector;
+class UDiceRollComponent;
 
-/** Fired once all spawned dice have settled, passing every result and the active roll mode. */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAllDiceRolled, TArray<FRollResult>, Results, EDiceRollMode, RollMode);
-
-/** Fired when a single die is destroyed by its failsafe timer before settling. */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDiceFailsafeDestroyed, EDiceType, DiceType);
-
-/** Fired when a roll is initiated, before any dice are spawned. */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRollInitiated);
-
-/** Manages all dice selectors, roll mode, and dice spawning. Spawns dice into the world via ADiceSpawnVolume and broadcasts results once all dice have settled. */
+/** Presentation widget for the dice tray: lets the player choose dice counts and roll mode, then builds a FDiceRollRequest and hands it to the session's UDiceRollComponent. Owns no roll logic itself. */
 UCLASS()
 class PROJECTIRONTABLE_API UDiceTray : public UUserWidget
 {
@@ -81,96 +64,36 @@ private:
 	TObjectPtr<UButton> RollButton;
 #pragma endregion
 
-#pragma region State
-	/** The currently active roll mode; controls advantage/disadvantage behaviour. */
+	/** Cached dice roll component on the owning session controller; target of roll requests. */
 	UPROPERTY()
-	EDiceRollMode RollMode = EDiceRollMode::Normal;
+	TObjectPtr<UDiceRollComponent> DiceRollComponentRef;
 
+#pragma region State
 	/** Flat array of all selector widgets for iteration. */
 	UPROPERTY()
 	TArray<TObjectPtr<UDiceSelector>> Selectors;
-
-	/** All dice actors currently in the world from the most recent roll. */
-	UPROPERTY()
-	TArray<TObjectPtr<ABaseDiceActor>> SpawnedDice;
-
-	/** Results collected as individual dice finish rolling. */
-	TArray<FRollResult> PendingResults;
 
 	/** The three advantage-mode buttons, kept together for bulk enable/disable. */
 	UPROPERTY()
 	TArray<TObjectPtr<UButton>> AdvantageButtons;
 
-	/** Number of dice spawned for the current roll; used to detect when all results are in. */
-	int32 ExpectedDiceCount = 0;
-
-	/** Timer that triggers deferred destruction of settled dice. */
-	FTimerHandle DestroyDiceTimerHandle;
-
-	/** True while a roll is in progress; used to disable the roll button. */
+	/** True while a roll is in progress */
 	bool bRollInProgress = false;
-#pragma endregion
 
-public:
-
-#pragma region Config
-	/** The spawn volume actor that defines where dice are placed in the world. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dice")
-	TObjectPtr<ADiceSpawnVolume> SpawnVolume;
-
-	/** Base direction and magnitude for the launch impulse applied to each die. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
-	FVector Impulse = {3000.f, 3000.f, 0.f};
-
-	/** Half-range of random noise added to the impulse on each axis. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
-	float ImpulseRange = 100.f;
-
-	/** Base direction and magnitude for the angular impulse applied to each die. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
-	FVector AngularImpulse = {500.f, 500.f, 500.f};
-
-	/** Half-range of random noise added to the angular impulse on each axis. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
-	float AngularImpulseRange = 200.f;
-
-	/** Seconds to wait after all dice settle before destroying them. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dice")
-	float TimeBeforeDestroyingDice = 5.0f;
-#pragma endregion
-
-#pragma region Events
-	/** Fired once every spawned die has settled and results are available. */
-	UPROPERTY(BlueprintAssignable, Category = "Dice")
-	FOnAllDiceRolled OnAllDiceRolled;
-
-	/** Fired when any individual die is destroyed by its failsafe timer. */
-	UPROPERTY(BlueprintAssignable, Category = "Dice")
-	FOnDiceFailsafeDestroyed OnDiceFailsafeDestroyed;
-
-	/** Fired when a roll is initiated, before any dice are spawned. Used to send a private roll message if recipients are in the chat input. */
-	UPROPERTY(BlueprintAssignable, Category = "Dice")
-	FOnRollInitiated OnRollInitiated;
+	/** The currently selected roll mode; drives which advantage button is highlighted and is copied into the roll request. */
+	EDiceRollMode ActiveRollMode = EDiceRollMode::Normal;
 #pragma endregion
 
 private:
 
 #pragma region Event Handlers
-	/** Collects a result and broadcasts OnAllDiceRolled when all expected results are in. */
-	UFUNCTION()
-	void OnDiceRolledHandler(FRollResult Result);
-
-	/** Destroys all currently spawned dice actors and clears the array. */
-	UFUNCTION()
-	void DestroyDice();
-
-	/** Handles a die being destroyed by its failsafe; decrements expected count and finalises early if possible. */
-	UFUNCTION()
-	void OnDiceFailsafeHandler(EDiceType DiceType);
-
 	/** Refreshes the roll and advantage button states whenever a selector count changes. */
 	UFUNCTION()
 	void OnSelectorCountChanged();
+
+	/** Builds a roll request from the current selectors and roll mode, hands it to the dice roll component, then resets the selectors and refreshes button states. */
+	UFUNCTION()
+	void OnRollClicked();
 
 	/** Sets roll mode to Normal and refreshes advantage button states. */
 	UFUNCTION()
@@ -183,6 +106,10 @@ private:
 	/** Sets roll mode to Disadvantage and refreshes advantage button states. */
 	UFUNCTION()
 	void OnDisadvantageClicked();
+
+	/** Clears the in-progress flag and refreshes button states once the dice roll component reports the roll complete. */
+	UFUNCTION()
+	void OnRollCompleteHandler(TArray<FRollResult> Results, EDiceRollMode RollMode);
 #pragma endregion
 
 #pragma region Private Methods
@@ -191,21 +118,10 @@ private:
 
 	/** Enables or disables the advantage/disadvantage buttons based on whether exactly one die is selected. */
 	void UpdateAdvantageButtonState();
-
-	/** Returns the base vector with a uniform random offset applied to each axis within Range. Z is only randomized when bUseZAxis is true. */
-	FVector GetRandomizedVector(const FVector& BaseVector, const float& Range, bool bUseZAxis);
 #pragma endregion
 
 protected:
 
 	/** Populates selector and button arrays, binds all button delegates, and refreshes initial button states. */
 	virtual void NativeConstruct() override;
-
-public:
-
-#pragma region Public Methods
-	/** Spawns and launches all queued dice according to the current selectors and roll mode. */
-	UFUNCTION(BlueprintCallable)
-	void RollDice();
-#pragma endregion
 };

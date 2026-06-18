@@ -6,7 +6,7 @@
 
 class ASessionController;
 class UChatBox;
-class UDiceTray;
+class UDiceRollComponent;
 class UDraggablePanel;
 class UPlayerList;
 
@@ -29,7 +29,7 @@ private:
 
 	/** Reference to the DiceTray widget found inside the session screen. */
 	UPROPERTY()
-	TObjectPtr<UDiceTray> DiceTrayRef;
+	TObjectPtr<UDiceRollComponent> DiceRollComponentRef;
 
 	/** Reference to the PlayerList widget found inside the session screen. */
 	UPROPERTY()

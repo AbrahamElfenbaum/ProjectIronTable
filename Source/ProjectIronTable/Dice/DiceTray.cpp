@@ -2,106 +2,10 @@
 #include "DiceTray.h"
 
 #include "Components/Button.h"
-#include "Kismet/KismetMathLibrary.h"
 
+#include "DiceRollComponent.h"
 #include "DiceSelector.h"
-#include "DiceSpawnVolume.h"
-
-// Collects the result and broadcasts OnAllDiceRolled once all expected results have arrived.
-void UDiceTray::OnDiceRolledHandler(FRollResult Result)
-{
-	PendingResults.Add(Result);
-
-	if (PendingResults.Num() == ExpectedDiceCount)
-	{
-		if (RollMode != EDiceRollMode::Normal && PendingResults.Num() == 2)
-		{
-			bool bKeepFirst = (RollMode == EDiceRollMode::Advantage)
-				? PendingResults[0].Value >= PendingResults[1].Value
-				: PendingResults[0].Value <= PendingResults[1].Value;
-
-			int32 LoserIndex = bKeepFirst ? 1 : 0;
-			int32 KeeperIndex = bKeepFirst ? 0 : 1;
-
-			if (IsValid(PendingResults[LoserIndex].DiceActor))
-			{
-				PendingResults[LoserIndex].DiceActor->bWasKept = false;
-			}
-
-			TArray<FRollResult> KeptResult = { PendingResults[KeeperIndex] };
-			OnAllDiceRolled.Broadcast(KeptResult, RollMode);
-		}
-		else
-		{
-			for (const FRollResult& RollResult : PendingResults)
-			{
-				FString DiceTypeName = UEnum::GetValueAsString(RollResult.DiceType);
-				UE_LOG(LogTemp, Display, TEXT("Type: %s | Value: %d"), *DiceTypeName, RollResult.Value);
-			}
-
-			OnAllDiceRolled.Broadcast(PendingResults, RollMode);
-		}
-
-		bRollInProgress = false;
-		UpdateRollButtonState();
-		UpdateAdvantageButtonState();
-
-		if (UWorld* TimerWorld = GetWorld())
-		{
-			TimerWorld->GetTimerManager().SetTimer(
-				DestroyDiceTimerHandle,
-				this,
-				&UDiceTray::DestroyDice,
-				TimeBeforeDestroyingDice,
-				false);
-		}
-
-		PendingResults.Empty();
-		ExpectedDiceCount = 0;
-	}
-}
-
-// Destroys all actors in SpawnedDice and empties the array.
-void UDiceTray::DestroyDice()
-{
-	for (auto Dice : SpawnedDice)
-	{
-		if (IsValid(Dice))
-		{
-			Dice->Destroy();
-		}
-	}
-	SpawnedDice.Empty();
-}
-
-// Decrements the expected count and finalises the roll early if remaining dice have all reported results.
-void UDiceTray::OnDiceFailsafeHandler(EDiceType DiceType)
-{
-	ExpectedDiceCount--;
-	OnDiceFailsafeDestroyed.Broadcast(DiceType);
-
-	if (ExpectedDiceCount > 0 && PendingResults.Num() == ExpectedDiceCount)
-	{
-		OnAllDiceRolled.Broadcast(PendingResults, RollMode);
-
-		bRollInProgress = false;
-		UpdateRollButtonState();
-		UpdateAdvantageButtonState();
-
-		if (UWorld* TimerWorld = GetWorld())
-		{
-			TimerWorld->GetTimerManager().SetTimer(
-				DestroyDiceTimerHandle,
-				this,
-				&UDiceTray::DestroyDice,
-				TimeBeforeDestroyingDice,
-				false);
-		}
-
-		PendingResults.Empty();
-		ExpectedDiceCount = 0;
-	}
-}
+#include "SessionController.h"
 
 // Refreshes roll and advantage button states whenever any selector count changes.
 void UDiceTray::OnSelectorCountChanged()
@@ -110,24 +14,68 @@ void UDiceTray::OnSelectorCountChanged()
 	UpdateAdvantageButtonState();
 }
 
+// Builds a roll request from the current selectors and roll mode, hands it to the dice roll component, then resets the selectors and refreshes button states.
+void UDiceTray::OnRollClicked()
+{
+	if (!IsValid(DiceRollComponentRef))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UDiceTray::OnRollClicked - DiceRollComponentRef is not valid."));
+		return;
+	}
+
+	FDiceRollRequest RollRequest;
+
+	RollRequest.Mode = ActiveRollMode;
+
+	for(auto Selector : Selectors)
+	{
+		if (Selector->DiceCount > 0)
+		{
+			FDiceTypeCount DiceTypeCount;
+
+			DiceTypeCount.Count = Selector->DiceCount;
+			DiceTypeCount.DiceClass = Selector->DiceClass;
+			DiceTypeCount.DiceType = Selector->DiceType;
+
+			RollRequest.Dice.Add(DiceTypeCount);
+
+			Selector->ResetCount();
+		}
+	}
+
+	bRollInProgress = true;
+	DiceRollComponentRef->RollDice(RollRequest);
+
+	UpdateRollButtonState();
+	UpdateAdvantageButtonState();
+}
+
 // Sets roll mode to Normal and refreshes advantage button states.
 void UDiceTray::OnNormalClicked()
 {
-	RollMode = EDiceRollMode::Normal;
+	ActiveRollMode = EDiceRollMode::Normal;
 	UpdateAdvantageButtonState();
 }
 
 // Sets roll mode to Advantage and refreshes advantage button states.
 void UDiceTray::OnAdvantageClicked()
 {
-	RollMode = EDiceRollMode::Advantage;
+	ActiveRollMode = EDiceRollMode::Advantage;
 	UpdateAdvantageButtonState();
 }
 
 // Sets roll mode to Disadvantage and refreshes advantage button states.
 void UDiceTray::OnDisadvantageClicked()
 {
-	RollMode = EDiceRollMode::Disadvantage;
+	ActiveRollMode = EDiceRollMode::Disadvantage;
+	UpdateAdvantageButtonState();
+}
+
+// Clears the in-progress flag and refreshes button states once the roll completes.
+void UDiceTray::OnRollCompleteHandler(TArray<FRollResult> Results, EDiceRollMode RollMode)
+{
+	bRollInProgress = false;
+	UpdateRollButtonState();
 	UpdateAdvantageButtonState();
 }
 
@@ -175,7 +123,7 @@ void UDiceTray::UpdateAdvantageButtonState()
 			Button->SetIsEnabled(true);
 		}
 
-		switch (RollMode)
+		switch (ActiveRollMode)
 		{
 		case EDiceRollMode::Normal:
 			NormalRollButton->SetIsEnabled(false);
@@ -194,7 +142,7 @@ void UDiceTray::UpdateAdvantageButtonState()
 	{
 		if (!bRollInProgress)
 		{
-			RollMode = EDiceRollMode::Normal;
+			ActiveRollMode = EDiceRollMode::Normal;
 		}
 		for (auto Button : AdvantageButtons)
 		{
@@ -203,23 +151,31 @@ void UDiceTray::UpdateAdvantageButtonState()
 	}
 }
 
-// Adds a uniform random offset within [-Range, Range] to each component of the base vector.
-FVector UDiceTray::GetRandomizedVector(const FVector& BaseVector, const float& Range, bool bUseZAxis)
-{
-	float Z = bUseZAxis ? FMath::FRandRange(-Range, Range) : 0.f;
-	return BaseVector + FVector(FMath::FRandRange(-Range, Range),
-		FMath::FRandRange(-Range, Range),
-		Z);
-}
-
-// Populates selector and button arrays, binds all button delegates, and refreshes initial button states.
+// Caches the dice roll component, populates selector and button arrays, binds all delegates, and refreshes initial button states.
 void UDiceTray::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	if (ASessionController* SC = Cast<ASessionController>(GetOwningPlayer()))
+	{
+		DiceRollComponentRef = SC->DiceRollComponent;
+		if (IsValid(DiceRollComponentRef))
+		{
+			DiceRollComponentRef->OnRollComplete.AddDynamic(this, &UDiceTray::OnRollCompleteHandler);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("UDiceTray::NativeConstruct - DiceRollComponentRef is not valid."));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UDiceTray::NativeConstruct - Could not get the session controller."));
+	}
+
 	Selectors = { D4, D6, D8, D10, D12, D20, D100 };
 	AdvantageButtons = { NormalRollButton, AdvantageRollButton, DisadvantageRollButton };
-	RollButton->OnClicked.AddDynamic(this, &UDiceTray::RollDice);
+	RollButton->OnClicked.AddDynamic(this, &UDiceTray::OnRollClicked);
 	NormalRollButton->OnClicked.AddDynamic(this, &UDiceTray::OnNormalClicked);
 	AdvantageRollButton->OnClicked.AddDynamic(this, &UDiceTray::OnAdvantageClicked);
 	DisadvantageRollButton->OnClicked.AddDynamic(this, &UDiceTray::OnDisadvantageClicked);
@@ -231,87 +187,4 @@ void UDiceTray::NativeConstruct()
 
 	UpdateRollButtonState();
 	UpdateAdvantageButtonState();
-}
-
-// Spawns and launches all selected dice, clearing leftover dice from the previous roll first.
-void UDiceTray::RollDice()
-{
-	if (!IsValid(SpawnVolume))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UDiceTray::RollDice — SpawnVolume is not set."));
-		bRollInProgress = false;
-		return;
-	}
-
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UDiceTray::RollDice — GetWorld() returned null."));
-		return;
-	}
-
-	World->GetTimerManager().ClearTimer(DestroyDiceTimerHandle);
-
-	for (auto Dice : SpawnedDice)
-	{
-		if (IsValid(Dice))
-		{
-			Dice->Destroy();
-		}
-	}
-
-	OnRollInitiated.Broadcast();
-
-	SpawnedDice.Empty();
-	PendingResults.Empty();
-	ExpectedDiceCount = 0;
-	bRollInProgress = true;
-
-	for (auto Selector : Selectors)
-	{
-		if (Selector->DiceCount > 0)
-		{
-			bool bAdvantageRoll = RollMode != EDiceRollMode::Normal;
-			int32 SpawnCount = (bAdvantageRoll) ? 2 : Selector->DiceCount;
-
-			for (int i = 0; i < SpawnCount; i++)
-			{
-				FRotator RandomRot = UKismetMathLibrary::RandomRotator(true);
-				FVector SpawnPoint = FMath::RandPointInBox(SpawnVolume->GetSpawnBox());
-				FTransform T(FQuat(RandomRot), SpawnPoint, FVector::OneVector);
-
-				ABaseDiceActor* SpawnedDie = World->SpawnActor<ABaseDiceActor>(Selector->DiceClass, T);
-
-				if (IsValid(SpawnedDie))
-				{
-					SpawnedDice.Add(SpawnedDie);
-					ExpectedDiceCount++;
-
-					// Failsafe delegate in case something goes wrong and the dice don't stop moving within a reasonable time frame
-					SpawnedDie->OnDiceRolled.AddDynamic(this, &UDiceTray::OnDiceRolledHandler);
-					SpawnedDie->OnFailsafeDestroy.AddDynamic(this, &UDiceTray::OnDiceFailsafeHandler);
-				}
-			}
-
-			Selector->ResetCount();
-		}
-	}
-
-	if (!SpawnedDice.IsEmpty())
-	{
-		UpdateRollButtonState();
-		UpdateAdvantageButtonState();
-
-		for (auto Dice : SpawnedDice)
-		{
-			Dice->Roll(GetRandomizedVector(Impulse, ImpulseRange, false),
-				GetRandomizedVector(AngularImpulse, AngularImpulseRange, true));
-		}
-	}
-	else
-	{
-		bRollInProgress = false;
-		UpdateRollButtonState();
-		UpdateAdvantageButtonState();
-	}
 }

@@ -6,8 +6,9 @@
 #include "InputAction.h"
 #include "SessionController.generated.h"
 
-class USessionUIComponent;
+class UDiceRollComponent;
 class USessionChatComponent;
+class USessionUIComponent;
 
 /** Main player controller for active sessions. Drives camera movement and routes input to the HUD. */
 UCLASS()
@@ -18,13 +19,17 @@ class PROJECTIRONTABLE_API ASessionController : public ABaseCameraController
 public:
 
 #pragma region Components
-	/** The HUD component owned by this controller, responsible for all UI widgets. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<USessionUIComponent> UIComponent;
-
 	/** The chat component owned by this controller, responsible for replicated chat messaging. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USessionChatComponent> ChatComponent;
+
+	/** The dice roll component owned by this controller, responsible for rolling dice. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UDiceRollComponent> DiceRollComponent;
+
+	/** The HUD component owned by this controller, responsible for all UI widgets. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USessionUIComponent> UIComponent;
 #pragma endregion
 
 #pragma region Session Input
@@ -75,6 +80,6 @@ public:
 	void Server_TravelToSession(const FString& TravelURL);
 #pragma endregion
 
-	/** Creates and attaches the UI and chat component subobjects. */
+	/** Creates and attaches the UI, chat, and dice roll component subobjects. */
 	ASessionController();
 };
