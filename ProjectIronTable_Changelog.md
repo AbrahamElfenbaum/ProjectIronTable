@@ -4,6 +4,19 @@
 
 ---
 
+## 2026-06-18
+
+**Implementation:**
+- **Dice system re-architected** — roll orchestration extracted from the `UDiceTray` widget into a new controller-owned `UDiceRollComponent` (`Components/`, `UActorComponent`, `Blueprintable`):
+  - Component owns the moved `EDiceRollMode` enum, new `FDiceTypeCount` + `FDiceRollRequest` structs (its input contract), spawn/settle/teardown logic (`RollDice(const FDiceRollRequest&)`, `OnDiceRolledHandler`, `OnDiceFailsafeHandler`, `DestroyDice`, `FinalizeRoll`, `GetRandomizedVector`), the impulse/spawn config, `ActiveRollMode` state, and the `OnRollComplete` / `OnDiceFailsafeDestroyed` / `OnRollInitiated` delegates.
+  - `UDiceTray` shrank to pure presentation. `OnRollClicked` builds a `FDiceRollRequest` from the selectors (one `FDiceTypeCount` per selected type) and calls `DiceRollComponentRef->RollDice()`; `NativeConstruct` acquires the component via `GetOwningPlayer()` → `Cast<ASessionController>` → `DiceRollComponent` and binds `OnRollComplete` → `OnRollCompleteHandler`. Retains `bRollInProgress` + `ActiveRollMode` and all button-state logic as presentation.
+  - `ASessionController` creates the `UDiceRollComponent` subobject. `USessionChatComponent` repointed from the tray's delegates to the component's (`OnAllDiceRolled`→`OnRollComplete`) — chat no longer reaches into the tray widget. `USessionUIComponent` assigns `SpawnVolume` to the component instead of the tray.
+- **Two pre-existing `UDiceTray` bugs fixed** before extraction: extracted a shared `FinalizeRoll()` (the broadcast-teardown block was duplicated across the rolled/failsafe handlers); fixed a failsafe hang where an all-failed or last-die-failed roll never finalized (nested the completion check — outer "roll resolved" always runs `FinalizeRoll`, inner "results exist" gates only the broadcast).
+- Bug fix (editor-side): camera input regression — `IA_CameraMove` Negate/Swizzle modifiers had blanked out during the camera refactor, collapsing all WASD movement to +X. Re-added in the editor.
+- Architecture review of the session/component layer recorded (mostly small safe cleanups queued — dead `DiceTrayRef`/`GetDiceTray()`, panel-array redundancy).
+
+---
+
 ## 2026-06-15
 
 **Implementation:**

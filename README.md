@@ -58,7 +58,7 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - `CampaignBrowser/` — Campaign browser screen (`UCampaignBrowserScreen`, stub)
 - `CampaignManager/` — Campaign manager widget classes (`UGameTypeTab`, `UCampaignCard`, `UCampaignManagerScreen`)
 - `Chat/` — Chat widget classes (`UChatBox`, `UChatEntry`, `UChatChannel`, `UChatTab`, `UChatChannelListEntry`)
-- `Components/` — Actor component classes (`USessionUIComponent`, `USessionChatComponent`, `UMainScreenUIComponent`, `USessionNotesComponent`)
+- `Components/` — Actor component classes (`USessionUIComponent`, `USessionChatComponent`, `UDiceRollComponent`, `UMainScreenUIComponent`, `USessionNotesComponent`)
 - `Dice/` — Dice actors (`ABaseDiceActor`, `ADiceSpawnVolume`), dice UI (`UDiceTray`, `UDiceSelector`), and data assets (`UDiceData`)
 - `GameInstances/` — Game instance class (`USessionInstance`)
 - `GameModes/` — Game mode classes (`ASessionGameMode`)

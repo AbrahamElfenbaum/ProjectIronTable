@@ -71,7 +71,7 @@ Source/ProjectIronTable/
 ├── CampaignBrowser/   — Campaign browser screen (CampaignBrowserScreen)
 ├── CampaignManager/   — Campaign manager widget classes (GameTypeTab, CampaignCard, CampaignManagerScreen)
 ├── Chat/              — Chat widget classes (ChatBox, ChatEntry, ChatChannel, ChatTab, ChatChannelListEntry)
-├── Components/        — Actor component classes (SessionUIComponent, SessionChatComponent, MainScreenUIComponent, SessionNotesComponent)
+├── Components/        — Actor component classes (SessionUIComponent, SessionChatComponent, DiceRollComponent, MainScreenUIComponent, SessionNotesComponent)
 ├── Dice/              — Dice actors and data assets (DiceTray, DiceSelector, BaseDiceActor, DiceSpawnVolume, DiceData)
 ├── GameInstances/     — Game instance class (SessionInstance)
 ├── GameModes/         — Game mode classes (SessionGameMode)
@@ -153,7 +153,7 @@ Content/
 #### ADiceSpawnVolume
 **Type:** `AActor` | **Place in level:** yes (one instance)
 
-Defines the spawn area for dice. `USessionUIComponent` finds it at runtime via `GetActorOfClass` and passes it to `UDiceTray`.
+Defines the spawn area for dice. `USessionUIComponent` finds it at runtime via `GetActorOfClass` and assigns it to the controller's `UDiceRollComponent`.
 
 **Components:** `SpawnArea` (`UBoxComponent`, root — visible/resizable in viewport)
 
@@ -699,7 +699,7 @@ Manages the session HUD lifecycle: widget creation, panel registration, layout s
 |--------|------------|-------------|
 | `Init()` | — | Called by `ASessionController::BeginPlay`; creates and adds the session screen widget, caches all widget refs, registers panels with the taskbar, loads panel layout, and binds delegates. Local player controller only |
 | `GetChatBox() const → UChatBox*` | — | Returns the cached chat box reference; called by `USessionChatComponent::Init` |
-| `GetDiceTray() const → UDiceTray*` | — | Returns the cached dice tray reference; called by `USessionChatComponent::Init` |
+| `GetDiceTray() const → UDiceTray*` | — | Returns the cached dice tray reference. **Now unused** after the dice refactor (chat binds the `UDiceRollComponent` directly) — slated for removal, see `project_architecture_backlog.md` |
 | `GetPlayerList() const → UPlayerList*` | — | Returns the cached player list reference; called by `USessionChatComponent::Init` |
 | `FindAndRegisterPanel` | `WidgetName, Label` | Finds `UDraggablePanel`, registers with taskbar, assigns ID, binds layout save delegates. Populated into `Panels` during `Init` |
 | `SavePanelLayout()` | — | Iterates `Panels` array and writes each panel's layout to the `"PanelLayout"` save slot |
@@ -719,7 +719,7 @@ Owns all chat networking, dice-to-chat routing, and chat passthrough methods. Ge
 
 | Method | Parameters | Description |
 |--------|------------|-------------|
-| `Init()` | — | Called by `ASessionController::BeginPlay` after `UIComponent->Init()`; gets widget refs from `UIComponent` getters, wires `SetChatComponent(this)`, binds dice and player list delegates. Local controller only |
+| `Init()` | — | Called by `ASessionController::BeginPlay` after `UIComponent->Init()`; gets `ChatBoxRef`/`PlayerListRef` from `UIComponent` getters and the `UDiceRollComponent` from the owning controller, wires `SetChatComponent(this)`, binds the dice-roll component and player-list delegates. Local controller only |
 | `FocusChat()` | — | Delegates to `ChatBoxRef->FocusChat()` |
 | `ExitChat()` | — | Delegates to `ChatBoxRef->ExitChat()` |
 
@@ -734,9 +734,9 @@ Owns all chat networking, dice-to-chat routing, and chat passthrough methods. Ge
 
 | Method | Parameters | Description |
 |--------|------------|-------------|
-| `AddRollResultToChat` | `TArray<FRollResult>, EDiceRollMode` | Bound to `UDiceTray::OnAllDiceRolled`; formats result string and calls `SendChatMessageOnServer` |
-| `OnDiceFailsafeHandler` | `EDiceType` | Bound to `UDiceTray::OnDiceFailsafeDestroyed`; broadcasts a "lost to the void" message |
-| `OnRollInitiated()` | — | Bound to `UDiceTray::OnRollInitiated`; calls `ChatBoxRef->TrySendPrivateRollMessage()` before dice spawn |
+| `AddRollResultToChat` | `TArray<FRollResult>, EDiceRollMode` | Bound to `UDiceRollComponent::OnRollComplete`; formats result string and calls `SendChatMessageOnServer` |
+| `OnDiceFailsafeHandler` | `EDiceType` | Bound to `UDiceRollComponent::OnDiceFailsafeDestroyed`; broadcasts a "lost to the void" message |
+| `OnRollInitiated()` | — | Bound to `UDiceRollComponent::OnRollInitiated`; calls `ChatBoxRef->TrySendPrivateRollMessage()` before dice spawn |
 | `OnPlayerAddressClicked` | `FString` | Bound to `UPlayerList::OnAddressClicked`; appends `@Name` to chat input |
 
 **Chat Log Restore:** Handled in `USessionUIComponent::Init` after `ChatBoxRef` is initialized.
@@ -863,31 +863,45 @@ UI row for selecting a die type and count. All logic is C++; Blueprint is layout
 #### UDiceTray
 **Type:** `UUserWidget` | **Blueprint:** `W_DiceTray`
 
-Manages all dice selectors and initiates rolls. Renamed from `UDiceSelectorManager`.
+**Presentation only** (since the 2026-06-18 dice refactor — all roll/spawn logic moved to `UDiceRollComponent`). Lets the player choose dice counts and roll mode, then builds a `FDiceRollRequest` and hands it to the controller-owned component. Owns no spawn, physics, or result logic.
 
 **Bound Widgets:** `D4`–`D100` (`UDiceSelector`), `NormalRollButton`, `AdvantageRollButton`, `DisadvantageRollButton`, `RollButton` (`UButton`)
 
-**Config:**
+**State (presentation):** `bRollInProgress` (disables buttons during a roll), `ActiveRollMode` (`EDiceRollMode` — which advantage button is highlighted; copied into the request), `DiceRollComponentRef` (cached component).
 
-| Property                  | Default          | Notes                                      |
-|---------------------------|------------------|--------------------------------------------|
-| `SpawnVolume`             | —                | Set at runtime by `USessionUIComponent`    |
-| `Impulse`                 | `3000, 3000, 0`  | Linear impulse applied to each die         |
-| `ImpulseRange`            | `100`            | Random variance on linear impulse          |
-| `AngularImpulse`          | `500, 500, 500`  | Spin impulse applied to each die           |
-| `AngularImpulseRange`     | `200`            | Random variance on angular impulse         |
-| `TimeBeforeDestroyingDice`| `5s`             | Delay before settled dice are destroyed    |
+**Roll Modes:** Normal / Advantage / Disadvantage — mode buttons enabled only when exactly one selector has `DiceCount == 1`.
 
-**Roll Modes:** Normal / Advantage / Disadvantage — mode buttons enabled only when exactly one selector has `DiceCount == 1`. Advantage/Disadvantage spawn 2 dice and keep only the higher/lower result; losing die gets `bWasKept = false`.
+**Key flow:**
+- `NativeConstruct` acquires `DiceRollComponentRef` via `GetOwningPlayer()` → `Cast<ASessionController>` → `DiceRollComponent`, binds the roll button to `OnRollClicked`, and binds `DiceRollComponentRef->OnRollComplete` → `OnRollCompleteHandler`.
+- `OnRollClicked` builds a `FDiceRollRequest` (one `FDiceTypeCount` per selector with `DiceCount > 0`, plus `ActiveRollMode`), resets the selectors, sets `bRollInProgress`, and calls `DiceRollComponentRef->RollDice(Request)`.
+- `OnRollCompleteHandler(TArray<FRollResult>, EDiceRollMode)` clears `bRollInProgress` and refreshes buttons. **Param must be by-value `TArray<FRollResult>`** to match the dynamic delegate (see gotchas).
+
+---
+
+#### UDiceRollComponent
+**Type:** `UActorComponent` (`Blueprintable`) | **Location:** `Components/` | **Owner:** `ASessionController`
+
+The dice **engine** — runs a roll independent of any UI. Created as a subobject in the `ASessionController` constructor. Spawns the dice described by a `FDiceRollRequest`, waits for them to settle, applies advantage/disadvantage keep-discard, and broadcasts results. Living on the controller (not the widget) lets a chat command (`/roll`) or networked roll reuse the same path without the tray open.
+
+**Input contract (defined in `DiceRollComponent.h`):**
+- `EDiceRollMode` (Normal/Advantage/Disadvantage) — **moved here from `DiceTray.h`**.
+- `FDiceTypeCount` — `DiceClass` (`TSubclassOf<ABaseDiceActor>`), `DiceType` (`EDiceType`), `Count` (`int32`).
+- `FDiceRollRequest` — `TArray<FDiceTypeCount> Dice` + `EDiceRollMode Mode`. Built by the tray (or a future chat parser).
+
+**Config:** `SpawnVolume` (`ADiceSpawnVolume`, assigned at runtime by `USessionUIComponent`), `Impulse` (`3000,3000,0`), `ImpulseRange` (`100`), `AngularImpulse` (`500,500,500`), `AngularImpulseRange` (`200`), `TimeBeforeDestroyingDice` (`5s`).
 
 **Delegates:**
-- `OnAllDiceRolled` (`TArray<FRollResult>`, `EDiceRollMode`)
-- `OnDiceFailsafeDestroyed` (`EDiceType`)
-- `OnRollInitiated` (zero-param) — broadcast at the **very start** of `RollDice`, before spawning
+- `OnRollComplete` (`TArray<FRollResult>`, `EDiceRollMode`) — fired once every die settles (replaces the old `OnAllDiceRolled`).
+- `OnDiceFailsafeDestroyed` (`EDiceType`) — a die was destroyed by its failsafe timer before settling.
+- `OnRollInitiated` (zero-param) — broadcast at the very start of `RollDice`, before spawning.
 
-> **Note:** `bRollInProgress` must be set `true` before the spawning loop, not after — otherwise `ResetCount` resets `RollMode` mid-roll.
+**Key Methods:** `RollDice(const FDiceRollRequest&)` (stashes `ActiveRollMode`, clears prior dice, spawns + launches), `OnDiceRolledHandler` (collects results, applies keep-discard, broadcasts `OnRollComplete`, finalizes), `OnDiceFailsafeHandler` (early-finalize on failsafe), `FinalizeRoll` (shared teardown), `DestroyDice`, `GetRandomizedVector`.
+
+> **Note:** Advantage/Disadvantage spawn 2 dice and keep only the higher/lower result; losing die gets `bWasKept = false`.
 >
-> **Note:** `ADiceSpawnVolume` must be placed in the level or `RollDice` will log a warning and do nothing.
+> **Note:** Failsafe completion check is nested — outer `PendingResults.Num() == ExpectedDiceCount` ("roll resolved", always finalizes), inner `ExpectedDiceCount > 0` ("results worth broadcasting"). The old single guard left an all-failed roll stuck with the button disabled.
+>
+> **Note:** `ADiceSpawnVolume` must be placed in the level or `RollDice` logs a warning and does nothing.
 
 ---
 
@@ -1024,6 +1038,7 @@ Session-specific controller. Inherits all camera behavior from `ABaseCameraContr
 ```cpp
 UIComponent = CreateDefaultSubobject<USessionUIComponent>(TEXT("UIComponent"));
 ChatComponent = CreateDefaultSubobject<USessionChatComponent>(TEXT("ChatComponent"));
+DiceRollComponent = CreateDefaultSubobject<UDiceRollComponent>(TEXT("DiceRollComponent"));
 ```
 
 **BeginPlay:** `Super::BeginPlay()` (base camera setup), then `UIComponent->Init()` followed by `ChatComponent->Init()` (order matters — chat component needs `UChatBox` from UI component).
@@ -1739,6 +1754,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - `ETextCommit::OnCleared` fires when Escape is pressed in a `UEditableText` — handle exit-on-Escape in `OnTextCommitted`, not via input action
 - `ETextCommit::OnUserMovedFocus` fires when the user clicks away — use this for click-outside-to-exit
 - When `UEditableText` commits on Enter, it also fires `OnUserMovedFocus` immediately — call `FocusChat()` at the end of the Enter handler to stay in chat
+- **An Input Action's modifiers (Negate / Swizzle Input Axis Values) can silently blank out when an IMC or IA asset is recreated or re-saved** — symptom: all WASD keys move the same direction (e.g. every key produces +X). The C++ is fine; re-add the modifiers in the editor. Check after any camera-input asset churn.
 
 ### Widgets & UI
 - `BindWidget` members are null at member declaration time — always do setup work in `NativeConstruct`, not the header
@@ -1756,7 +1772,8 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - `OnComponentHit` will not fire unless `SetNotifyRigidBodyCollision(true)` is called on the mesh — binding the delegate alone is not enough
 - `OnComponentSleep` will not fire unless **Generate Wake Events** is checked on the mesh component in Blueprint
 - `ADiceSpawnVolume` must be placed in the level — `RollDice` logs a warning and does nothing if it's missing
-- **`bRollInProgress` must be set `true` before calling `ResetCount`** — `ResetCount` triggers `UpdateAdvantageButtonState`, which resets `RollMode` to Normal if `bRollInProgress` is still false
+- **`bRollInProgress` must be set `true` before calling `ResetCount`** (in `UDiceTray::OnRollClicked`) — `ResetCount` triggers `UpdateAdvantageButtonState`, which resets `ActiveRollMode` to Normal if `bRollInProgress` is still false
+- **Dice failsafe completion check must finalize even when zero dice succeed** — nest it: outer `PendingResults.Num() == ExpectedDiceCount` always runs `FinalizeRoll`, inner `ExpectedDiceCount > 0` gates only the broadcast. A single `> 0` guard leaves an all-failed/last-die-failed roll stuck with the button disabled (in `UDiceRollComponent`)
 
 ### Networking & RPCs
 - **Widget initialization must go in `BeginPlay`, not `OnPossess`** — `OnPossess` runs only on the server in multiplayer. Remote clients never call `OnPossess`, so any `Init()` or widget creation placed there will silently skip all non-server clients, leaving them with a black screen. `BeginPlay` runs once per machine per controller, making it the correct place for HUD initialization. Enhanced Input setup is the exception — it still belongs in `OnPossess` where `InputComponent` is valid.
@@ -1765,9 +1782,12 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 
 ### Delegates
 - **`DECLARE_DYNAMIC_MULTICAST_DELEGATE` names are global** — two headers declaring the same delegate name cause a compile error. Declare shared delegate types once in `UDelegateLibrary` (`Utility/DelegateLibrary.h`) and include that header wherever the type is needed. Per-class delegates (e.g. `FOnGameTypeSelected`) stay in their own class header.
+- **A dynamic-delegate handler's parameter types must match the macro declaration exactly — by value, not `const&`.** `DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(F, TArray<X>, ...)` declares the array by value, so the `AddDynamic` target must take `TArray<X>` by value; a `const TArray<X>&` handler fails to bind (the method pointer doesn't match). E.g. `UDiceTray::OnRollCompleteHandler(TArray<FRollResult>, EDiceRollMode)`.
 
 ### C++ Patterns
 - Declaring `Type* MemberName = Cast<...>` in `BeginPlay` creates a local variable that shadows the member — use `MemberName = Cast<...>` (no type prefix)
+- **A function parameter named the same as a member variable triggers "hides class member" (warnings-as-errors → build fails).** Rename the parameter or the member. (Hit when a handler param `RollMode` collided with the `RollMode` member — the member was renamed `ActiveRollMode`.)
+- **`CreateDefaultSubobject` names must be unique within a class** — two subobjects created with the same name string conflict at construction. Each needs a distinct `TEXT("...")` name.
 - `FRotator(Pitch, Yaw, Roll)` — constructor order is **not** (X, Y, Z); wrong order causes violent camera bouncing
 - `GetActorForwardVector()` has a Z component when pitched — zero out `Delta.Z` after computing movement to keep it flat
 - `FMath::Sign(float)` returns 1.f / -1.f / 0.f — good for collapsing scroll direction checks
@@ -2102,7 +2122,7 @@ This approach keeps all save I/O within UE's native save game system and makes a
 
 ---
 
-*Last updated: 2026-06-15* — Map builder foundation + camera-controller refactor. New `AMapGrid` (grid↔world conversions, debug visualization) and `ATileActor` in `MapBuilder/`. Camera logic extracted from `ASessionController` into a shared `ABaseCameraController` base (`PlayerControllers/`); `ASessionController` reparented to it and slimmed to session-only surface. `ASessionPawn` renamed `ACameraPawn` (CoreRedirect added). New `AMapBuilderController` skeleton (Part A). Coding standard added: constructor goes first in the class body. `PostEditChangeProperty` definition now correctly wrapped in `#if WITH_EDITOR`.
+*Last updated: 2026-06-18* — Dice system re-architected: orchestration extracted from the `UDiceTray` widget into a new controller-owned `UDiceRollComponent` (`Components/`), which owns the `EDiceRollMode` enum, `FDiceRollRequest`/`FDiceTypeCount` structs, spawn/settle/result logic, and the `OnRollComplete`/`OnDiceFailsafeDestroyed`/`OnRollInitiated` delegates. `UDiceTray` shrank to pure presentation (builds a request, calls the component). `ASessionController` now creates the component; `USessionChatComponent` binds it directly (no longer reaches into the tray); `USessionUIComponent` assigns `SpawnVolume` to it. Two pre-existing tray bugs fixed in passing (DRY `FinalizeRoll`, failsafe-hang). Plus a fix to the camera input regression (blank IMC modifiers).
 
 ---
 
