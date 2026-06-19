@@ -4,6 +4,19 @@
 
 ---
 
+## 2026-06-19
+
+**Implementation:**
+- **Map builder core placement complete.** `AMapBuilderController` Part B implemented, then all placement logic extracted into a new controller-owned `UTilePlacementComponent`.
+  - `AMapBuilderController::GetGridCellUnderCursor` — deprojects the mouse, intersects the grid's Z-plane (`T = (PlaneZ - Origin.Z) / Dir.Z`), returns the cell via `WorldToGrid`. Guards: null grid, failed deproject, parallel ray (`Dir.Z≈0`), behind-camera (`HitDistance<0`).
+  - `UTilePlacementComponent` (`Components/`, `UActorComponent`) — owns `TileClass`, `RotationInterpSpeed`, ghost (`GhostTileRef`, collision disabled), `MapGridRef`, `WorldRef`, `CurrentRotation`, and the `TMap<FIntPoint, TObjectPtr<ATileActor>> PlacedTiles` occupancy map. Public ops `PlaceTile`/`DeleteTile`/`RotateTile`/`UpdateGhostTile`, all keyed on `FIntPoint Cell`. Place rejects occupied cells; delete is a cell lookup (`Find`→`Destroy`→`Remove`), no raycast; rotate steps 90° (`UnwindDegrees`-wrapped) with the ghost eased via `RInterpTo`; ghost spawned in `BeginPlay`, snapped to the cursor cell each tick.
+  - Controller slimmed to input + cursor: handlers and `PlayerTick` delegate to the component; dropped its `WorldRef`/`TileClass`/`CurrentRotation` and the `TileActor.h` include.
+- **Architecture decision** — placement orchestration extracted into a controller-owned component, mirroring the dice `UDiceRollComponent` pattern, but timed *before* delete/occupancy were written so they landed in the right home (no write-then-move churn). The seam is cell-based: the controller owns the cursor (deproject is a PC API) and produces an `FIntPoint`; the component owns grid↔world conversion, spawning, and occupancy — chosen over passing a raw world point because the component needs the grid regardless and it avoids a redundant round-trip. Free-place props (raw world point) will be a separate path. Occupancy keyed `FIntPoint` now; migrates to `FIntVector` for vertical stacking via an "active build level" plane.
+- Format pass on the 8 map-builder files (constructor-first, doc comments, component Runtime Refs → `private` before Config, `TickComponent` → `protected`, UCLASS doc, `TileActor` constructor-first). `MapGrid.cpp` left unformatted pending removal of its debug-draw scaffolding.
+- New editor assets: `PC_MapBuilder`, `GM_MapBuilder`, `A_MapGrid`, `A_GhostTile`, `IMC_Build`, `IA_PlaceTile`/`IA_RotateTile`/`IA_DeleteTile`, `Dev_MapBuilder` level.
+
+---
+
 ## 2026-06-18
 
 **Implementation:**

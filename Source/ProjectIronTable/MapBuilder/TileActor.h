@@ -14,12 +14,12 @@ class PROJECTIRONTABLE_API ATileActor : public AActor
 
 public:
 
+	/** Creates the tile's static mesh component and sets it as the root. */
+	ATileActor();
+
 #pragma region Components
 	/** Static mesh that visually represents this tile. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components)
 	TObjectPtr<UStaticMeshComponent> TileMesh;
 #pragma endregion
-
-	/** Creates the tile's static mesh component and sets it as the root. */
-	ATileActor();
 };

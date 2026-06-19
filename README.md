@@ -58,7 +58,7 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - `CampaignBrowser/` — Campaign browser screen (`UCampaignBrowserScreen`, stub)
 - `CampaignManager/` — Campaign manager widget classes (`UGameTypeTab`, `UCampaignCard`, `UCampaignManagerScreen`)
 - `Chat/` — Chat widget classes (`UChatBox`, `UChatEntry`, `UChatChannel`, `UChatTab`, `UChatChannelListEntry`)
-- `Components/` — Actor component classes (`USessionUIComponent`, `USessionChatComponent`, `UDiceRollComponent`, `UMainScreenUIComponent`, `USessionNotesComponent`)
+- `Components/` — Actor component classes (`USessionUIComponent`, `USessionChatComponent`, `UDiceRollComponent`, `UMainScreenUIComponent`, `USessionNotesComponent`, `UTilePlacementComponent`)
 - `Dice/` — Dice actors (`ABaseDiceActor`, `ADiceSpawnVolume`), dice UI (`UDiceTray`, `UDiceSelector`), and data assets (`UDiceData`)
 - `GameInstances/` — Game instance class (`USessionInstance`)
 - `GameModes/` — Game mode classes (`ASessionGameMode`)
@@ -80,23 +80,26 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - `LoginFlow.drawio` — Player identity and session login flow from app launch through `PostLogin` role assignment
 
 ### Content (`Content/`)
-- `Blueprints/Core/GameModes/` — Game mode blueprints (`GM_Testing`, `GM_Session`, `GM_MainScreen`)
-- `Blueprints/Core/PlayerControllers/` — Player controller blueprints (`PC_Testing`, `PC_Session`, `PC_MainScreen`)
+- `Blueprints/Core/GameModes/` — Game mode blueprints (`GM_Testing`, `GM_Session`, `GM_MainScreen`, `GM_MapBuilder`)
+- `Blueprints/Core/PlayerControllers/` — Player controller blueprints (`PC_Testing`, `PC_Session`, `PC_MainScreen`, `PC_MapBuilder`)
 - `Blueprints/Core/Components/` — Actor components (`BP_SessionHUDComponent`, `BP_HomeScreenHUDComponent`)
+- `Blueprints/Actors/` — Map builder actors (`A_MapGrid`, `A_GhostTile`)
 - `Blueprints/Pawns/` — Camera pawn Blueprint (`P_Session`)
 - `Blueprints/Dice/` — Base dice actor Blueprint (`A_BaseDiceActor`)
 - `Blueprints/Dice/DiceActors/` — Individual die blueprints
 - `Blueprints/Utility/` — Utility blueprints
 - `Data/DataAssets/Dice/` — Dice data assets
 - `Fonts/` — Three composite UFont assets (JetBrains Mono, Source Code Pro, DM Mono); each holds Regular/Bold/Italic/Bold Italic typefaces
-- `Levels/Dev/` — Development/test levels (`Dev_` prefix)
+- `Levels/Dev/` — Development/test levels (`Dev_` prefix, e.g. `Dev_MapBuilder`)
 - `Levels/HomeScreen/` — Home screen level (`L_HomeScreen`)
 - `Levels/Session/` — Session levels (`L_Session`)
 - `Materials/Dice/` — Dice materials
 - `Audio/Dice/` — Dice collision sound assets (Kenney Impact Sounds, CC0)
 - `Meshes/Dice/` — Dice meshes (*Dungeons of Dice* by NNJohn)
 - `Textures/` — Texture assets
-- `Input/Session/` — `IMC_Session`, `IA_CameraMove`, `IA_CameraPan`, `IA_CameraPanReset`, `IA_CameraSprint`, `IA_CameraZoom`, `IA_FocusChat`
+- `Input/Camera/` — `IMC_Camera`, `IA_CameraMove`, `IA_CameraPan`, `IA_CameraPanReset`, `IA_CameraSprint`, `IA_CameraZoom`
+- `Input/Session/` — `IMC_Session`, `IA_FocusChat`
+- `Input/Build/` — `IMC_Build`, `IA_PlaceTile`, `IA_RotateTile`, `IA_DeleteTile`
 - `Input/Chat/` — `IMC_Chat`, `IA_ExitChat`
 - `UI/Dice/` — Dice widget elements (`WE_DiceSelector`, `WE_DiceSelectorManager`)
 - `UI/Chat/` — Chat widgets (`W_ChatBox`, `WE_ChatChannel`, `WE_ChatTab`, `WE_ChatEntry`)

@@ -21,10 +21,11 @@
   - [PlayerStates/](#playerstates) — ASessionPlayerState
   - [GameModes/](#gamemodes) — ASessionGameMode
   - [GameStates/](#gamestates) — ASessionGameState
-  - [Components/](#components) — UMainScreenUIComponent, USessionUIComponent, USessionChatComponent, USessionNotesComponent
+  - [Components/](#components) — UMainScreenUIComponent, USessionUIComponent, USessionChatComponent, USessionNotesComponent, UTilePlacementComponent
   - [Settings/](#settings) — UCameraSettingsPanel, USettingsSlider
   - [UI/](#ui) — UDraggablePanel, UTaskbar, UContextMenuButton, UContextMenu
-  - [PlayerControllers/](#playercontrollers) — ASessionController
+  - [MapBuilder/](#mapbuilder) — AMapGrid, ATileActor
+  - [PlayerControllers/](#playercontrollers) — ABaseCameraController, ASessionController, AMapBuilderController, AMainScreenController
   - [Utility/](#utility) — UBaseChannelTab, UBaseChannelListEntry, UBaseChannelPanel, UFunctionLibrary, MacroLibrary.h
   - [Screens/](#screens) — UBaseScreen, UHomeScreen
   - [SessionNotes/](#sessionnotes) — USessionNotesPanel, Notes Rich-Text Design, USessionNotesChannel, USessionNotesTab
@@ -71,13 +72,14 @@ Source/ProjectIronTable/
 ├── CampaignBrowser/   — Campaign browser screen (CampaignBrowserScreen)
 ├── CampaignManager/   — Campaign manager widget classes (GameTypeTab, CampaignCard, CampaignManagerScreen)
 ├── Chat/              — Chat widget classes (ChatBox, ChatEntry, ChatChannel, ChatTab, ChatChannelListEntry)
-├── Components/        — Actor component classes (SessionUIComponent, SessionChatComponent, DiceRollComponent, MainScreenUIComponent, SessionNotesComponent)
+├── Components/        — Actor component classes (SessionUIComponent, SessionChatComponent, DiceRollComponent, MainScreenUIComponent, SessionNotesComponent, TilePlacementComponent)
 ├── Dice/              — Dice actors and data assets (DiceTray, DiceSelector, BaseDiceActor, DiceSpawnVolume, DiceData)
 ├── GameInstances/     — Game instance class (SessionInstance)
 ├── GameModes/         — Game mode classes (SessionGameMode)
 ├── GameStates/        — Game state classes (SessionGameState)
+├── MapBuilder/        — Map builder grid + tile actors (MapGrid, TileActor)
 ├── Pawns/             — Pawn classes
-├── PlayerControllers/ — Player controller classes
+├── PlayerControllers/ — Player controller classes (BaseCameraController, SessionController, MainScreenController, MapBuilderController)
 ├── PlayerList/        — Player list widget classes (PlayerList, PlayerRow)
 ├── PlayerStates/      — Player state classes (SessionPlayerState)
 ├── RichText/          — Rich text widget classes (FRichTextRun, FRichTextDocument, SRichTextArea, SRichTextEditor, UEditableRichText)
@@ -94,9 +96,12 @@ Source/ProjectIronTable/
 Content/
 ├── Blueprints/
 │   ├── Core/
-│   │   ├── GameModes/          — GM_Testing, GM_Session, GM_MainScreen
-│   │   ├── PlayerControllers/  — PC_Testing, PC_Session, PC_MainScreen
+│   │   ├── GameModes/          — GM_Testing, GM_Session, GM_MainScreen, GM_MapBuilder
+│   │   ├── PlayerControllers/  — PC_Testing, PC_Session, PC_MainScreen, PC_MapBuilder
 │   │   └── Components/         — BP_SessionUIComponent, BP_SessionChatComponent, BP_HomeScreenUIComponent
+│   ├── Actors/
+│   │   ├── A_MapGrid           — Map builder grid actor
+│   │   └── MapBuilder/         — A_GhostTile (and place A_MapGrid here; a stray duplicate exists under Actors/ — clean up)
 │   ├── Dice/
 │   │   ├── A_BaseDiceActor     — Base dice actor Blueprint
 │   │   └── DiceActors/         — Individual die Blueprints (A_D4, A_D6, etc.)
@@ -105,7 +110,9 @@ Content/
 ├── Data/DataAssets/Dice/       — DA_ prefixed dice data assets
 ├── Fonts/                      — Three composite UFont assets (JetBrains Mono, Source Code Pro, DM Mono); each holds Regular/Bold/Italic/Bold Italic typefaces
 ├── Input/
-│   ├── Session/                — IMC_Session, IA_CameraMove, IA_CameraPan, IA_CameraPanReset, IA_CameraSprint, IA_CameraZoom, IA_FocusChat
+│   ├── Camera/                 — IMC_Camera, IA_CameraMove, IA_CameraPan, IA_CameraPanReset, IA_CameraSprint, IA_CameraZoom
+│   ├── Session/                — IMC_Session, IA_FocusChat
+│   ├── Build/                  — IMC_Build, IA_PlaceTile, IA_RotateTile, IA_DeleteTile
 │   └── Chat/                   — IMC_Chat, IA_ExitChat
 ├── UI/
 │   ├── Dice/                   — WE_DiceSelector, W_DiceTray
@@ -969,6 +976,34 @@ All components are public so the controller can access `SpringArm->TargetArmLeng
 
 ---
 
+### MapBuilder/
+
+#### AMapGrid
+**Type:** `AActor` | **Blueprint:** `A_MapGrid` | **Place in level:** yes (one instance)
+
+Defines the map-builder grid area and converts between grid cells and world space. Scene-root actor; ticking disabled. All math is done in actor-local space then transformed, so moving/rotating the actor moves the whole grid.
+
+**Config (EditAnywhere):** `TileSize` (float, 100) — tile width/depth in world units; `GridDimensions` (`FIntPoint`, 10×10) — tile counts on X/Y.
+
+**Key Methods:**
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `GridToWorld` | `FIntPoint Cell` | Returns the world-space center of the cell |
+| `WorldToGrid` | `FVector WorldLocation` | Returns the cell containing the location (verified inverse of `GridToWorld`; holds for non-square grids) |
+
+> **Gotcha:** `BeginPlay` currently draws a debug grid (`DrawDebugLine` + per-tile `DrawDebugSphere`, persistent) — temporary scaffolding that violates the no-debug-draw standard. Replace with a real rendered grid before commit; also add a `GetWorld()` null-check.
+
+---
+
+#### ATileActor
+**Type:** `AActor` | **Blueprint:** `BP_Tile` / `A_GhostTile`
+
+A single tile placed on the grid, represented by a static mesh. Mesh root forced `Movable`; ticking disabled; `TileMesh` is a GC-safe `UPROPERTY`.
+
+**Components:** `TileMesh` (`UStaticMeshComponent`, root)
+
+---
+
 ### PlayerControllers/
 
 #### AMainScreenController
@@ -1061,26 +1096,54 @@ DiceRollComponent = CreateDefaultSubobject<UDiceRollComponent>(TEXT("DiceRollCom
 ---
 
 #### AMapBuilderController
-**Type:** `ABaseCameraController` | **Blueprint:** `PC_MapBuilder` *(planned)*
+**Type:** `ABaseCameraController` | **Blueprint:** `PC_MapBuilder`
 
-Map builder controller. Inherits free-look camera from `ABaseCameraController`; adds grid-snapped tile placement with a ghost preview.
+Map builder controller. Inherits free-look camera from `ABaseCameraController`; handles cursor input and delegates all tile work to a `UTilePlacementComponent`. Owns no placement state itself.
 
-**OnPossess:** `Super::OnPossess()`, then adds `IMC_Build` (priority 0) and binds `IA_PlaceTile`.
+**Constructor:** creates the `UTilePlacementComponent` subobject.
 
-**BeginPlay:** `Super::BeginPlay()`, then caches the level's `AMapGrid` via `GetActorOfClass` (warns if none found); spawns the ghost preview tile *(in progress)*.
+**OnPossess:** `Super::OnPossess()`, then adds `IMC_Build` (priority 0) and binds `IA_RotateTile`, `IA_PlaceTile`, `IA_DeleteTile` (all `ETriggerEvent::Triggered`).
 
-**PlayerTick:** moves the ghost tile to the grid cell under the cursor each frame *(in progress)*.
+**BeginPlay:** `Super::BeginPlay()`, then caches the level's `AMapGrid` via `GetActorOfClass` (warns if none) for cursor-to-cell conversion.
+
+**PlayerTick:** computes the cell under the cursor and calls `TilePlacementComponent->UpdateGhostTile(Cell)`.
 
 | Member | Type | Description |
 |--------|------|-------------|
-| `TileClass` | `TSubclassOf<ATileActor>` | Tile to spawn (assign `BP_Tile` in the controller BP). *Currently declared `TObjectPtr<ATileActor> TileActor` — pending change to `TSubclassOf` so it can be spawned* |
-| `IMC_Build` / `IA_PlaceTile` | Input | Build-mode mapping context + place-tile action |
-| `MapGridRef` | `AMapGrid*` | Cached grid for coordinate conversion |
-| `GhostTileRef` | `ATileActor*` | Preview tile following the cursor |
-| `GetGridCellUnderCursor(FIntPoint&)` | bool | Deprojects the mouse and intersects the grid plane; false if the ray misses *(stub)* |
-| `Input_PlaceTile` | — | Spawns a tile at the cell under the cursor *(stub)* |
+| `TilePlacementComponent` | `UTilePlacementComponent*` | Subobject; owns all placement logic |
+| `MapGridRef` | `AMapGrid*` | Cached grid for cursor-to-cell conversion |
+| `IMC_Build` / `IA_RotateTile` / `IA_PlaceTile` / `IA_DeleteTile` | Input | Build-mode mapping context + actions |
+| `GetGridCellUnderCursor(FIntPoint&) const` | bool | Deprojects the mouse, intersects the grid plane (`PlaneZ` = grid's Z), returns the cell via `WorldToGrid`. False if the grid is null, deproject fails, the ray is parallel (`Dir.Z≈0`), or the hit is behind the camera (`HitDistance<0`) |
+| `Input_PlaceTile` / `Input_DeleteTile` / `Input_RotateTile` | — | Thin handlers: get the cursor cell, call the matching component op |
 
-> **Status:** Part A complete (class, inheritance, input binding, grid caching). Ghost preview + placement bodies are stubs pending Part B.
+> **Seam:** the controller owns the cursor (deproject is an `APlayerController` API) and produces an `FIntPoint Cell`; the component owns grid↔world conversion, spawning, occupancy, and the ghost. Both cache their own `AMapGrid` pointer (two refs to one shared level actor).
+
+---
+
+#### UTilePlacementComponent
+**Type:** `UActorComponent` | **Owner:** `AMapBuilderController`
+
+Owns map-builder tile placement: spawns and deletes tiles by grid cell, tracks cell occupancy, and drives the ghost preview. Ticks to ease the ghost toward its target rotation.
+
+**Config (EditAnywhere):**
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `TileClass` | `TSubclassOf<ATileActor>` | — | Tile spawned on placement (assign in the BP) |
+| `RotationInterpSpeed` | float | 8.0 | Ghost rotation easing speed |
+
+**Runtime state (private):** `WorldRef`, `MapGridRef`, `GhostTileRef`, `CurrentRotation` (`FRotator`), and `PlacedTiles` (`TMap<FIntPoint, TObjectPtr<ATileActor>>` — the occupancy map).
+
+**BeginPlay:** caches world + grid, spawns the ghost (collision disabled so future tile-vs-tile raycasts don't self-hit).
+
+**Key Methods (all keyed on the cell, supplied by the controller):**
+| Method | Parameters | Description |
+|--------|------------|-------------|
+| `PlaceTile` | `FIntPoint Cell` | Rejects if the cell is occupied; else spawns at `GridToWorld(Cell)` with `CurrentRotation` and adds to `PlacedTiles` |
+| `DeleteTile` | `FIntPoint Cell` | `PlacedTiles.Find(Cell)`; if found, `Destroy()` + `Remove` (no raycast) |
+| `RotateTile` | `float YawModifier` | Adds a 90°-scaled step to `CurrentRotation.Yaw`, wrapped via `FMath::UnwindDegrees` |
+| `UpdateGhostTile` | `FIntPoint Cell` | Moves the ghost to `GridToWorld(Cell)` |
+
+> **Note:** placement is keyed on `FIntPoint` (X, Y). The height system will migrate the key to `FIntVector` (adding a level) and intersect a plane at the active build level instead of the flat grid.
 
 ---
 
@@ -1755,6 +1818,7 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - `ETextCommit::OnUserMovedFocus` fires when the user clicks away — use this for click-outside-to-exit
 - When `UEditableText` commits on Enter, it also fires `OnUserMovedFocus` immediately — call `FocusChat()` at the end of the Enter handler to stay in chat
 - **An Input Action's modifiers (Negate / Swizzle Input Axis Values) can silently blank out when an IMC or IA asset is recreated or re-saved** — symptom: all WASD keys move the same direction (e.g. every key produces +X). The C++ is fine; re-add the modifiers in the editor. Check after any camera-input asset churn.
+- **An action does nothing unless it's wired in *both* places: an entry in its `IMC_*` AND a `BindAction` in `OnPossess`.** Missing either fails silently with no error. (Rotate did nothing until the `BindAction` was added.) For a two-direction axis on one action (e.g. rotate left/right), give one key a Negate modifier so `Value.Get<float>()` returns ±1.
 
 ### Widgets & UI
 - `BindWidget` members are null at member declaration time — always do setup work in `NativeConstruct`, not the header
@@ -1788,6 +1852,8 @@ GM panel for setting time of day and weather. Registered with `UTaskbar` as a `U
 - Declaring `Type* MemberName = Cast<...>` in `BeginPlay` creates a local variable that shadows the member — use `MemberName = Cast<...>` (no type prefix)
 - **A function parameter named the same as a member variable triggers "hides class member" (warnings-as-errors → build fails).** Rename the parameter or the member. (Hit when a handler param `RollMode` collided with the `RollMode` member — the member was renamed `ActiveRollMode`.)
 - **`CreateDefaultSubobject` names must be unique within a class** — two subobjects created with the same name string conflict at construction. Each needs a distinct `TEXT("...")` name.
+- **`TMap::Find` returns a pointer to the value (`ValueType*`), not the value.** For `TMap<K, TObjectPtr<T>>` it returns `TObjectPtr<T>*` — null-check the Find result first, then `IsValid(*Found)` before use/`Destroy`. Calling `IsValid` on the raw Find result is a compile error (pointer-to-pointer).
+- **A `.cpp` must fully `#include` any type it spawns or `IsValid`-checks** — a forward declaration alone produces incomplete-type errors (E0413) on `SpawnActor<T>` and `IsValid`, since the compiler can't prove the `UObject` base relationship.
 - `FRotator(Pitch, Yaw, Roll)` — constructor order is **not** (X, Y, Z); wrong order causes violent camera bouncing
 - `GetActorForwardVector()` has a Z component when pitched — zero out `Delta.Z` after computing movement to keep it flat
 - `FMath::Sign(float)` returns 1.f / -1.f / 0.f — good for collapsing scroll direction checks
@@ -1944,10 +2010,12 @@ The Campaign Manager is the primary hub between the home screen and an active se
 4. Session/Host integration — bring map into live session, Host-only gate
 
 **Checklist:**
-- [~] `ATileActor` + `UTileData` — `ATileActor` implemented (static-mesh actor, Movable root, GC-safe mesh); `UTileData` deferred until multiple tile types exist
+- [x] `ATileActor` + `UTileData` — `ATileActor` implemented (static-mesh actor, Movable root, GC-safe mesh); `UTileData` deferred until multiple tile types exist
 - [ ] `APropActor` + `UPropData` — free-floating prop placement, surface snapping
-- [~] `AMapGrid` — `GridToWorld`/`WorldToGrid` conversions done and verified (hold on non-square grids); debug grid lines + per-tile center spheres; real rendered grid + ghost preview pending
-- [~] `AMapBuilderController` — Part A done (subclasses `ABaseCameraController`, binds `IMC_Build`/`IA_PlaceTile`, caches `AMapGrid`); ghost preview (deproject → grid-plane → snap) + placement pending
+- [~] `AMapGrid` — `GridToWorld`/`WorldToGrid` conversions done and verified (hold on non-square grids); debug grid scaffolding only — real rendered grid still pending
+- [x] `AMapBuilderController` — inherits `ABaseCameraController`; cursor→cell (`GetGridCellUnderCursor`) + input binding; delegates all tile work to `UTilePlacementComponent`
+- [x] `UTilePlacementComponent` — place (reject-on-occupied) / delete (cell lookup) / rotate (90°, eased ghost) / ghost preview; `TMap<FIntPoint, ATileActor*>` occupancy map; all confirmed working at runtime
+- [ ] Bounds-clamping — placement/ghost currently runs off the grid edge (deferred)
 - [ ] `UMapSave` — map serialization and load
 - [ ] `UTileBrowser` — tile/prop browser UI
 - [ ] `UMapBuilderHUDComponent` — builder HUD lifecycle
@@ -2122,7 +2190,7 @@ This approach keeps all save I/O within UE's native save game system and makes a
 
 ---
 
-*Last updated: 2026-06-18* — Dice system re-architected: orchestration extracted from the `UDiceTray` widget into a new controller-owned `UDiceRollComponent` (`Components/`), which owns the `EDiceRollMode` enum, `FDiceRollRequest`/`FDiceTypeCount` structs, spawn/settle/result logic, and the `OnRollComplete`/`OnDiceFailsafeDestroyed`/`OnRollInitiated` delegates. `UDiceTray` shrank to pure presentation (builds a request, calls the component). `ASessionController` now creates the component; `USessionChatComponent` binds it directly (no longer reaches into the tray); `USessionUIComponent` assigns `SpawnVolume` to it. Two pre-existing tray bugs fixed in passing (DRY `FinalizeRoll`, failsafe-hang). Plus a fix to the camera input regression (blank IMC modifiers).
+*Last updated: 2026-06-19* — Map builder core placement complete. `AMapBuilderController` Part B implemented (cursor→cell via `GetGridCellUnderCursor`: deproject → ray-plane → `WorldToGrid`), then all placement extracted into a new controller-owned `UTilePlacementComponent` (`Components/`) that owns `TileClass`/`RotationInterpSpeed`/ghost/`MapGridRef` and a `TMap<FIntPoint, ATileActor*>` occupancy map, exposing `PlaceTile`/`DeleteTile`/`RotateTile`/`UpdateGhostTile` keyed on the cell. Controller is now input + cursor only. Place (reject-on-occupied), delete (cell lookup), rotate (90°, `RInterpTo`-eased ghost), and ghost preview all working. `AMapGrid`/`ATileActor` documented. New assets: `PC_MapBuilder`, `GM_MapBuilder`, `A_MapGrid`, `A_GhostTile`, `IMC_Build` + `IA_PlaceTile`/`IA_RotateTile`/`IA_DeleteTile`, `Dev_MapBuilder`.
 
 ---
 
