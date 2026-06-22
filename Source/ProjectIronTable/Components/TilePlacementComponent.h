@@ -34,7 +34,7 @@ private:
 
 	/** Maps each occupied grid cell to the tile placed there; used to prevent stacking and to delete by cell. */
 	UPROPERTY()
-	TMap<FIntPoint, TObjectPtr<ATileActor>> PlacedTiles;
+	TMap<FIntVector, TObjectPtr<ATileActor>> PlacedTiles;
 
 	/** Rotation applied to the ghost preview and to newly placed tiles. */
 	UPROPERTY()
@@ -54,22 +54,24 @@ public:
 #pragma endregion
 
 protected:
-	/** Caches the map grid and spawns the ghost preview tile. */
-	virtual void BeginPlay() override;
 
 	/** Eases the ghost preview toward the target rotation each frame. */
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 public:
+
+	/** Caches the map grid and spawns the ghost preview tile. */
+	void Init(AMapGrid* MapGrid);
+
 	/** Places a tile at the given grid cell, unless one already occupies it. */
-	void PlaceTile(FIntPoint Cell);
+	void PlaceTile(FIntVector Cell);
 
 	/** Deletes the tile occupying the given grid cell. */
-	void DeleteTile(FIntPoint Cell);
+	void DeleteTile(FIntVector Cell);
 
 	/** Adds a yaw step to the placement rotation, wrapped to [-180, 180]. */
 	void RotateTile(float YawModifier);
 
 	/** Moves the ghost preview to the given grid cell. */
-	void UpdateGhostTile(FIntPoint Cell);
+	void UpdateGhostTile(FIntVector Cell);
 };

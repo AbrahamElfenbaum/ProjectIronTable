@@ -12,26 +12,34 @@ class PROJECTIRONTABLE_API AMapGrid : public AActor
 {
 	GENERATED_BODY()
 	
-public:	
+public:
 	AMapGrid();
 
 	/** Width and depth of a single tile in world units. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map Grid Settings")
 	float TileSize = 100.f;
 
+	/** Vertical distance between build levels in world units. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map Grid Settings")
+	float TileHeight = 100.f;
+
 	/** Number of tiles along the X and Y axes. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map Grid Settings")
 	FIntPoint GridDimensions = FIntPoint(10, 10);
 
 protected:
+
 	/** Draws the debug grid visualization when play begins. */
 	virtual void BeginPlay() override;
 
-public:	
+public:
 
-	/** Returns the world-space center of the given grid cell. */
-	FVector GridToWorld(FIntPoint Cell) const;
+	/** Returns the world-space position of the given grid cell: centered on X and Y, base-aligned on Z by level. */
+	FVector GridToWorld(FIntVector Cell) const;
 
 	/** Returns the grid cell that contains the given world location. */
-	FIntPoint WorldToGrid(FVector WorldLocation) const;
+	FIntVector WorldToGrid(FVector WorldLocation) const;
+
+	/** Returns whether the given cell lies within the grid bounds. */
+	bool IsValidCell(FIntVector Cell) const;
 };

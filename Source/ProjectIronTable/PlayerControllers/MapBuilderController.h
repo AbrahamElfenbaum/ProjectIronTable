@@ -5,6 +5,7 @@
 #include "MapBuilderController.generated.h"
 
 class AMapGrid;
+class ATileActor;
 class UTilePlacementComponent;
 
 /** Player controller for the map builder. Inherits free-look camera and adds grid-snapped tile placement with a ghost preview. */
@@ -12,6 +13,11 @@ UCLASS()
 class PROJECTIRONTABLE_API AMapBuilderController : public ABaseCameraController
 {
 	GENERATED_BODY()
+
+public:
+
+	/** Creates the tile placement component. */
+	AMapBuilderController();
 
 protected:
 
@@ -22,9 +28,6 @@ protected:
 #pragma endregion
 
 public:
-
-	/** Creates the tile placement component. */
-	AMapBuilderController();
 
 #pragma region Components
 	/** Owns tile placement, deletion, the occupancy map, and the ghost preview. */
@@ -37,35 +40,57 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Build Input")
 	TObjectPtr<UInputMappingContext> IMC_Build;
 
-	/** Rotates the ghost preview and future placements in 90-degree steps. */
+	/** Raises or lowers the build level the cursor places tiles on. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Build Input")
-	TObjectPtr<UInputAction> IA_RotateTile;
+	TObjectPtr<UInputAction> IA_ChangeLevel;
+
+	/** Deletes the placed tile under the cursor. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Build Input")
+	TObjectPtr<UInputAction> IA_DeleteTile;
 
 	/** Places a tile on the grid cell under the cursor. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Build Input")
 	TObjectPtr<UInputAction> IA_PlaceTile;
 
-	/** Deletes the placed tile under the cursor. */
+	/** Rotates the ghost preview and future placements in 90-degree steps. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Build Input")
-	TObjectPtr<UInputAction> IA_DeleteTile;
+	TObjectPtr<UInputAction> IA_RotateTile;
+
+	/** Toggles the locked state of the tile under the cursor. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Build Input")
+	TObjectPtr<UInputAction> IA_ToggleTileLock;
 #pragma endregion
 
 private:
 
+#pragma region State
+	/** Grid level the cursor currently builds on; placement and the ghost ride this level's plane. */
+	int32 ActiveBuildLevel = 0;
+#pragma endregion
+
 #pragma region Input Handlers
-	/** Adds a 90-degree step to the current placement rotation. */
-	void Input_RotateTile(const FInputActionValue& Value);
+	/** Raises or lowers the active build level. */
+	void Input_ChangeLevel(const FInputActionValue& Value);
+	
+	/** Destroys the placed tile under the cursor. */
+	void Input_DeleteTile(const FInputActionValue& Value);
 
 	/** Spawns a tile at the grid cell under the cursor. */
 	void Input_PlaceTile(const FInputActionValue& Value);
 
-	/** Destroys the placed tile under the cursor. */
-	void Input_DeleteTile(const FInputActionValue& Value);
+	/** Adds a 90-degree step to the current placement rotation. */
+	void Input_RotateTile(const FInputActionValue& Value);
+
+	/** Toggles the locked state of the tile under the cursor. */
+	void Input_ToggleTileLock(const FInputActionValue& Value);
 #pragma endregion
 
 #pragma region Private Functions
 	/** Returns the grid cell under the mouse cursor; false if the cursor ray misses the grid plane. */
-	bool GetGridCellUnderCursor(FIntPoint& OutCell) const;
+	bool GetGridCellUnderCursor(FIntVector& OutCell) const;
+
+	/** Returns the tile under the cursor, or nullptr if the cursor ray hits no tile. */
+	ATileActor* FindTileActor();
 #pragma endregion
 
 protected:

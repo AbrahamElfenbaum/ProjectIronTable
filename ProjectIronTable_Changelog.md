@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-06-22
+
+**Implementation:**
+- **Map builder height / 3D stacking.** Cell key migrated `FIntPoint`→`FIntVector` (X, Y, level) across `UTilePlacementComponent` (`PlacedTiles`, `PlaceTile`/`DeleteTile`/`UpdateGhostTile`), `AMapGrid::GridToWorld`/`IsValidCell`, and the controller. Added `AMapGrid::TileHeight`. `AMapBuilderController` gained `ActiveBuildLevel` + `IA_ChangeLevel`; `GetGridCellUnderCursor` raises the cursor plane to `GridZ + ActiveBuildLevel*TileHeight` and stamps the level onto the cell. `WorldToGrid` now returns `FIntVector` (Z = `FloorToInt(localZ/TileHeight)`) — the true inverse of `GridToWorld`.
+- **Bounds-clamping.** `AMapGrid::IsValidCell(FIntVector)` + a bounds check in `GetGridCellUnderCursor` gate both ghost-follow and placement so neither runs off the grid edge.
+- **Raycast delete + tile locking.** New custom `Tiles` trace channel (default response Ignore; tiles Block it via a Query-collision preset on `BP_Tile`, ghost stays collision-off). `AMapBuilderController::FindTileActor` line-traces the cursor to the hit `ATileActor*`; `Input_DeleteTile` guards the grid, finds the tile, checks the lock, converts the tile's location through `WorldToGrid`, and deletes by cell — now level-independent (point at any tile, any level). `ATileActor` gained `bIsLocked` + getter/setter; `Input_ToggleTileLock` + `IA_ToggleTileLock` toggle it; locked tiles shield the delete ray.
+- **Dual-lookup race fix.** `UTilePlacementComponent` no longer resolves the grid itself; the controller resolves it once in `BeginPlay` and injects it via `Init(AMapGrid*)`. Fixed an intermittent null-deref crash in `PlaceTile`→`GridToWorld` (the component's independent `GetActorOfClass` could return null while the controller's succeeded).
+- Bug fixes: restored `DeleteTile`'s null guard on `PlacedTiles.Find` (latent crash); floored `WorldToGrid`'s Z (truncation broke negative levels); set trace length large to clear the free-fly camera distance.
+- Format pass on this session's 7 map-builder files (constructor-first, `.cpp` definition order matches `.h`, em-dash log normalization); `MapGrid.cpp` left unformatted pending debug-draw removal. ~123 files remain on the `/format-all` backlog.
+- New editor assets: `Tiles` trace channel + tile collision preset; `IA_ChangeLevel`, `IA_ToggleTileLock` (both added to `IMC_Build`).
+
+**Design:**
+- **Map builder elevation implemented** — tiles stack on discrete build levels via an "active build level"; placement and the ghost ride that level's plane.
+- **Empty-space placement allowed** — no support/scaffolding required; cliffs, overhangs, and floating tiles place freely (falls out of the plane-intersection approach).
+- **Delete is raycast and level-independent** (point-and-erase) rather than cell-based at the active level.
+- **Tile locking** — mapmakers can lock a tile to protect it from accidental deletion; a locked tile shields the delete ray. Lock is delete-protection only (doesn't affect placing on top).
+
+---
+
 ## 2026-06-19
 
 **Implementation:**

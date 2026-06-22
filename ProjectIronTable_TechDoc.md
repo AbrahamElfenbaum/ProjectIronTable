@@ -983,13 +983,14 @@ All components are public so the controller can access `SpringArm->TargetArmLeng
 
 Defines the map-builder grid area and converts between grid cells and world space. Scene-root actor; ticking disabled. All math is done in actor-local space then transformed, so moving/rotating the actor moves the whole grid.
 
-**Config (EditAnywhere):** `TileSize` (float, 100) — tile width/depth in world units; `GridDimensions` (`FIntPoint`, 10×10) — tile counts on X/Y.
+**Config (EditAnywhere):** `TileSize` (float, 100) — tile width/depth in world units; `TileHeight` (float, 100) — vertical distance between build levels; `GridDimensions` (`FIntPoint`, 10×10) — tile counts on X/Y.
 
 **Key Methods:**
 | Method | Parameters | Description |
 |--------|------------|-------------|
-| `GridToWorld` | `FIntPoint Cell` | Returns the world-space center of the cell |
-| `WorldToGrid` | `FVector WorldLocation` | Returns the cell containing the location (verified inverse of `GridToWorld`; holds for non-square grids) |
+| `GridToWorld` | `FIntVector Cell` | Returns the cell's world-space position — centered on X/Y, base-aligned on Z (`Cell.Z * TileHeight`) |
+| `WorldToGrid` | `FVector WorldLocation` | Returns the `FIntVector` cell containing the location (true inverse of `GridToWorld`; X/Y floor by `TileSize`, Z floors by `TileHeight`) |
+| `IsValidCell` | `FIntVector Cell` | Whether the cell's X/Y lie within `GridDimensions` (no Z bound — any level is buildable) |
 
 > **Gotcha:** `BeginPlay` currently draws a debug grid (`DrawDebugLine` + per-tile `DrawDebugSphere`, persistent) — temporary scaffolding that violates the no-debug-draw standard. Replace with a real rendered grid before commit; also add a `GetWorld()` null-check.
 
@@ -998,9 +999,11 @@ Defines the map-builder grid area and converts between grid cells and world spac
 #### ATileActor
 **Type:** `AActor` | **Blueprint:** `BP_Tile` / `A_GhostTile`
 
-A single tile placed on the grid, represented by a static mesh. Mesh root forced `Movable`; ticking disabled; `TileMesh` is a GC-safe `UPROPERTY`.
+A single tile placed on the grid, represented by a static mesh. Mesh root forced `Movable`; ticking disabled; `TileMesh` is a GC-safe `UPROPERTY`. Tiles Block the custom `Tiles` trace channel so the raycast delete can hit them.
 
 **Components:** `TileMesh` (`UStaticMeshComponent`, root)
+
+**State:** `bIsLocked` (bool, default false) with `GetIsLocked`/`SetIsLocked` — delete protection; a locked tile shields the delete ray. Toggled at runtime via the controller's lock input.
 
 ---
 
@@ -1098,13 +1101,13 @@ DiceRollComponent = CreateDefaultSubobject<UDiceRollComponent>(TEXT("DiceRollCom
 #### AMapBuilderController
 **Type:** `ABaseCameraController` | **Blueprint:** `PC_MapBuilder`
 
-Map builder controller. Inherits free-look camera from `ABaseCameraController`; handles cursor input and delegates all tile work to a `UTilePlacementComponent`. Owns no placement state itself.
+Map builder controller. Inherits free-look camera from `ABaseCameraController`; handles cursor input and delegates all tile work to a `UTilePlacementComponent`. Owns the active build level but no placement state.
 
 **Constructor:** creates the `UTilePlacementComponent` subobject.
 
-**OnPossess:** `Super::OnPossess()`, then adds `IMC_Build` (priority 0) and binds `IA_RotateTile`, `IA_PlaceTile`, `IA_DeleteTile` (all `ETriggerEvent::Triggered`).
+**OnPossess:** `Super::OnPossess()`, then adds `IMC_Build` (priority 0) and binds `IA_ChangeLevel`, `IA_DeleteTile`, `IA_PlaceTile`, `IA_RotateTile`, `IA_ToggleTileLock` (all `ETriggerEvent::Triggered`).
 
-**BeginPlay:** `Super::BeginPlay()`, then caches the level's `AMapGrid` via `GetActorOfClass` (warns if none) for cursor-to-cell conversion.
+**BeginPlay:** `Super::BeginPlay()`, caches the level's `AMapGrid` via `GetActorOfClass` (warns if none), then injects it into the component via `TilePlacementComponent->Init(MapGridRef)` — a single grid lookup pushed down to the component (fixes an earlier dual-lookup race).
 
 **PlayerTick:** computes the cell under the cursor and calls `TilePlacementComponent->UpdateGhostTile(Cell)`.
 
@@ -1112,11 +1115,16 @@ Map builder controller. Inherits free-look camera from `ABaseCameraController`; 
 |--------|------|-------------|
 | `TilePlacementComponent` | `UTilePlacementComponent*` | Subobject; owns all placement logic |
 | `MapGridRef` | `AMapGrid*` | Cached grid for cursor-to-cell conversion |
-| `IMC_Build` / `IA_RotateTile` / `IA_PlaceTile` / `IA_DeleteTile` | Input | Build-mode mapping context + actions |
-| `GetGridCellUnderCursor(FIntPoint&) const` | bool | Deprojects the mouse, intersects the grid plane (`PlaneZ` = grid's Z), returns the cell via `WorldToGrid`. False if the grid is null, deproject fails, the ray is parallel (`Dir.Z≈0`), or the hit is behind the camera (`HitDistance<0`) |
-| `Input_PlaceTile` / `Input_DeleteTile` / `Input_RotateTile` | — | Thin handlers: get the cursor cell, call the matching component op |
+| `ActiveBuildLevel` | `int32` | Current build level (Z); placement and the ghost ride this level's plane |
+| `IMC_Build` / `IA_PlaceTile` / `IA_RotateTile` / `IA_DeleteTile` / `IA_ChangeLevel` / `IA_ToggleTileLock` | Input | Build-mode mapping context + actions |
+| `GetGridCellUnderCursor(FIntVector&) const` | bool | Deprojects the mouse, intersects the plane at `GridZ + ActiveBuildLevel*TileHeight`, returns X/Y via `WorldToGrid` and stamps `ActiveBuildLevel` as Z. False if the grid is null, deproject fails, the ray is parallel, the hit is behind the camera, or the cell is out of bounds |
+| `FindTileActor()` | `ATileActor*` | Line-traces the cursor on the `Tiles` channel; returns the hit tile or nullptr |
+| `Input_PlaceTile` / `Input_RotateTile` / `Input_ChangeLevel` | — | Thin handlers: build/rotate at the cursor cell, or step the active level |
+| `Input_DeleteTile` / `Input_ToggleTileLock` | — | Use `FindTileActor`; delete checks `bIsLocked` then removes by `WorldToGrid(tile location)`; lock toggles `bIsLocked` |
 
-> **Seam:** the controller owns the cursor (deproject is an `APlayerController` API) and produces an `FIntPoint Cell`; the component owns grid↔world conversion, spawning, occupancy, and the ghost. Both cache their own `AMapGrid` pointer (two refs to one shared level actor).
+> **Seam:** the controller owns the cursor (deproject is an `APlayerController` API) and the active build level. Placement produces an `FIntVector` cell (X/Y from the cursor, Z from the active level); delete raycasts to a tile and recovers its cell via `WorldToGrid`. The component owns grid↔world conversion, spawning, occupancy, and the ghost. The grid is resolved once by the controller and injected via `Init` — no independent lookup.
+
+> **Trace channel:** placed tiles Block a custom `Tiles` channel (`ECC_GameTraceChannel1`, default response Ignore); the ghost keeps collision disabled so the delete ray passes through it to the real tile behind.
 
 ---
 
@@ -1131,19 +1139,17 @@ Owns map-builder tile placement: spawns and deletes tiles by grid cell, tracks c
 | `TileClass` | `TSubclassOf<ATileActor>` | — | Tile spawned on placement (assign in the BP) |
 | `RotationInterpSpeed` | float | 8.0 | Ghost rotation easing speed |
 
-**Runtime state (private):** `WorldRef`, `MapGridRef`, `GhostTileRef`, `CurrentRotation` (`FRotator`), and `PlacedTiles` (`TMap<FIntPoint, TObjectPtr<ATileActor>>` — the occupancy map).
+**Runtime state (private):** `WorldRef`, `MapGridRef`, `GhostTileRef`, `CurrentRotation` (`FRotator`), and `PlacedTiles` (`TMap<FIntVector, TObjectPtr<ATileActor>>` — the 3D occupancy map, keyed by X/Y/level).
 
-**BeginPlay:** caches world + grid, spawns the ghost (collision disabled so future tile-vs-tile raycasts don't self-hit).
+**Init(`AMapGrid*`):** called by the controller (replaces the component's own grid lookup). Caches world + the injected grid, spawns the ghost (collision disabled so the delete ray and future tile-vs-tile raycasts don't self-hit).
 
-**Key Methods (all keyed on the cell, supplied by the controller):**
+**Key Methods (all keyed on the `FIntVector` cell, supplied by the controller):**
 | Method | Parameters | Description |
 |--------|------------|-------------|
-| `PlaceTile` | `FIntPoint Cell` | Rejects if the cell is occupied; else spawns at `GridToWorld(Cell)` with `CurrentRotation` and adds to `PlacedTiles` |
-| `DeleteTile` | `FIntPoint Cell` | `PlacedTiles.Find(Cell)`; if found, `Destroy()` + `Remove` (no raycast) |
+| `PlaceTile` | `FIntVector Cell` | Rejects if the cell is occupied; else spawns at `GridToWorld(Cell)` with `CurrentRotation` and adds to `PlacedTiles` |
+| `DeleteTile` | `FIntVector Cell` | `PlacedTiles.Find(Cell)`; if found and valid, `Destroy()` + `Remove` |
 | `RotateTile` | `float YawModifier` | Adds a 90°-scaled step to `CurrentRotation.Yaw`, wrapped via `FMath::UnwindDegrees` |
-| `UpdateGhostTile` | `FIntPoint Cell` | Moves the ghost to `GridToWorld(Cell)` |
-
-> **Note:** placement is keyed on `FIntPoint` (X, Y). The height system will migrate the key to `FIntVector` (adding a level) and intersect a plane at the active build level instead of the flat grid.
+| `UpdateGhostTile` | `FIntVector Cell` | Moves the ghost to `GridToWorld(Cell)` |
 
 ---
 
@@ -2012,14 +2018,16 @@ The Campaign Manager is the primary hub between the home screen and an active se
 **Checklist:**
 - [x] `ATileActor` + `UTileData` — `ATileActor` implemented (static-mesh actor, Movable root, GC-safe mesh); `UTileData` deferred until multiple tile types exist
 - [ ] `APropActor` + `UPropData` — free-floating prop placement, surface snapping
-- [~] `AMapGrid` — `GridToWorld`/`WorldToGrid` conversions done and verified (hold on non-square grids); debug grid scaffolding only — real rendered grid still pending
-- [x] `AMapBuilderController` — inherits `ABaseCameraController`; cursor→cell (`GetGridCellUnderCursor`) + input binding; delegates all tile work to `UTilePlacementComponent`
-- [x] `UTilePlacementComponent` — place (reject-on-occupied) / delete (cell lookup) / rotate (90°, eased ghost) / ghost preview; `TMap<FIntPoint, ATileActor*>` occupancy map; all confirmed working at runtime
-- [ ] Bounds-clamping — placement/ghost currently runs off the grid edge (deferred)
+- [~] `AMapGrid` — `GridToWorld`/`WorldToGrid` (now 3D `FIntVector`, true inverses) + `IsValidCell` done; `TileHeight` added; debug grid scaffolding only — real rendered grid still pending
+- [x] `AMapBuilderController` — inherits `ABaseCameraController`; cursor→cell (`GetGridCellUnderCursor`, active-level plane) + input binding; raycast `FindTileActor`; injects the grid into the component via `Init`; active build level
+- [x] `UTilePlacementComponent` — place (reject-on-occupied) / delete / rotate (90°, eased ghost) / ghost preview; `TMap<FIntVector, ATileActor*>` 3D occupancy map; all confirmed working at runtime
+- [x] Bounds-clamping — `IsValidCell` gate in `GetGridCellUnderCursor` stops ghost/placement off the grid edge
+- [x] Height system — 3D `FIntVector` cells, `TileHeight` increments, active build level; tiles stack on levels (empty-space placement allowed, no scaffolding)
+- [x] Raycast delete + tile locking — `Tiles` trace channel; point-and-erase at any level; `bIsLocked` shields locked tiles
 - [ ] `UMapSave` — map serialization and load
 - [ ] `UTileBrowser` — tile/prop browser UI
-- [ ] `UMapBuilderHUDComponent` — builder HUD lifecycle
-- [ ] Height system — 3D tile coordinates, elevation increments, ramps
+- [ ] `UMapBuilderHUDComponent` — builder HUD lifecycle (incl. ghost-material distinction + locked-tile visual feedback)
+- [ ] Ramps / multi-cell tile sizes (occupancy currently assumes 1 actor = 1 cell)
 - [ ] Combat Map and World/Region Map scale modes
 - [ ] `UMapLocationPin` — location pins with combat map references
 - [ ] World → combat map drill-down via location pins
@@ -2190,7 +2198,7 @@ This approach keeps all save I/O within UE's native save game system and makes a
 
 ---
 
-*Last updated: 2026-06-19* — Map builder core placement complete. `AMapBuilderController` Part B implemented (cursor→cell via `GetGridCellUnderCursor`: deproject → ray-plane → `WorldToGrid`), then all placement extracted into a new controller-owned `UTilePlacementComponent` (`Components/`) that owns `TileClass`/`RotationInterpSpeed`/ghost/`MapGridRef` and a `TMap<FIntPoint, ATileActor*>` occupancy map, exposing `PlaceTile`/`DeleteTile`/`RotateTile`/`UpdateGhostTile` keyed on the cell. Controller is now input + cursor only. Place (reject-on-occupied), delete (cell lookup), rotate (90°, `RInterpTo`-eased ghost), and ghost preview all working. `AMapGrid`/`ATileActor` documented. New assets: `PC_MapBuilder`, `GM_MapBuilder`, `A_MapGrid`, `A_GhostTile`, `IMC_Build` + `IA_PlaceTile`/`IA_RotateTile`/`IA_DeleteTile`, `Dev_MapBuilder`.
+*Last updated: 2026-06-22* — Map builder height, bounds-clamping, and raycast delete + tile locking. Cell key migrated `FIntPoint`→`FIntVector` across `AMapGrid` (`GridToWorld`/`WorldToGrid` now true 3D inverses, `IsValidCell`, `TileHeight`), `UTilePlacementComponent` (3D `PlacedTiles`), and `AMapBuilderController` (`ActiveBuildLevel` + `IA_ChangeLevel`; cursor plane rises by level). `IsValidCell` gates placement/ghost to the grid. Delete is now raycast via `FindTileActor` on a custom `Tiles` channel — level-independent point-and-erase; `ATileActor.bIsLocked` (+ `IA_ToggleTileLock`) shields locked tiles. Grid resolution moved to a single controller lookup injected via `UTilePlacementComponent::Init` (fixed a dual-lookup null-deref race). New assets: `Tiles` trace channel + tile collision preset, `IA_ChangeLevel`, `IA_ToggleTileLock`.
 
 ---
 

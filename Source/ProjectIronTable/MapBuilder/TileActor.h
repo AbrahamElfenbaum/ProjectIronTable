@@ -17,9 +17,25 @@ public:
 	/** Creates the tile's static mesh component and sets it as the root. */
 	ATileActor();
 
+private:
+
+#pragma region State
+	/** Whether this tile is locked against deletion. */
+	UPROPERTY()
+	bool bIsLocked = false;
+#pragma endregion
+
+public:
+
 #pragma region Components
 	/** Static mesh that visually represents this tile. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components)
 	TObjectPtr<UStaticMeshComponent> TileMesh;
 #pragma endregion
+
+	/** Returns whether this tile is locked against deletion. */
+	bool GetIsLocked() const { return bIsLocked; }
+
+	/** Sets whether this tile is locked against deletion. */
+	void SetIsLocked(bool bInIsLocked) { bIsLocked = bInIsLocked; }
 };

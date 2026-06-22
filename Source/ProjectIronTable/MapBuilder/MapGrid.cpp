@@ -45,26 +45,39 @@ void AMapGrid::BeginPlay()
 	{
 		for (int32 y = 0; y < GridDimensions.Y; y++)
 		{
-			DrawDebugSphere(World, GridToWorld(FIntPoint(x, y)), 25.f, 12, FColor::Blue, true);
+			//DrawDebugSphere(World, GridToWorld(FIntPoint(x, y)), 25.f, 12, FColor::Blue, true);
 		}
 	}
 }
 
-// Returns the world-space center of the given grid cell.
-FVector AMapGrid::GridToWorld(FIntPoint Cell) const
+// Returns the world-space position of the given grid cell: centered on X and Y, base-aligned on Z by level.
+FVector AMapGrid::GridToWorld(FIntVector Cell) const
 {
-	FVector LocalOffset = {Cell.X * TileSize + TileSize / 2,
-						   Cell.Y * TileSize + TileSize / 2,
-						   0};
-	
+	FVector LocalOffset = { Cell.X * TileSize + TileSize / 2,
+						    Cell.Y * TileSize + TileSize / 2,
+						    Cell.Z * TileHeight };
+
 	return GetActorTransform().TransformPosition(LocalOffset);
 }
 
 // Returns the grid cell that contains the given world location.
-FIntPoint AMapGrid::WorldToGrid(FVector WorldLocation) const
+FIntVector AMapGrid::WorldToGrid(FVector WorldLocation) const
 {
 	FVector LocalPosition = GetActorTransform().InverseTransformPosition(WorldLocation);
 	FVector TileCount = LocalPosition / TileSize;
-	return FIntPoint(FMath::FloorToInt(TileCount.X), FMath::FloorToInt(TileCount.Y));
+	return FIntVector(FMath::FloorToInt(TileCount.X), FMath::FloorToInt(TileCount.Y), FMath::FloorToInt(LocalPosition.Z / TileHeight));
+}
+
+// Returns whether the given cell lies within the grid bounds.
+bool AMapGrid::IsValidCell(FIntVector Cell) const
+{
+	if (Cell.X < 0 ||
+		Cell.X > GridDimensions.X - 1 ||
+		Cell.Y < 0 ||
+		Cell.Y > GridDimensions.Y - 1)
+	{
+		return false;
+	}
+	return true;
 }
 

@@ -99,7 +99,7 @@ A virtual tabletop (VTT) simulator built in Unreal Engine 5.7. ProjectIronTable 
 - `Textures/` — Texture assets
 - `Input/Camera/` — `IMC_Camera`, `IA_CameraMove`, `IA_CameraPan`, `IA_CameraPanReset`, `IA_CameraSprint`, `IA_CameraZoom`
 - `Input/Session/` — `IMC_Session`, `IA_FocusChat`
-- `Input/Build/` — `IMC_Build`, `IA_PlaceTile`, `IA_RotateTile`, `IA_DeleteTile`
+- `Input/Build/` — `IMC_Build`, `IA_PlaceTile`, `IA_RotateTile`, `IA_DeleteTile`, `IA_ChangeLevel`, `IA_ToggleTileLock`
 - `Input/Chat/` — `IMC_Chat`, `IA_ExitChat`
 - `UI/Dice/` — Dice widget elements (`WE_DiceSelector`, `WE_DiceSelectorManager`)
 - `UI/Chat/` — Chat widgets (`W_ChatBox`, `WE_ChatChannel`, `WE_ChatTab`, `WE_ChatEntry`)

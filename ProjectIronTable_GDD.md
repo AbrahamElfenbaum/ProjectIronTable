@@ -177,6 +177,7 @@ Combat maps and world maps are separate saved map files. A world map can have **
 - Tiles are 3D actors that snap to a square grid (hex support planned after square is stable)
 - Tile sizes are variable: 1×1, 1×2, 2×2, etc. — size is defined per tile type in its data asset
 - Full height/elevation support — tiles can be placed at height increments, enabling multi-floor dungeons, cliffs, raised platforms, and ramps
+- Placement is **free at any level** — a tile does not need supporting tiles beneath it, so overhangs, floating platforms, bridges, and cliff faces can be built without scaffolding up from the ground
 - Tile categories: ground, water, elevated terrain, walls, roads, etc.
 
 **Prop system:**
@@ -188,6 +189,9 @@ Combat maps and world maps are separate saved map files. A world map can have **
 **Map builder mode:**
 - Separate input mode from "play mode"
 - In builder mode: place, move, rotate, and delete tiles and props; undo/redo
+- Tiles are placed on an **active build level** that the player raises/lowers; the placement preview rides that level's plane
+- **Delete is point-and-erase** — the player points at any tile (on any level) and removes it directly, independent of the active build level
+- Tiles can be **locked** to protect them from accidental deletion; a locked tile cannot be erased until it is unlocked
 - In play mode: map is static; only tokens can be moved
 - Anyone can build and save maps independently. Only the Host can bring a map into a live session.
 - Collaborative real-time editing (multiple players building together) is planned for a later phase
@@ -669,7 +673,7 @@ Resolved questions are struck through and kept for reference. Genuinely open ite
 
 ---
 
-*Last updated: 2026-05-31* — No design changes this session; implementation work only (variable line height, cursor/highlight bug fixes).
+*Last updated: 2026-06-22* — Map builder elevation decisions: tiles place on a raiseable **active build level**; **free placement at any level** (no scaffolding required, enabling overhangs/cliffs/floating platforms); **point-and-erase delete** (raycast, level-independent); **tile locking** to protect tiles from accidental deletion.
 
 ---
 

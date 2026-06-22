@@ -11,43 +11,6 @@ UTilePlacementComponent::UTilePlacementComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 }
 
-// Caches the map grid and spawns the ghost preview tile.
-void UTilePlacementComponent::BeginPlay()
-{
-	Super::BeginPlay();
-
-	WorldRef = GetWorld();
-
-	if (!IsValid(WorldRef))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UTilePlacementComponent::BeginPlay - World is null"));
-		return;
-	}
-
-	AActor* Found = UGameplayStatics::GetActorOfClass(this, AMapGrid::StaticClass());
-	MapGridRef = Cast<AMapGrid>(Found);
-
-	if (!IsValid(MapGridRef))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UTilePlacementComponent::BeginPlay - Map Grid is null"));
-		return;
-	}
-
-	FActorSpawnParameters SpawnParameters;
-	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	CurrentRotation = FRotator::ZeroRotator;
-
-	GhostTileRef = WorldRef->SpawnActor<ATileActor>(TileClass, FVector::ZeroVector, CurrentRotation, SpawnParameters);
-
-	if (!IsValid(GhostTileRef))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UTilePlacementComponent::BeginPlay - Ghost Tile is null"));
-		return;
-	}
-
-	GhostTileRef->SetActorEnableCollision(false);
-}
-
 // Eases the ghost preview toward the target rotation each frame.
 void UTilePlacementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
@@ -60,8 +23,42 @@ void UTilePlacementComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	}
 }
 
+// Caches the map grid and spawns the ghost preview tile.
+void UTilePlacementComponent::Init(AMapGrid* MapGrid)
+{
+	WorldRef = GetWorld();
+
+	if (!IsValid(WorldRef))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UTilePlacementComponent::Init — World is null"));
+		return;
+	}
+
+	MapGridRef = MapGrid;
+
+	if (!IsValid(MapGridRef))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UTilePlacementComponent::Init — Map Grid is null"));
+		return;
+	}
+
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	CurrentRotation = FRotator::ZeroRotator;
+
+	GhostTileRef = WorldRef->SpawnActor<ATileActor>(TileClass, FVector::ZeroVector, CurrentRotation, SpawnParameters);
+
+	if (!IsValid(GhostTileRef))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UTilePlacementComponent::Init — Ghost Tile is null"));
+		return;
+	}
+
+	GhostTileRef->SetActorEnableCollision(false);
+}
+
 // Places a tile at the given grid cell, unless one already occupies it.
-void UTilePlacementComponent::PlaceTile(FIntPoint Cell)
+void UTilePlacementComponent::PlaceTile(FIntVector Cell)
 {
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -73,7 +70,7 @@ void UTilePlacementComponent::PlaceTile(FIntPoint Cell)
 
 	if (!IsValid(Tile))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UTilePlacementComponent::PlaceTile - Tile is null"));
+		UE_LOG(LogTemp, Warning, TEXT("UTilePlacementComponent::PlaceTile — Tile is null"));
 		return;
 	}
 
@@ -81,7 +78,7 @@ void UTilePlacementComponent::PlaceTile(FIntPoint Cell)
 }
 
 // Deletes the tile occupying the given grid cell.
-void UTilePlacementComponent::DeleteTile(FIntPoint Cell)
+void UTilePlacementComponent::DeleteTile(FIntVector Cell)
 {
 	TObjectPtr<ATileActor>* Tile = PlacedTiles.Find(Cell);
 
@@ -99,9 +96,8 @@ void UTilePlacementComponent::RotateTile(float YawModifier)
 }
 
 // Moves the ghost preview to the given grid cell.
-void UTilePlacementComponent::UpdateGhostTile(FIntPoint Cell)
+void UTilePlacementComponent::UpdateGhostTile(FIntVector Cell)
 {
 	if (!IsValid(GhostTileRef)) return;
 	GhostTileRef->SetActorLocation(MapGridRef->GridToWorld(Cell));
 }
-
