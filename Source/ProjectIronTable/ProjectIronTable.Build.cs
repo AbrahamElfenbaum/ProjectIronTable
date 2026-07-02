@@ -34,7 +34,7 @@ public class ProjectIronTable : ModuleRules
 
         });
 
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "PhysicsCore", "EnhancedInput" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "PhysicsCore", "EnhancedInput", "OnlineSubsystem", "OnlineSubsystemEOS", "OnlineSubsystemUtils" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 

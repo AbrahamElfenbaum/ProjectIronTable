@@ -441,6 +441,20 @@ Root widget for the Campaign Manager. Inherits back-navigation from `UBaseScreen
 
 ### SaveLoad/
 
+#### USaveLoadSubsystem
+**Type:** `UGameInstanceSubsystem`
+
+The single save/load facade and EOS login owner. Written **generic and stateless**: all six methods take a base `USaveGame*` (save) or `TSubclassOf<USaveGame>` (load) plus an explicit `FString SlotName`, so callers pass any save class and cast the returned `USaveGame*` themselves. Completions run through non-dynamic delegates `FOnSaveComplete(bool, FString)` / `FOnLoadComplete(bool, USaveGame*, FString)`, fired via `ExecuteIfBound` on every exit path.
+
+Three data buckets (six methods):
+- **Local** (`SaveToLocal`/`LoadFromLocal`) — machine-specific → local disk (`SaveGameToSlot`/`LoadGameFromSlot`; load creates a fresh object from `SaveClass` on a miss). Synchronous.
+- **Client** (`SaveToClient`/`LoadFromClient`) — per-account → EOS Player Data Storage via `IOnlineUserCloud`, keyed to the ProductUserId. Async: `SaveGameToMemory` into `CloudSaveBuffer`, stash the caller delegate + `SaveClass`, register a completion handler, then `WriteUserFile`/`ReadUserFile`. `HandleReadUserFileComplete` creates a fresh save on **not-found** but fails on no-data/corrupt.
+- **Server** (`SaveToServer`/`LoadFromServer`) — authority-owned shared state. **Stubbed** (logs + fires failure); listen-host backend pending.
+
+`Initialize` starts EOS account-portal login (`Login(0, {accountportal})`) and logs the ProductUserId; `Deinitialize` clears the login delegate. Requires the "Online Subsystem EOS" plugin and `TitleStorageReadChunkLength` set non-zero in `[/Script/OnlineSubsystemEOS.EOSSettings]`.
+
+---
+
 #### FPanelLayoutData
 **Type:** `USTRUCT`
 
@@ -2198,7 +2212,7 @@ This approach keeps all save I/O within UE's native save game system and makes a
 
 ---
 
-*Last updated: 2026-06-22* — Map builder height, bounds-clamping, and raycast delete + tile locking. Cell key migrated `FIntPoint`→`FIntVector` across `AMapGrid` (`GridToWorld`/`WorldToGrid` now true 3D inverses, `IsValidCell`, `TileHeight`), `UTilePlacementComponent` (3D `PlacedTiles`), and `AMapBuilderController` (`ActiveBuildLevel` + `IA_ChangeLevel`; cursor plane rises by level). `IsValidCell` gates placement/ghost to the grid. Delete is now raycast via `FindTileActor` on a custom `Tiles` channel — level-independent point-and-erase; `ATileActor.bIsLocked` (+ `IA_ToggleTileLock`) shields locked tiles. Grid resolution moved to a single controller lookup injected via `UTilePlacementComponent::Init` (fixed a dual-lookup null-deref race). New assets: `Tiles` trace channel + tile collision preset, `IA_ChangeLevel`, `IA_ToggleTileLock`.
+*Last updated: 2026-07-02* — Added `USaveLoadSubsystem` (SaveLoad/): a generic, stateless three-bucket save/load facade + EOS account login. Local (`SaveToLocal`/`LoadFromLocal`, disk) and Client (`SaveToClient`/`LoadFromClient`, EOS Player Data Storage via `IOnlineUserCloud`) buckets implemented and round-trip verified; Server (`SaveToServer`/`LoadFromServer`) stubbed pending the listen-host backend. All methods take `USaveGame*`/`TSubclassOf<USaveGame>` + `FString SlotName` with non-dynamic `FOnSave/LoadComplete` delegates. EOS setup: "Online Subsystem EOS" plugin, `DefaultEngine.ini` artifact + `TitleStorageReadChunkLength=4096`. Cell key migrated `FIntPoint`→`FIntVector` across `AMapGrid` (`GridToWorld`/`WorldToGrid` now true 3D inverses, `IsValidCell`, `TileHeight`), `UTilePlacementComponent` (3D `PlacedTiles`), and `AMapBuilderController` (`ActiveBuildLevel` + `IA_ChangeLevel`; cursor plane rises by level). `IsValidCell` gates placement/ghost to the grid. Delete is now raycast via `FindTileActor` on a custom `Tiles` channel — level-independent point-and-erase; `ATileActor.bIsLocked` (+ `IA_ToggleTileLock`) shields locked tiles. Grid resolution moved to a single controller lookup injected via `UTilePlacementComponent::Init` (fixed a dual-lookup null-deref race). New assets: `Tiles` trace channel + tile collision preset, `IA_ChangeLevel`, `IA_ToggleTileLock`.
 
 ---
 

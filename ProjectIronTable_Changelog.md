@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-07-02
+
+**Implementation:**
+- **`USaveLoadSubsystem` (SaveLoad/) — new save/load facade + EOS login.** `UGameInstanceSubsystem` exposing a generic, stateless three-bucket API: `SaveToLocal`/`LoadFromLocal` (disk), `SaveToClient`/`LoadFromClient` (EOS Player Data Storage, per-account), `SaveToServer`/`LoadFromServer` (authority-owned, stubbed). All methods take `USaveGame*`/`TSubclassOf<USaveGame>` + `FString SlotName`; completions via non-dynamic `FOnSaveComplete`/`FOnLoadComplete`. Owns EOS account-portal login (`Initialize` → `Login(0, {accountportal})`; login handle cleared in `Deinitialize`).
+- **Local bucket done** — `SaveGameToSlot`/`LoadGameFromSlot`; load creates a fresh object from `SaveClass` on a miss.
+- **Client bucket done & round-trip verified** — async EOS cloud write/read via `IOnlineUserCloud` (`SaveGameToMemory`→`WriteUserFile`; `ReadUserFile`→`GetFileContents`→`LoadGameFromMemory`), caller delegate + `SaveClass` stashed across the async gap, delegate handles cleared in the completion handlers. `HandleReadUserFileComplete` create-fresh on not-found, fail on no-data/corrupt. Verified by round-tripping a `UPlayerSave` GUID through the cloud.
+- **Server bucket stubbed** — logs + fires failure; listen-host implementation pending.
+- **EOS project setup** — "Online Subsystem EOS" plugin enabled; `OnlineSubsystem`/`OnlineSubsystemEOS`/`OnlineSubsystemUtils` in Build.cs; `DefaultEngine.ini` EOS artifact + `TitleStorageReadChunkLength=4096` + `AuthScopeFlags=BasicProfile` + NetDriver block. Login verified (pulls a real ProductUserId).
+- Format pass on both `SaveLoadSubsystem` files (doc comments, failure-path warning logs, tabs→spaces).
+- Fixed a delegate-handle leak in `SaveToClient` — reordered to serialize before registering the write handler, so a `SaveGameToMemory` failure bails before any handle is registered.
+
+**Design:**
+- **Persistence architecture: generic three-bucket facade** — one subsystem owns all save/load; data split machine-local / per-account (EOS cloud) / server-shared, each behind a uniform async delegate contract.
+- **Server bucket = listen-host, host-authoritative** (per GDD server model); persisted to the host's EOS cloud, not player devices, to minimize local storage; authority routed by net mode so a future dedicated-server switch stays seamless.
+
+---
+
 ## 2026-06-22
 
 **Implementation:**
