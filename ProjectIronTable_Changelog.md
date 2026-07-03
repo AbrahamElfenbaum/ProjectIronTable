@@ -4,6 +4,16 @@
 
 ---
 
+## 2026-07-03
+
+**Implementation:**
+- **`USaveLoadSubsystem` server bucket done & round-trip verified.** `SaveToServer`/`LoadFromServer` implemented as **listen-host**: a net-mode authority gate (a subsystem has no `HasAuthority()`, so `GetGameInstance()->GetWorld()->GetNetMode() == NM_Client` → reject; Standalone/ListenServer/DedicatedServer proceed) followed by the shared cloud path, persisting to the **host's** EOS PDS (`GetUniquePlayerId(0)` on a listen host = the host). Verified end-to-end by round-tripping a `UPlayerSave` GUID through the server bucket (`PASS: round-trip GUID matched`). Added `Engine/GameInstance.h` + `Engine/World.h` includes.
+- **Online-resolve boilerplate extracted into four private helpers.** `GetUserCloud` (resolves OS + user cloud interface) and `GetCloudAndUser` (reuses it, adds identity + `GetUniquePlayerId(0)`) are **resolve-without-firing**: they return `false` and set an `OutError` string so the *caller* fires the correct delegate (save is 2-param, load is 3-param, so a shared fire is impossible); a `Context` param carries the caller's function name into the log. `WriteCloud`/`ReadCloud` (both `void`, non-const) own the full serialize→register→stash→write (and register→stash→read) path. `SaveToClient`/`LoadFromClient` collapsed to one-line wrappers; both write/read completion handlers now call `GetUserCloud`. Fixed a latent bug found during extraction — the cloud-interface `IsValid` check had to be preserved in `GetUserCloud` so all four callers get it.
+- **Technical decision — extraction over duplication:** the server bucket was built by first factoring the client cloud path into `WriteCloud`/`ReadCloud`, so `SaveToServer` is just the authority gate plus the same helper — a single backend seam shared by client and server, sized for a seamless dedicated-server swap later. Net line count barely moved; the win is one-source-of-truth (one fix reaches all callers) and a near-free server bucket.
+- New gotchas: online-subsystem shared-ptr types (`IOnlineUserCloudPtr`, `FUniqueNetIdPtr`) are typedefs and can't be forward-declared; `UGameInstanceSubsystem` is not in the console `Exec` routing chain (dev exec must live on the GameInstance and forward); UE Live Coding can leave a stale/mixed binary (full VS build with the editor closed).
+
+---
+
 ## 2026-07-02
 
 **Implementation:**

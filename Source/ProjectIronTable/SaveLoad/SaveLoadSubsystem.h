@@ -4,6 +4,8 @@
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "Templates/SubclassOf.h"
+#include "Interfaces/OnlineUserCloudInterface.h"
+#include "Online/CoreOnline.h"
 #include "SaveLoadSubsystem.generated.h"
 
 class USaveGame;
@@ -43,14 +45,14 @@ private:
 	/** Handle for the registered cloud-read completion delegate; cleared once the read finishes. */
 	FDelegateHandle ReadUserFileHandle;
 
-	/** Logs the ProductUserId on success or the error on failure when EOS login completes. */
-	void HandleLoginComplete(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& Error);
+	/** Logs the ProductUserID on success or the error on failure when EOS login completes. */
+	void HandleLoginComplete(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserID, const FString& Error);
 
 	/** Clears the write delegate handle and forwards the cloud-write result to the pending caller. */
-	void HandleWriteUserFileComplete(bool bWasSuccessful, const FUniqueNetId& UserId, const FString& FileName);
+	void HandleWriteUserFileComplete(bool bWasSuccessful, const FUniqueNetId& UserID, const FString& FileName);
 
 	/** Clears the read delegate handle, then creates a fresh save on a miss or deserializes the file bytes on success, and forwards the result. */
-	void HandleReadUserFileComplete(bool bWasSuccessful, const FUniqueNetId& UserId, const FString& FileName);
+	void HandleReadUserFileComplete(bool bWasSuccessful, const FUniqueNetId& UserID, const FString& FileName);
 
 protected:
 	/** Grabs the online subsystem and starts EOS login on game instance startup. */
@@ -72,9 +74,23 @@ public:
 	/** Reads state from EOS Player Data Storage (creating a fresh object if the file is not found), firing OnLoadComplete with the result. */
 	void LoadFromClient(TSubclassOf<USaveGame> SaveClass, const FString& SlotName, const FOnLoadComplete& OnLoadComplete);
 
-	/** Persists authority-owned shared state. Not yet implemented (listen-host backend pending). */
+	/** Persists authority-owned shared state to the host's EOS Player Data Storage. Rejects client callers (listen-host authority model). */
 	void SaveToServer(USaveGame* Data, const FString& SlotName, const FOnSaveComplete& OnSaveComplete);
 
-	/** Loads authority-owned shared state. Not yet implemented (listen-host backend pending). */
+	/** Loads authority-owned shared state from the host's EOS Player Data Storage. Rejects client callers (listen-host authority model). */
 	void LoadFromServer(TSubclassOf<USaveGame> SaveClass, const FString& SlotName, const FOnLoadComplete& OnLoadComplete);
+
+private:
+
+	/** Resolves the online subsystem and user cloud interface. Sets OutError and returns false on failure without firing any delegate; Context names the calling method for the log line. */
+	bool GetUserCloud(const TCHAR* Context, IOnlineUserCloudPtr& OutCloud, FString& OutError) const;
+
+	/** Resolves the user cloud interface plus the local player's net id, reusing GetUserCloud. Sets OutError and returns false on failure without firing any delegate. */
+	bool GetCloudAndUser(const TCHAR* Context, IOnlineUserCloudPtr& OutCloud, FUniqueNetIdPtr& OutUserID, FString& OutError) const;
+
+	/** Shared cloud write: serializes Data and starts an async write to the local user's EOS Player Data Storage, firing OnSaveComplete when the write returns. */
+	void WriteCloud(USaveGame* Data, const FString& SlotName, FOnSaveComplete OnSaveComplete);
+
+	/** Shared cloud read: starts an async read from the local user's EOS Player Data Storage, firing OnLoadComplete with the deserialized object (or a fresh one on a miss). */
+	void ReadCloud(TSubclassOf<USaveGame> SaveClass, const FString& SlotName, FOnLoadComplete OnLoadComplete);
 };
